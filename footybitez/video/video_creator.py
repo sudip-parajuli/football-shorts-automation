@@ -50,11 +50,18 @@ class VideoCreator:
         font_path = "arialbd.ttf"
         try:
              # Try Impact or Arial Black for maximum visibility
+             # Windows Paths
              if os.path.exists("C:\\Windows\\Fonts\\impact.ttf"):
                  font_path = "C:\\Windows\\Fonts\\impact.ttf"
              elif os.path.exists("C:\\Windows\\Fonts\\arialbd.ttf"):
                  font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
+             # Linux Paths (GHA)
+             elif os.path.exists("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"):
+                 font_path = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"
+             elif os.path.exists("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"):
+                 font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
                  
+             print(f"Using font: {font_path}")
              font = ImageFont.truetype(font_path, fontsize)
         except:
              font = ImageFont.load_default()
