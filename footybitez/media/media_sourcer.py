@@ -350,6 +350,8 @@ class MediaSourcer:
                         filepath = os.path.join(self.download_dir, filename)
                         self._download_file(src, filepath)
                         visual_assets.append(filepath)
+            else:
+                print(f"Pexels Video Search Failed: {response.status_code} - {response.text}")
         except Exception as pe:
             print(f"Pexels fetch error: {pe}")
 

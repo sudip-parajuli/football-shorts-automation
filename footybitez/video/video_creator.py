@@ -236,7 +236,9 @@ class VideoCreator:
             title_img = visual_assets.get('title_card')
             segment_media_pool = visual_assets.get('segment_media', [])
             # Fallback
-            if not segment_media_pool: segment_media_pool = ["footybitez/media/images/placeholder.jpg"]
+            if not segment_media_pool: 
+                base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                segment_media_pool = [os.path.join(base_dir, "media", "images", "placeholder.jpg")]
             
             # We map chunks to time ranges
             chunk_times = []

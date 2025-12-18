@@ -18,7 +18,7 @@ class ScriptGenerator:
         else:
             genai.configure(api_key=self.api_key)
             
-        self.models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
+        self.models = ["models/gemini-1.5-flash", "models/gemini-1.5-pro", "models/gemini-1.0-pro"]
 
     def generate_script(self, topic):
         """
@@ -47,12 +47,14 @@ class ScriptGenerator:
             except Exception as e:
                 logger.error(f"Groq generation failed: {e}")
 
-        # 2. Try Gemini
         if self.api_key:
             logger.info("Generating script with Gemini...")
             prompt = self._get_prompt(topic)
+            
+            # Try configured models
             for attempt, model_name in enumerate(self.models):
                 try:
+                    logger.info(f"Trying Gemini model: {model_name}")
                     model = genai.GenerativeModel(model_name)
                     response = model.generate_content(prompt)
                     text = response.text.strip()
@@ -67,7 +69,21 @@ class ScriptGenerator:
                     except: continue
                 except Exception as e:
                     logger.error(f"Gemini model {model_name} failed: {e}")
-                    time.sleep(1)
+            
+            # Final attempt: List and try the first available text model
+            try:
+                logger.info("Attempting to find ANY available Gemini model...")
+                for m in genai.list_models():
+                    if 'generateContent' in m.supported_generation_methods and 'gemini' in m.name:
+                        try:
+                            logger.info(f"Auto-selected fallback model: {m.name}")
+                            model = genai.GenerativeModel(m.name)
+                            response = model.generate_content(prompt)
+                            data = json.loads(response.text.strip().replace('```json', '').replace('```', ''))
+                            if self._validate_script_data(data):
+                                return data
+                        except: continue
+            except: pass
 
         # 3. Fallback: Wikipedia
         logger.warning("All AI models failed. Converting to Wikipedia Mode.")
