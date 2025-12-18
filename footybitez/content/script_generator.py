@@ -18,7 +18,7 @@ class ScriptGenerator:
         else:
             genai.configure(api_key=self.api_key)
             
-        self.models = ["gemini-pro", "gemini-1.5-flash"]
+        self.models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
 
     def generate_script(self, topic):
         """
