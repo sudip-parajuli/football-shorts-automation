@@ -3,6 +3,22 @@ import textwrap
 import numpy as np
 import random
 from PIL import Image, ImageDraw, ImageFont
+import warnings
+
+# Monkeypatch for MoviePy + Pillow 10 compatibility
+if not hasattr(Image, 'ANTIALIAS'):
+    try:
+        from PIL import Image as PILImage
+        if hasattr(PILImage, 'Resampling'):
+            Image.ANTIALIAS = PILImage.Resampling.LANCZOS
+        else:
+            Image.ANTIALIAS = 1 # Fallback for old PIL
+    except:
+        pass
+
+# Suppress DeprecationWarning for ANTIALIAS (comes from MoviePy internals)
+warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*ANTIALIAS.*")
+
 from moviepy.editor import *
 from footybitez.media.voice_generator import VoiceGenerator
 
