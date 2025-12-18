@@ -5,6 +5,13 @@ import random
 from PIL import Image, ImageDraw, ImageFont
 import warnings
 
+# Fix for MoviePy + ImageIO v3 deprecation warning
+try:
+    import imageio
+    import imageio.v2 as imageio_v2
+except ImportError:
+    pass
+
 # Monkeypatch for MoviePy + Pillow 10 compatibility
 if not hasattr(Image, 'ANTIALIAS'):
     try:
@@ -16,8 +23,9 @@ if not hasattr(Image, 'ANTIALIAS'):
     except:
         pass
 
-# Suppress DeprecationWarning for ANTIALIAS (comes from MoviePy internals)
-warnings.filterwarnings("ignore", category=DeprecationWarning, message=".*ANTIALIAS.*")
+# Suppress DeprecationWarning for ANTIALIAS and ImageIO
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", category=UserWarning, module="moviepy")
 
 from moviepy.editor import *
 from footybitez.media.voice_generator import VoiceGenerator
@@ -177,11 +185,21 @@ class VideoCreator:
         return captions
 
     def _time_str_to_seconds(self, time_str):
-        # Format: HH:MM:SS.mmm
+        """Robustly converts VTT time string to seconds."""
         try:
-            h, m, s = time_str.split(':')
-            return int(h) * 3600 + int(m) * 60 + float(s)
-        except:
+            # Handle comma instead of dot for milliseconds
+            time_str = time_str.replace(',', '.')
+            parts = time_str.split(':')
+            if len(parts) == 3:
+                h, m, s = parts
+                return int(h) * 3600 + int(m) * 60 + float(s)
+            elif len(parts) == 2:
+                m, s = parts
+                return int(m) * 60 + float(s)
+            else:
+                return float(parts[0])
+        except Exception as e:
+            print(f"Error parsing time string '{time_str}': {e}")
             return 0.0
 
     def create_video(self, script_data, visual_assets, background_music_path=None):

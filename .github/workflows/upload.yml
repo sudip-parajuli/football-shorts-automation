@@ -36,6 +36,11 @@ jobs:
         pip install -r footybitez/requirements.txt
         pip install python-dotenv
 
+    - name: Debug Edge TTS
+      run: |
+        edge-tts --list-voices | grep "Christopher" || echo "Christopher voice not found!"
+        edge-tts --list-voices | head -n 5
+
     - name: Run Automation
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}

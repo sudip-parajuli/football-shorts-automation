@@ -9,6 +9,6 @@ pillow==10.2.0
 python-dotenv==1.0.1
 gTTS
 groq
-duckduckgo_search
+ddgs
 beautifulsoup4
 wikipedia

@@ -141,17 +141,32 @@ class MediaSourcer:
         
         # 1. Try DuckDuckGo
         try:
-            from duckduckgo_search import DDGS
+            try:
+                from duckduckgo_search import DDGS
+            except ImportError:
+                from ddgs import DDGS
             print(f"Fetching profile image (DDG) for: {query}")
             with DDGS() as ddgs:
                 # Be very specific
                 search_term = f"{query} professional football player soccer portrait"
-                results = list(ddgs.images(search_term, max_results=3))
-                if results:
-                    img_url = results[0]['image']
-                    filename = f"profile_ddg_{hash(query)}.jpg"
-                    filepath = os.path.join(self.download_dir, filename)
-                    self._download_file(img_url, filepath)
+                # Use retry logic for DDG
+                for attempt in range(2):
+                    try:
+                        results = list(ddgs.images(search_term, max_results=3))
+                        if results:
+                            img_url = results[0].get('image')
+                            if img_url:
+                                filename = f"profile_ddg_{hash(query)}.jpg"
+                                filepath = os.path.join(self.download_dir, filename)
+                                self._download_file(img_url, filepath)
+                                break
+                    except Exception as e:
+                        if "403" in str(e) and attempt == 0:
+                            print("DDG Rate Limit hit, retrying with slight delay...")
+                            import time
+                            time.sleep(2)
+                            continue
+                        raise e
         except Exception as e:
             print(f"DDG Profile fetch failed: {e}")
         
@@ -218,15 +233,29 @@ class MediaSourcer:
         """Fetches a high-impact cinematic image using DuckDuckGo, falls back to Pexels."""
         filepath = None
         try:
-            from duckduckgo_search import DDGS
+            try:
+                from duckduckgo_search import DDGS
+            except ImportError:
+                from ddgs import DDGS
             print(f"Fetching title card (DDG) for: {query}")
             with DDGS() as ddgs:
-                results = list(ddgs.images(f"{query} football cinematic wallpaper 4k", max_results=3))
-                if results:
-                    img_url = results[0]['image']
-                    filename = f"title_ddg_{hash(query)}.jpg"
-                    filepath = os.path.join(self.download_dir, filename)
-                    self._download_file(img_url, filepath)
+                # Use retry logic for DDG
+                for attempt in range(2):
+                    try:
+                        results = list(ddgs.images(f"{query} football cinematic wallpaper 4k", max_results=3))
+                        if results:
+                            img_url = results[0].get('image')
+                            if img_url:
+                                filename = f"title_ddg_{hash(query)}.jpg"
+                                filepath = os.path.join(self.download_dir, filename)
+                                self._download_file(img_url, filepath)
+                                break
+                    except Exception as e:
+                        if "403" in str(e) and attempt == 0:
+                            import time
+                            time.sleep(2)
+                            continue
+                        raise e
         except Exception as e:
             print(f"DDG Title fetch failed: {e}")
             
@@ -291,16 +320,31 @@ class MediaSourcer:
         visual_assets = []
         
         try:
-            from duckduckgo_search import DDGS
+            try:
+                from duckduckgo_search import DDGS
+            except ImportError:
+                from ddgs import DDGS
             
             # 1. Fetch DDG Images (Specifics)
             print(f"Fetching DDG Images for: {query}")
             with DDGS() as ddgs:
-                results = list(ddgs.images(f"{query} football high quality", max_results=count))
+                # Use retry logic for DDG
+                results = []
+                for attempt in range(2):
+                    try:
+                        results = list(ddgs.images(f"{query} football high quality", max_results=count))
+                        break
+                    except Exception as e:
+                        if "403" in str(e) and attempt == 0:
+                            import time
+                            time.sleep(2)
+                            continue
+                        raise e
                 
             for res in results:
                 try:
-                    url = res['image']
+                    url = res.get('image')
+                    if not url: continue
                     ext = url.split('.')[-1].split('?')[0]
                     if ext.lower() not in ['jpg', 'jpeg', 'png', 'webp']: ext = 'jpg'
                     
