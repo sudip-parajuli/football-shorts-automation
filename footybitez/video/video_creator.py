@@ -311,13 +311,13 @@ class VideoCreator:
                          if clip.duration < duration: clip = clip.loop(duration=duration)
                          else: clip = clip.subclip(0, duration)
                          clip = self._resize_to_vertical(clip)
-                         visual_clips.append(clip)
+                         visual_clips.append(self._ensure_rgb(clip))
                      else:
                          clip = ImageClip(img_path).set_duration(duration)
                          # Slow Zoom
                          clip = clip.resize(lambda t: 1 + 0.05 * t/duration)
                          clip = self._resize_to_vertical(clip)
-                         visual_clips.append(clip)
+                         visual_clips.append(self._ensure_rgb(clip))
                 else:
                     # Segment/Outro - use multiple cuts if long
                     remaining_chunk = duration
@@ -342,11 +342,11 @@ class VideoCreator:
                                 max_s = v.duration - cut_dur
                                 s = 0 if max_s <= 0 else random.uniform(0, max_s)
                                 v = v.subclip(s, s+cut_dur)
-                            chunk_visuals.append(self._resize_to_vertical(v))
+                            chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(v)))
                         else:
                             img = ImageClip(media_path).set_duration(cut_dur)
                             img = img.resize(lambda t: 1 + 0.1 * t/cut_dur)
-                            chunk_visuals.append(self._resize_to_vertical(img))
+                            chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(img)))
                             
                         remaining_chunk -= cut_dur
                         
@@ -392,7 +392,7 @@ class VideoCreator:
                     # For now keep center but maybe adjust y in create_text_image
                     
                     txt_clip = ImageClip(txt_img_path).set_start(cap['start']).set_duration(dur)
-                    text_clips.append(txt_clip)
+                    text_clips.append(self._ensure_rgb(txt_clip))
 
             # 5. Profile Overlay (Corner)
             overlays = [final_video_track] + text_clips
@@ -409,12 +409,12 @@ class VideoCreator:
                     w, h = profile_clip.size
                     Y, X = np.ogrid[:h, :w]
                     center = (h/2, w/2)
-                    mask_arr = ((X - center[1])**2 + (Y-center[0])**2 <= (h/2)**2).astype(float)
+                    mask_arr = ((X - center[1])**2 + (Y-center[0])**2 <= (h/2)**2).astype(np.float32)
                     mask = ImageClip(mask_arr, ismask=True).set_duration(total_duration)
-                    profile_clip = profile_clip.set_mask(mask)
+                    profile_clip = self._ensure_rgb(profile_clip).set_mask(mask)
                     
                     profile_clip = profile_clip.set_position(("right", "top")).margin(top=50, right=20, opacity=0)
-                    overlays.append(profile_clip)
+                    overlays.append(self._ensure_rgb(profile_clip))
                  except Exception as e:
                      print(f"Profile overlay error: {e}")
 
@@ -478,6 +478,31 @@ class VideoCreator:
             clip = clip.crop(y1=h/2 - new_height/2, width=w, height=new_height)
             
         return clip.resize((1080, 1920))
+
+    def _ensure_rgb(self, clip):
+        """Ensures the clip frames are in RGB (3 channels)."""
+        def make_rgb(frame):
+            if len(frame.shape) == 2:
+                # Grayscale to RGB
+                return np.dstack([frame] * 3)
+            elif len(frame.shape) == 3:
+                if frame.shape[2] == 4:
+                    # RGBA to RGB
+                    return frame[:,:,:3]
+                elif frame.shape[2] == 2:
+                    # Grayscale + Alpha to RGB
+                    # We take the first channel as grayscale and stack it
+                    return np.dstack([frame[:,:,0]] * 3)
+                elif frame.shape[2] == 3:
+                    return frame
+            
+            # Fallback for any other weirdness
+            if len(frame.shape) == 3 and frame.shape[2] > 3:
+                return frame[:,:,:3]
+            
+            return frame
+        return clip.fl_image(make_rgb)
+
 
 if __name__ == "__main__":
     # Test stub
