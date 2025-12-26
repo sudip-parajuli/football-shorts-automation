@@ -126,13 +126,27 @@ class MediaSourcer:
             headers = {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
             }
-            with requests.get(url, headers=headers, stream=True) as r:
+            with requests.get(url, headers=headers, stream=True, timeout=15) as r:
                 r.raise_for_status()
+                
+                # Check content type for safety
+                content_type = r.headers.get('Content-Type', '').lower()
+                if 'text/html' in content_type:
+                    print(f"Warning: URL {url} returned HTML instead of media. Skipping.")
+                    return
+
                 with open(filepath, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
+            
+            # Final check: is it an empty file?
+            if os.path.exists(filepath) and os.path.getsize(filepath) < 100:
+                print(f"Warning: Downloaded file {filepath} is too small (<100 bytes). Likely corrupted.")
+                os.remove(filepath)
         except Exception as e:
             print(f"Failed to download {url}: {e}")
+            if os.path.exists(filepath):
+                os.remove(filepath)
 
     # Updated MediaSourcer with DuckDuckGo for Images
     def get_profile_image(self, query):
@@ -141,10 +155,9 @@ class MediaSourcer:
         
         # 1. Try DuckDuckGo
         try:
-            try:
-                from duckduckgo_search import DDGS
-            except ImportError:
-                from ddgs import DDGS
+            from duckduckgo_search import DDGS
+            import time
+            time.sleep(1) # Tiny delay to mitigate rate limiting
             print(f"Fetching profile image (DDG) for: {query}")
             with DDGS() as ddgs:
                 # Be very specific
@@ -320,10 +333,9 @@ class MediaSourcer:
         visual_assets = []
         
         try:
-            try:
-                from duckduckgo_search import DDGS
-            except ImportError:
-                from ddgs import DDGS
+            from duckduckgo_search import DDGS
+            import time
+            time.sleep(1) # Tiny delay
             
             # 1. Fetch DDG Images (Specifics)
             print(f"Fetching DDG Images for: {query}")
