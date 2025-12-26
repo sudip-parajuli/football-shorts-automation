@@ -290,7 +290,7 @@ class MediaSourcer:
             print(f"Pexels fallback failed: {e}")
         return None
             
-    def get_media(self, query, count=5, video_mode=True):
+    def get_media(self, query, count=5, video_mode=True, orientation="portrait"):
         """
         Fetches media.
         If video_mode=True (default), tries to fetch VIDEOS from Pexels (best for background).
@@ -371,7 +371,7 @@ class MediaSourcer:
         # Pexels Logic (Preserved)
         img_url = "https://api.pexels.com/videos/search"
         headers = self.headers
-        params = {"query": query + " football", "per_page": count, "orientation": "portrait"}
+        params = {"query": query + " football", "per_page": count, "orientation": orientation}
         
         try:
             response = requests.get(img_url, headers=headers, params=params)
@@ -380,10 +380,11 @@ class MediaSourcer:
                 for video in videos:
                     # Get best quality
                     video_files = video.get('video_files', [])
-                    # Prefer HD vertical
+                    # Prefer HD based on orientation
                     best_video = None
                     for vf in video_files:
-                        if vf['width'] < vf['height'] and vf['height'] >= 720:
+                        is_correct_orient = (vf['width'] < vf['height']) if orientation == "portrait" else (vf['width'] > vf['height'])
+                        if is_correct_orient and vf['height'] >= 720:
                              best_video = vf
                              break
                     if not best_video and video_files: best_video = video_files[0]

@@ -57,9 +57,12 @@ class YouTubeUploader:
             print("Cannot upload: Service not authenticated.")
             return None
 
+        # Metadata handling
+        is_short = tags and "shorts" in [t.lower() for t in tags]
+        
         body = {
             "snippet": {
-                "title": title[:100], # Max 100 chars
+                "title": title[:100].replace("#shorts", "").strip() if not is_short else title[:100], # Max 100 chars
                 "description": description[:5000],
                 "tags": tags,
                 "categoryId": category_id
