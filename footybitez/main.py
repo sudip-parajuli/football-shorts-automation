@@ -1,5 +1,10 @@
 import os
 import sys
+from PIL import Image
+
+# Monkeypatch for MoviePy 1.0.3 compatibility with Pillow 10+
+if not hasattr(Image, 'ANTIALIAS'):
+    Image.ANTIALIAS = Image.LANCZOS
 import logging
 import random
 from datetime import datetime
