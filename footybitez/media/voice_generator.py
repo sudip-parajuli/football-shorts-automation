@@ -20,51 +20,54 @@ class VoiceGenerator:
         tts = gTTS(text=text, lang='en', tld='co.uk')
         tts.save(output_path)
 
+    async def _generate_async(self, text, output_path, vtt_path, json_path, voice):
+        """Asynchronous core for generating audio and word-level timing."""
+        import edge_tts
+        import json
+        
+        communicate = edge_tts.Communicate(text, voice)
+        submaker = edge_tts.SubMaker()
+        word_map = []
+
+        with open(output_path, "wb") as file:
+            async for chunk in communicate.stream():
+                if chunk["type"] == "audio":
+                    file.write(chunk["data"])
+                elif chunk["type"] == "WordBoundary":
+                    # Collect word boundaries
+                    word_map.append({
+                        "word": chunk["text"],
+                        "start": chunk["offset"] / 10**7, # Convert 100ns to seconds
+                        "duration": chunk["duration"] / 10**7
+                    })
+                    submaker.feed(chunk)
+
+        with open(vtt_path, "w", encoding="utf-8") as file:
+            file.write(submaker.generate())
+        
+        with open(json_path, "w", encoding="utf-8") as file:
+            json.dump(word_map, file)
+
     def generate(self, text, filename):
         """
-        Generates audio and subtitles from text using edge-tts.
+        Generates audio, VTT, and word-level JSON using edge-tts.
         Returns the path to the audio file.
-        Also generates a .vtt file with the same basename.
         """
-        clean_text = text.replace('*', '') # Remove highlights for audio
+        import asyncio
+        clean_text = text.replace('*', '') 
         output_path = os.path.join(self.output_dir, filename)
         vtt_path = output_path.replace('.mp3', '.vtt')
+        json_path = output_path.replace('.mp3', '.json')
         
-        # Ensure output dir exists
         os.makedirs(self.output_dir, exist_ok=True)
-        
-        # Use ChristopherNeural for viral shorts top tier voice
         voice = "en-US-ChristopherNeural" 
         
         max_retries = 3
-        import time
-        import random
-
         for attempt in range(max_retries):
             try:
-                print(f"Generating audio for: {filename} (Attempt {attempt+1})")
+                logger.info(f"Generating audio/timing for: {filename} (Attempt {attempt+1})")
+                asyncio.run(self._generate_async(clean_text, output_path, vtt_path, json_path, voice))
                 
-                cmd = [
-                    "edge-tts",
-                    "--voice", voice,
-                    "--text", clean_text,
-                    "--write-media", output_path,
-                    "--write-subtitles", vtt_path
-                ]
-                
-                # Run CLI
-                logger.info(f"Executing: {' '.join(cmd)}")
-                result = subprocess.run(cmd, capture_output=True, text=True)
-                
-                if result.returncode != 0:
-                    logger.error(f"Edge TTS CLI failed (Attempt {attempt+1}): {result.stderr}")
-                    if attempt < max_retries - 1:
-                        sleep_time = random.uniform(3, 7)
-                        time.sleep(sleep_time)
-                        continue
-                    else:
-                        raise Exception(f"Edge TTS failed after {max_retries} attempts: {result.stderr}")
-                    
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                     logger.info(f"Successfully generated audio for {filename}")
                     return output_path
@@ -72,25 +75,18 @@ class VoiceGenerator:
                     raise Exception("Output file is empty or missing")
 
             except Exception as e:
+                logger.warning(f"Attempt {attempt+1} failed: {e}")
                 if attempt < max_retries - 1:
-                    logger.warning(f"Edge TTS attempt {attempt+1} failed ({e}). Retrying...")
-                    time.sleep(random.uniform(3, 7))
+                    time.sleep(random.uniform(2, 5))
                 else:
-                    logger.error(f"Edge TTS failed ({e}). Falling back to gTTS...")
-                    try:
-                        # Fallback (No subtitles for gTTS natively)
-                        from gtts import gTTS
-                        # Use co.uk for a more neutral/professional sounding English voice (usually female though)
-                        tts = gTTS(text=clean_text, lang='en', tld='co.uk')
-                        tts.save(output_path)
-                        
-                        # Calculate a slightly slower duration to avoid text being "ahead"
-                        # Short sentences are often spoken slower than long ones.
-                        self._generate_fallback_vtt(clean_text, vtt_path, audio_path=output_path)
-                        return output_path
-                    except Exception as e2:
-                         logger.error(f"gTTS failed: {e2}")
-                         raise e2
+                    logger.error("Edge TTS failed completely. Falling back to gTTS.")
+                    # Minimal gTTS fallback (no timing)
+                    from gtts import gTTS
+                    tts = gTTS(text=clean_text, lang='en', tld='co.uk')
+                    tts.save(output_path)
+                    # Create dummy empty JSON for safety
+                    with open(json_path, 'w') as f: f.write("[]")
+                    return output_path
 
     def _generate_fallback_vtt(self, text, vtt_path, audio_path=None):
         """Generates a rough VTT file for fallback."""
