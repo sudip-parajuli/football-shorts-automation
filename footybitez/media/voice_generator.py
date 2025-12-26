@@ -43,7 +43,7 @@ class VoiceGenerator:
                     submaker.feed(chunk)
 
         with open(vtt_path, "w", encoding="utf-8") as file:
-            file.write(submaker.generate())
+            file.write(submaker.get_srt())
         
         with open(json_path, "w", encoding="utf-8") as file:
             json.dump(word_map, file)

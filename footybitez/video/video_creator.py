@@ -226,36 +226,16 @@ class VideoCreator:
             chunks.append({"type": "outro", "text": script_data.get("outro", ""), "is_title": False})
 
             # 2. Generate Audio & VTT
+            # 2. Generate Audio
             audio_clips = []
-            caption_data = [] 
+            audio_paths = [] # Store for JSON/VTT lookups
             current_audio_time = 0
             
             for chunk in chunks:
                 path = self.voice_gen.generate(chunk['text'], f"{chunk['type']}.mp3")
                 audioclip = AudioFileClip(path)
                 audio_clips.append(audioclip)
-                
-                # Parse VTT
-                vtt_path = path.replace('.mp3', '.vtt')
-                chunk_captions = self.parse_vtt(vtt_path)
-                
-                keywords = [w.strip('*') for w in chunk['text'].split() if w.startswith('*') and w.endswith('*')]
-                
-                for idx, cap in enumerate(chunk_captions):
-                    cap['start'] += current_audio_time
-                    cap['end'] += current_audio_time
-                    cap['keywords'] = keywords
-                    cap['is_title'] = chunk.get('is_title', False)
-                    
-                    # Fix Gaps
-                    if idx < len(chunk_captions) - 1:
-                        next_start = chunk_captions[idx+1]['start'] + current_audio_time
-                        cap['end'] = next_start
-                    else:
-                        cap['end'] = current_audio_time + audioclip.duration
-                        
-                    caption_data.append(cap)
-                
+                audio_paths.append(path)
                 current_audio_time += audioclip.duration
 
             final_audio = concatenate_audioclips(audio_clips)
@@ -354,45 +334,28 @@ class VideoCreator:
 
             final_video_track = concatenate_videoclips(visual_clips).set_duration(total_duration)
 
-            # 4. Text Overlays
+            # 4. Text Overlays (Karaoke)
             text_clips = []
-            for cap in caption_data:
-                # Title Styling vs Caption Styling
-                is_title = cap.get('is_title', False)
-                fontsize = 110 if is_title else 90
+            accumulated_time = 0
+            for i, chunk in enumerate(chunks):
+                audio_path = audio_paths[i]
+                duration = audio_clips[i].duration
                 
-                display_text = cap['text']
+                is_title = chunk.get('is_title', False)
+                if is_title:
+                    # Simple title overlay for title card
+                    path = self.create_text_image(chunk['text'], fontsize=110, color_scheme="orange")
+                    title_clip = ImageClip(path).set_start(accumulated_time).set_duration(duration).set_position('center')
+                    # Add subtle zoom to title too
+                    title_clip = title_clip.resize(lambda t: 1 + 0.05 * t/duration)
+                    text_clips.append(self._ensure_rgb(title_clip))
+                else:
+                    # Karaoke for segments/outro
+                    karaoke = self._create_karaoke_captions(audio_path, duration, accumulated_time)
+                    if karaoke:
+                        text_clips.append(karaoke)
                 
-                # Apply Highlights
-                words = display_text.split()
-                final_words = []
-                for forw in words:
-                     final_words.append(forw)
-                
-                # Actually create_text_video logic for yellow needs * markers.
-                # We need to re-apply asterisks based on keywords.
-                
-                reconstructed_text = []
-                for w in words:
-                    clean = w.strip('.,!?').replace('*', '') # removing existing just in case
-                    if clean in cap['keywords']:
-                        reconstructed_text.append(f"*{w}*")
-                    else:
-                        reconstructed_text.append(w)
-                
-                final_str = " ".join(reconstructed_text)
-
-                color_scheme = "orange" if is_title else "white"
-                txt_img_path = self.create_text_image(final_str, fontsize=fontsize, color_scheme=color_scheme)
-                if txt_img_path:
-                    dur = cap['end'] - cap['start']
-                    if dur < 0.2: dur = 0.5
-                    
-                    # Position: Center for Title, Bottom-Center for Captions?
-                    # For now keep center but maybe adjust y in create_text_image
-                    
-                    txt_clip = ImageClip(txt_img_path).set_start(cap['start']).set_duration(dur)
-                    text_clips.append(self._ensure_rgb(txt_clip))
+                accumulated_time += duration
 
             # 5. Profile Overlay (Corner)
             overlays = [final_video_track] + text_clips
@@ -435,29 +398,94 @@ class VideoCreator:
             output_filename = "final_short.mp4"
             output_path = os.path.join(self.output_dir, output_filename)
             final_video.write_videofile(
-                output_path, fps=30, codec='libx264', logger=None
+                output_path, fps=30, codec='libx264', logger=None, audio_codec="aac"
             )
             return output_path
         except Exception as e:
              print(f"Video creation failed: {e}")
              raise e
-        finally:
-            # Cleanup Clips (Release Files)
-            try:
-                for c in all_video_clips:
-                    try: c.close()
-                    except: pass
-                for c in audio_clips:
-                    try: c.close()
-                    except: pass
-                if 'final_audio' in locals():
-                    try: final_audio.close()
-                    except: pass
-                if 'final_video' in locals():
-                    try: final_video.close()
-                    except: pass
-            except:
-                pass
+    def _create_karaoke_captions(self, audio_path, total_duration, start_time_offset):
+        """Creates word-level karaoke captions for Shorts (Portrait)."""
+        import json
+        json_path = audio_path.replace('.mp3', '.json')
+        
+        if not os.path.exists(json_path):
+            return None
+        
+        try:
+            with open(json_path, 'r', encoding='utf-8') as f:
+                word_data = json.load(f)
+            
+            if not word_data:
+                return None
+
+            # Group words into short lines (max 3-4 words for Shorts visibility)
+            lines = []
+            words_per_line = 4
+            for i in range(0, len(word_data), words_per_line):
+                lines.append(word_data[i:i+words_per_line])
+
+            line_clips = []
+            for line in lines:
+                line_start = line[0]['start']
+                line_end = line[-1]['start'] + line[-1]['duration']
+                line_duration = line_end - line_start
+                
+                def make_line_frame(t):
+                    # t is relative to line_start
+                    absolute_t = line_start + t
+                    
+                    # Create the background image (Portrait width 1080)
+                    canvas = Image.new('RGBA', (1080, 400), (0, 0, 0, 0))
+                    draw = ImageDraw.Draw(canvas)
+                    
+                    try:
+                        font_path = "C:\\Windows\\Fonts\\impact.ttf"
+                        if not os.path.exists(font_path):
+                            font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
+                        font = ImageFont.truetype(font_path, 85)
+                    except:
+                        font = ImageFont.load_default()
+
+                    full_text = " ".join([w['word'] for w in line])
+                    bbox = draw.textbbox((0, 0), full_text, font=font)
+                    text_w = bbox[2] - bbox[0]
+                    start_x = (1080 - text_w) // 2
+                    
+                    # Draw each word
+                    current_x = start_x
+                    for word_info in line:
+                        word = word_info['word'] + " "
+                        w_bbox = draw.textbbox((0, 0), word, font=font)
+                        w_w = w_bbox[2] - w_bbox[0]
+                        
+                        # Is this word currently being spoken?
+                        is_active = word_info['start'] <= absolute_t <= (word_info['start'] + word_info['duration'])
+                        
+                        if is_active:
+                            # Highlight background yellow
+                            draw.rectangle([current_x, 10, current_x + w_w, 130], fill=(255, 255, 0, 255))
+                            draw.text((current_x, 10), word, font=font, fill=(0, 0, 0, 255))
+                        else:
+                            # Standard white text with thick black stroke
+                            stroke_width = 6
+                            for off_x in range(-stroke_width, stroke_width+1):
+                                for off_y in range(-stroke_width, stroke_width+1):
+                                    draw.text((current_x + off_x, 10 + off_y), word, font=font, fill=(0, 0, 0, 255))
+                            draw.text((current_x, 10), word, font=font, fill=(255, 255, 255, 255))
+                        
+                        current_x += w_w
+                        
+                    return np.array(canvas)
+
+                line_clip = VideoClip(make_line_frame, duration=line_duration).set_start(start_time_offset + line_start).set_position(('center', 1400))
+                line_clips.append(line_clip)
+            
+            return CompositeVideoClip(line_clips, size=(1080, 1920))
+
+        except Exception as e:
+            print(f"Failed to create karaoke captions for Shorts: {e}")
+            return None
 
     def _resize_to_vertical(self, clip):
         """Resizes and crops a clip to 1080x1920."""
