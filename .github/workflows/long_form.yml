@@ -2,8 +2,8 @@ name: FootyBitez Long-form Automation
 
 on:
   schedule:
-    # Sunday, Tuesday, Friday at 02:00 UTC
-    - cron: '0 2 * * 0,2,5'
+    # Sunday, Tuesday, Thursday, and Saturday at 02:00 UTC
+    - cron: '0 2 * * 0,2,4,6'
   workflow_dispatch: # Allow manual trigger
 
 jobs:

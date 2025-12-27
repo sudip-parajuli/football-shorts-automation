@@ -48,6 +48,14 @@ class LongFormVideoCreator:
             for i, chapter in enumerate(script_data['chapters']):
                 chapter_title = chapter['chapter_title']
                 
+                # CHAPTER START SLIDE (Pause for 2 seconds)
+                chap_text_path = self._create_chapter_overlay(f"CHAPTER {i+1}", chapter_title)
+                # Use the first fact's visual as background for the chapter slide
+                first_fact_visual = self._get_visual(chapter['facts'][0]['visual_keyword'], visual_assets, 2.5)
+                chap_slide = CompositeVideoClip([first_fact_visual, self._ensure_rgb(ImageClip(chap_text_path).set_duration(2.5))], size=(self.width, self.height))
+                clips.append(chap_slide.crossfadein(0.5).fadeout(0.5))
+                current_time += 2.5
+                
                 for j, fact in enumerate(chapter['facts']):
                     filename = f"chap_{i}_fact_{j}.mp3"
                     audio_path = self.voice_gen.generate(fact['text'], filename)
@@ -56,17 +64,13 @@ class LongFormVideoCreator:
                     visual = self._get_visual(fact['visual_keyword'], visual_assets, audio.duration)
                     visual = self._ensure_rgb(visual).set_audio(audio)
                     
-                    # Chapter overlay (only at start of chapter)
+                    # Chapter overlay removed from facts (moved to separate slide)
                     fact_video = visual
-                    if j == 0:
-                        chap_text = self._create_chapter_overlay(f"CHAPTER {i+1}", chapter_title)
-                        chap_overlay = self._ensure_rgb(ImageClip(chap_text).set_duration(min(3, audio.duration))).set_position('center').fadeout(0.5)
-                        fact_video = CompositeVideoClip([visual, chap_overlay], size=(self.width, self.height))
                     
                     # Add Karaoke for Fact
                     fact_captions = self._create_karaoke_captions(filename, audio.duration)
                     if fact_captions:
-                        fact_video = CompositeVideoClip([fact_video, fact_captions], size=(self.width, self.height))
+                        fact_video = CompositeVideoClip([fact_video, fact_captions.set_duration(audio.duration)], size=(self.width, self.height))
                     
                     clips.append(fact_video.crossfadein(0.5))
                 
@@ -211,7 +215,7 @@ class LongFormVideoCreator:
                         
                         if is_active:
                             # Highlight background yellow
-                            draw.rectangle([current_x, 40, current_x + w_w, 120], fill=(255, 255, 0, 255))
+                            draw.rectangle([current_x - 5, 40, current_x + w_w + 5, 120], fill=(255, 255, 0, 255))
                             draw.text((current_x, 40), word, font=font, fill=(0, 0, 0, 255))
                         else:
                             # Standard white text with shadow
@@ -222,9 +226,10 @@ class LongFormVideoCreator:
                         
                     return np.array(canvas)
 
-                line_clip = VideoClip(make_line_frame, duration=line_duration).set_start(line_start).set_position(('center', 800))
+                line_clip = VideoClip(make_line_frame, duration=line_duration).set_start(line_start).set_position(('center', 850))
                 line_clips.append(line_clip)
             
+            # Ensure transparency by NOT filling background of CompositeVideoClip
             return CompositeVideoClip(line_clips, size=(self.width, self.height))
 
         except Exception as e:
@@ -258,8 +263,8 @@ class LongFormVideoCreator:
         try:
             font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
             if os.name == 'nt': font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
-            font_upper = ImageFont.truetype(font_path, 40)
-            font_lower = ImageFont.truetype(font_path, 80)
+            font_upper = ImageFont.truetype(font_path, 50) # Increased
+            font_lower = ImageFont.truetype(font_path, 110) # Increased (was 80)
         except:
             font_upper = ImageFont.load_default()
             font_lower = ImageFont.load_default()
@@ -279,18 +284,18 @@ class LongFormVideoCreator:
         return temp_path
 
     def _ensure_rgb(self, clip):
-        """Ensures the clip frames are in RGB (3 channels)."""
+        """Ensures the clip frames are in RGB (3 channels) or maintains RGBA."""
         def make_rgb(frame):
             if len(frame.shape) == 2:
                 return np.dstack([frame] * 3)
             elif len(frame.shape) == 3:
                 if frame.shape[2] == 4:
-                    return frame[:,:,:3]
+                    return frame
                 elif frame.shape[2] == 2:
                     return np.dstack([frame[:,:,0]] * 3)
                 elif frame.shape[2] == 3:
                     return frame
-            return frame[:,:,:3]
+            return frame
         return clip.fl_image(make_rgb)
 
 if __name__ == "__main__":

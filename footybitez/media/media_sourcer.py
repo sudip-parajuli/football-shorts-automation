@@ -51,8 +51,11 @@ class MediaSourcer:
         # 1. Search Videos (Priority)
         try:
             video_url = "https://api.pexels.com/videos/search"
-            # Reinforce context
-            clean_query = query + " football soccer"
+            # Reinforce context - ensure it explicitly mentions football/soccer
+            clean_query = query
+            if "football" not in clean_query.lower() and "soccer" not in clean_query.lower():
+                 clean_query += " football soccer"
+            
             params = {
                 "query": clean_query,
                 "per_page": count,
@@ -91,7 +94,10 @@ class MediaSourcer:
                 print(msg)
                 img_url = "https://api.pexels.com/v1/search"
                 # Reinforce context
-                clean_query = query + " football soccer"
+                clean_query = query
+                if "football" not in clean_query.lower() and "soccer" not in clean_query.lower():
+                     clean_query += " football soccer"
+                
                 params = {
                     "query": clean_query,
                     "per_page": count,
@@ -373,45 +379,36 @@ class MediaSourcer:
         # If we need more or want video backup, hit Pexels
         if len(visual_assets) < count:
              print("Falling back to Pexels/Video for extra media...")
-             # ... existing pexels logic ...
-             # We can call the original logic or copy it here.
-             # Since I am replacing the method, I need to preserve Pexels logic.
-             
-             # Call internal pexels helper (I should have refactored, but I will inline)
-             pass
+             # Pexels search already appends "football" via the updated get_media helper logic above
+             # But here we'll do a focused search for football action
+             fallback_query = "football action match"
+             headers = self.headers
+             params = {"query": fallback_query, "per_page": count - len(visual_assets), "orientation": orientation}
+             try:
+                 v_url = "https://api.pexels.com/videos/search"
+                 response = requests.get(v_url, headers=headers, params=params)
+                 if response.status_code == 200:
+                     videos = response.json().get('videos', [])
+                     for video in videos:
+                         video_files = video.get('video_files', [])
+                         best_video = None
+                         for vf in video_files:
+                             is_correct_orient = (vf['width'] < vf['height']) if orientation == "portrait" else (vf['width'] > vf['height'])
+                             if is_correct_orient and vf['height'] >= 720:
+                                  best_video = vf
+                                  break
+                         if not best_video and video_files: best_video = video_files[0]
+                         if best_video:
+                             src = best_video['link']
+                             filename = f"pexels_{video['id']}.mp4"
+                             filepath = os.path.join(self.download_dir, filename)
+                             self._download_file(src, filepath)
+                             visual_assets.append(filepath)
+                 else:
+                    print(f"Pexels Video Search Failed: {response.status_code} - {response.text}")
+             except Exception as pe:
+                 print(f"Pexels fallback error: {pe}")
         
-        # Pexels Logic (Preserved)
-        img_url = "https://api.pexels.com/videos/search"
-        headers = self.headers
-        params = {"query": query + " football", "per_page": count, "orientation": orientation}
-        
-        try:
-            response = requests.get(img_url, headers=headers, params=params)
-            if response.status_code == 200:
-                videos = response.json().get('videos', [])
-                for video in videos:
-                    # Get best quality
-                    video_files = video.get('video_files', [])
-                    # Prefer HD based on orientation
-                    best_video = None
-                    for vf in video_files:
-                        is_correct_orient = (vf['width'] < vf['height']) if orientation == "portrait" else (vf['width'] > vf['height'])
-                        if is_correct_orient and vf['height'] >= 720:
-                             best_video = vf
-                             break
-                    if not best_video and video_files: best_video = video_files[0]
-                    
-                    if best_video:
-                        src = best_video['link']
-                        filename = f"pexels_{video['id']}.mp4"
-                        filepath = os.path.join(self.download_dir, filename)
-                        self._download_file(src, filepath)
-                        visual_assets.append(filepath)
-            else:
-                print(f"Pexels Video Search Failed: {response.status_code} - {response.text}")
-        except Exception as pe:
-            print(f"Pexels fetch error: {pe}")
-
         return visual_assets[:count]
 
 if __name__ == "__main__":

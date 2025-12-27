@@ -481,7 +481,9 @@ class VideoCreator:
                 line_clip = VideoClip(make_line_frame, duration=line_duration).set_start(start_time_offset + line_start).set_position(('center', 1400))
                 line_clips.append(line_clip)
             
-            return CompositeVideoClip(line_clips, size=(1080, 1920))
+            # Ensure the combined clip has a duration
+            combined = CompositeVideoClip(line_clips, size=(1080, 1920))
+            return combined.set_duration(total_duration)
 
         except Exception as e:
             print(f"Failed to create karaoke captions for Shorts: {e}")
@@ -508,27 +510,23 @@ class VideoCreator:
         return clip.resize((1080, 1920))
 
     def _ensure_rgb(self, clip):
-        """Ensures the clip frames are in RGB (3 channels)."""
+        """Ensures the clip frames are in RGB (3 channels) or maintains RGBA with mask."""
         def make_rgb(frame):
             if len(frame.shape) == 2:
                 # Grayscale to RGB
                 return np.dstack([frame] * 3)
             elif len(frame.shape) == 3:
                 if frame.shape[2] == 4:
-                    # RGBA to RGB
-                    return frame[:,:,:3]
+                    # RGBA: Return as is, CompositeVideoClip will handle the alpha
+                    return frame
                 elif frame.shape[2] == 2:
                     # Grayscale + Alpha to RGB
-                    # We take the first channel as grayscale and stack it
                     return np.dstack([frame[:,:,0]] * 3)
                 elif frame.shape[2] == 3:
                     return frame
-            
-            # Fallback for any other weirdness
-            if len(frame.shape) == 3 and frame.shape[2] > 3:
-                return frame[:,:,:3]
-            
             return frame
+        
+        # If the clip has a mask, we should preserve it
         return clip.fl_image(make_rgb)
 
 
