@@ -478,7 +478,17 @@ class VideoCreator:
                         
                     return np.array(canvas)
 
-                line_clip = VideoClip(make_line_frame, duration=line_duration).set_start(start_time_offset + line_start).set_position(('center', 1400))
+                def make_rgb_frame(t):
+                    rgba = make_line_frame(t)
+                    return rgba[:,:,:3]
+
+                def make_mask_frame(t):
+                    rgba = make_line_frame(t)
+                    return rgba[:,:,3] / 255.0
+
+                line_clip = VideoClip(make_rgb_frame, duration=line_duration).set_start(start_time_offset + line_start)
+                line_mask = VideoClip(make_mask_frame, ismask=True, duration=line_duration).set_start(start_time_offset + line_start)
+                line_clip = line_clip.set_mask(line_mask).set_position(('center', 1400))
                 line_clips.append(line_clip)
             
             # Ensure the combined clip has a duration
@@ -527,7 +537,8 @@ class VideoCreator:
             return frame
         
         # If the clip has a mask, we should preserve it
-        return clip.fl_image(make_rgb)
+        # CRITICAL: We MUST set apply_to=[] so the mask is NOT processed by make_rgb
+        return clip.fl_image(make_rgb, apply_to=[])
 
 
 if __name__ == "__main__":

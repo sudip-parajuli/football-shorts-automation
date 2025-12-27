@@ -187,20 +187,21 @@ class LongFormVideoCreator:
                     # t is relative to line_start
                     absolute_t = line_start + t
                     
-                    # Create the background image
-                    canvas = Image.new('RGBA', (self.width, 200), (0, 0, 0, 0))
+                    # Create the canvas (Transparent)
+                    canvas = Image.new('RGBA', (self.width, 250), (0, 0, 0, 0))
                     draw = ImageDraw.Draw(canvas)
                     
                     try:
                         font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
                         if os.name == 'nt': font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
-                        font = ImageFont.truetype(font_path, 60)
+                        font = ImageFont.truetype(font_path, 65)
                     except:
                         font = ImageFont.load_default()
 
                     full_text = " ".join([w['word'] for w in line])
                     bbox = draw.textbbox((0, 0), full_text, font=font)
                     text_w = bbox[2] - bbox[0]
+                    # Ensure some margin
                     start_x = (self.width - text_w) // 2
                     
                     # Draw each word
@@ -214,23 +215,39 @@ class LongFormVideoCreator:
                         is_active = word_info['start'] <= absolute_t <= (word_info['start'] + word_info['duration'])
                         
                         if is_active:
-                            # Highlight background yellow
-                            draw.rectangle([current_x - 5, 40, current_x + w_w + 5, 120], fill=(255, 255, 0, 255))
+                            # Highlight background yellow with rounded-like corners
+                            padding = 5
+                            draw.rectangle([current_x - padding, 40, current_x + w_w + padding, 130], fill=(255, 255, 0, 255))
                             draw.text((current_x, 40), word, font=font, fill=(0, 0, 0, 255))
                         else:
-                            # Standard white text with shadow
-                            draw.text((current_x+2, 42), word, font=font, fill=(0, 0, 0, 150))
+                            # Standard white text with thick black stroke for high visibility
+                            stroke_width = 4
+                            for off_x in range(-stroke_width, stroke_width+1):
+                                for off_y in range(-stroke_width, stroke_width+1):
+                                    if off_x != 0 or off_y != 0:
+                                        draw.text((current_x + off_x, 40 + off_y), word, font=font, fill=(0, 0, 0, 255))
                             draw.text((current_x, 40), word, font=font, fill=(255, 255, 255, 255))
                         
                         current_x += w_w
                         
                     return np.array(canvas)
 
-                line_clip = VideoClip(make_line_frame, duration=line_duration).set_start(line_start).set_position(('center', 850))
+                def make_mask_frame(t):
+                    rgba = make_line_frame(t)
+                    return rgba[:,:,3] / 255.0
+
+                def make_rgb_frame(t):
+                    rgba = make_line_frame(t)
+                    return rgba[:,:,:3]
+
+                line_clip = VideoClip(make_rgb_frame, duration=line_duration).set_start(line_start)
+                line_mask = VideoClip(make_mask_frame, ismask=True, duration=line_duration).set_start(line_start)
+                line_clip = line_clip.set_mask(line_mask).set_position(('center', 850))
                 line_clips.append(line_clip)
             
-            # Ensure transparency by NOT filling background of CompositeVideoClip
-            return CompositeVideoClip(line_clips, size=(self.width, self.height))
+            # Use CompositeVideoClip to combine all lines for this audio segment
+            combined = CompositeVideoClip(line_clips, size=(self.width, self.height))
+            return combined.set_duration(total_duration)
 
         except Exception as e:
             logger.error(f"Failed to create karaoke captions: {e}")
@@ -256,28 +273,43 @@ class LongFormVideoCreator:
         return clip.resize((self.width, self.height))
 
     def _create_chapter_overlay(self, upper_text, lower_text):
-        """Creates a clean documentary-style text overlay image."""
+        """Creates a clean documentary-style text overlay image with multi-line support."""
         img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
         
         try:
             font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
             if os.name == 'nt': font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
-            font_upper = ImageFont.truetype(font_path, 50) # Increased
-            font_lower = ImageFont.truetype(font_path, 110) # Increased (was 80)
+            font_upper = ImageFont.truetype(font_path, 50)
+            font_lower = ImageFont.truetype(font_path, 110)
         except:
             font_upper = ImageFont.load_default()
             font_lower = ImageFont.load_default()
 
-        def draw_text_centered(text, y, font, fill):
-            bbox = draw.textbbox((0, 0), text, font=font)
-            w = bbox[2] - bbox[0]
-            x = (self.width - w) // 2
-            draw.text((x+4, y+4), text, font=font, fill=(0,0,0,180))
-            draw.text((x, y), text, font=font, fill=fill)
+        import textwrap
+        # Margin: left and right
+        max_width_chars = 25 # roughly for 110pt font on 1920px
+        wrapped_lower = textwrap.wrap(lower_text.upper(), width=max_width_chars)
+        
+        def draw_text_centered(text_lines, start_y, font, fill, spacing=20):
+            current_y = start_y
+            for line in text_lines:
+                bbox = draw.textbbox((0, 0), line, font=font)
+                w = bbox[2] - bbox[0]
+                x = (self.width - w) // 2
+                # Stroke for visibility
+                stroke_w = 4
+                for ox in range(-stroke_w, stroke_w+1):
+                    for oy in range(-stroke_w, stroke_w+1):
+                        draw.text((x+ox, current_y+oy), line, font=font, fill=(0,0,0,255))
+                draw.text((x, current_y), line, font=font, fill=fill)
+                current_y += (bbox[3] - bbox[1]) + spacing
+            return current_y
 
-        draw_text_centered(upper_text.upper(), self.height//2 - 60, font_upper, (200, 200, 200, 255))
-        draw_text_centered(lower_text.upper(), self.height//2, font_lower, (255, 255, 255, 255))
+        # Draw Upper Text
+        y_after_upper = draw_text_centered([upper_text.upper()], self.height//2 - 120, font_upper, (200, 200, 200, 255))
+        # Draw Lower Text (Wrapped)
+        draw_text_centered(wrapped_lower, y_after_upper + 10, font_lower, (255, 255, 255, 255))
         
         temp_path = os.path.join(self.output_dir, "temp_text", f"overlay_{hash(upper_text+lower_text)}.png")
         img.save(temp_path)
@@ -296,7 +328,8 @@ class LongFormVideoCreator:
                 elif frame.shape[2] == 3:
                     return frame
             return frame
-        return clip.fl_image(make_rgb)
+        # CRITICAL: We MUST set apply_to=[] so the mask is NOT processed by make_rgb
+        return clip.fl_image(make_rgb, apply_to=[])
 
 if __name__ == "__main__":
     pass
