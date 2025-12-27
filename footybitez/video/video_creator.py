@@ -437,12 +437,26 @@ class VideoCreator:
                     canvas = Image.new('RGBA', (1080, 400), (0, 0, 0, 0))
                     draw = ImageDraw.Draw(canvas)
                     
-                    try:
-                        font_path = "C:\\Windows\\Fonts\\impact.ttf"
-                        if not os.path.exists(font_path):
-                            font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
-                        font = ImageFont.truetype(font_path, 85)
-                    except:
+                    # Robust Font Selection
+                    candidates = []
+                    if os.name == 'nt':
+                        candidates = ["C:\\Windows\\Fonts\\impact.ttf", "C:\\Windows\\Fonts\\arialbd.ttf", "impact.ttf"]
+                    else:
+                        candidates = [
+                            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                            "impact.ttf"
+                        ]
+
+                    font = None
+                    for cp in candidates:
+                        if os.path.exists(cp):
+                            try:
+                                font = ImageFont.truetype(cp, 85)
+                                break
+                            except:
+                                continue
+                    if not font:
                         font = ImageFont.load_default()
 
                     full_text = " ".join([w['word'] for w in line])

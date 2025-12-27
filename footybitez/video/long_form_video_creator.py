@@ -181,15 +181,29 @@ class LongFormVideoCreator:
                 
                 def make_line_frame(t):
                     absolute_t = line_start + t
-                    # Canvas height increased to 300 for potential 2-line captions if needed
                     canvas = Image.new('RGBA', (self.width, 300), (0, 0, 0, 0))
                     draw = ImageDraw.Draw(canvas)
                     
-                    try:
-                        font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
-                        if not os.path.exists(font_path): font_path = "arialbd.ttf"
-                        font = ImageFont.truetype(font_path, 70)
-                    except:
+                    # Robust Font Selection
+                    font_path = "arialbd.ttf"
+                    if os.name == 'nt':
+                        candidates = ["C:\\Windows\\Fonts\\arialbd.ttf", "C:\\Windows\\Fonts\\impact.ttf", "arialbd.ttf"]
+                    else:
+                        candidates = [
+                            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                            "arialbd.ttf"
+                        ]
+                    
+                    font = None
+                    for cp in candidates:
+                        if os.path.exists(cp):
+                            try:
+                                font = ImageFont.truetype(cp, 70)
+                                break
+                            except:
+                                continue
+                    if not font:
                         font = ImageFont.load_default()
 
                     full_text = " ".join([w['word'] for w in line])

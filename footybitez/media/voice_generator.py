@@ -60,7 +60,8 @@ class VoiceGenerator:
         json_path = output_path.replace('.mp3', '.json')
         
         os.makedirs(self.output_dir, exist_ok=True)
-        voice = "en-US-ChristopherNeural" 
+        # Aria is very stable for WordBoundaries
+        voice = "en-US-AriaNeural" 
         
         max_retries = 3
         for attempt in range(max_retries):
@@ -70,6 +71,12 @@ class VoiceGenerator:
                 
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                     logger.info(f"Successfully generated audio for {filename}")
+                    
+                    # If JSON is empty or missing, create a word-count fallback
+                    if not os.path.exists(json_path) or os.path.getsize(json_path) <= 2:
+                        logger.warning(f"JSON timing missing for {filename}. Creating fallback.")
+                        self._generate_json_fallback(clean_text, json_path, output_path)
+                        
                     return output_path
                 else:
                     raise Exception("Output file is empty or missing")
@@ -80,13 +87,42 @@ class VoiceGenerator:
                     time.sleep(random.uniform(2, 5))
                 else:
                     logger.error("Edge TTS failed completely. Falling back to gTTS.")
-                    # Minimal gTTS fallback (no timing)
                     from gtts import gTTS
                     tts = gTTS(text=clean_text, lang='en', tld='co.uk')
                     tts.save(output_path)
-                    # Create dummy empty JSON for safety
-                    with open(json_path, 'w') as f: f.write("[]")
+                    # Create word-count fallback JSON
+                    self._generate_json_fallback(clean_text, json_path, output_path)
                     return output_path
+
+    def _generate_json_fallback(self, text, json_path, audio_path):
+        """Creates a word-level JSON based on average word duration."""
+        import json
+        words = text.split()
+        if not words:
+            with open(json_path, 'w') as f: f.write("[]")
+            return
+
+        duration = 5.0 # Default
+        if os.path.exists(audio_path):
+            try:
+                from moviepy.editor import AudioFileClip
+                audio = AudioFileClip(audio_path)
+                duration = audio.duration
+                audio.close()
+            except:
+                pass
+        
+        avg_word_dur = duration / len(words)
+        word_map = []
+        for i, word in enumerate(words):
+            word_map.append({
+                "word": word,
+                "start": i * avg_word_dur,
+                "duration": avg_word_dur * 0.9 # Small gap
+            })
+        
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump(word_map, f)
 
     def _generate_fallback_vtt(self, text, vtt_path, audio_path=None):
         """Generates a rough VTT file for fallback."""
