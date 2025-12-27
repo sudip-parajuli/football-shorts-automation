@@ -348,12 +348,11 @@ class VideoCreator:
                     title_clip = ImageClip(path).set_start(accumulated_time).set_duration(duration).set_position('center')
                     # Add subtle zoom to title too
                     title_clip = title_clip.resize(lambda t: 1 + 0.05 * t/duration)
-                    text_clips.append(self._ensure_rgb(title_clip))
+                    text_clips.append(title_clip)
                 else:
                     # Karaoke for segments/outro
-                    karaoke = self._create_karaoke_captions(audio_path, duration, accumulated_time)
-                    if karaoke:
-                        text_clips.append(karaoke)
+                    karaoke_clips = self._get_karaoke_clips(audio_path, duration, accumulated_time)
+                    text_clips.extend(karaoke_clips)
                 
                 accumulated_time += duration
 
@@ -404,20 +403,20 @@ class VideoCreator:
         except Exception as e:
              print(f"Video creation failed: {e}")
              raise e
-    def _create_karaoke_captions(self, audio_path, total_duration, start_time_offset):
-        """Creates word-level karaoke captions for Shorts (Portrait)."""
+    def _get_karaoke_clips(self, audio_path, total_duration, start_time_offset):
+        """Creates word-level karaoke caption clips list for Shorts (Portrait)."""
         import json
         json_path = audio_path.replace('.mp3', '.json')
         
         if not os.path.exists(json_path):
-            return None
+            return []
         
         try:
             with open(json_path, 'r', encoding='utf-8') as f:
                 word_data = json.load(f)
             
             if not word_data:
-                return None
+                return []
 
             # Group words into short lines (max 3-4 words for Shorts visibility)
             lines = []
@@ -432,10 +431,9 @@ class VideoCreator:
                 line_duration = line_end - line_start
                 
                 def make_line_frame(t):
-                    # t is relative to line_start
                     absolute_t = line_start + t
                     
-                    # Create the background image (Portrait width 1080)
+                    # Create the canvas (Portrait width 1080)
                     canvas = Image.new('RGBA', (1080, 400), (0, 0, 0, 0))
                     draw = ImageDraw.Draw(canvas)
                     
@@ -452,14 +450,12 @@ class VideoCreator:
                     text_w = bbox[2] - bbox[0]
                     start_x = (1080 - text_w) // 2
                     
-                    # Draw each word
                     current_x = start_x
                     for word_info in line:
                         word = word_info['word'] + " "
                         w_bbox = draw.textbbox((0, 0), word, font=font)
                         w_w = w_bbox[2] - w_bbox[0]
                         
-                        # Is this word currently being spoken?
                         is_active = word_info['start'] <= absolute_t <= (word_info['start'] + word_info['duration'])
                         
                         if is_active:
@@ -473,9 +469,7 @@ class VideoCreator:
                                 for off_y in range(-stroke_width, stroke_width+1):
                                     draw.text((current_x + off_x, 10 + off_y), word, font=font, fill=(0, 0, 0, 255))
                             draw.text((current_x, 10), word, font=font, fill=(255, 255, 255, 255))
-                        
                         current_x += w_w
-                        
                     return np.array(canvas)
 
                 def make_rgb_frame(t):
@@ -491,13 +485,11 @@ class VideoCreator:
                 line_clip = line_clip.set_mask(line_mask).set_position(('center', 1400))
                 line_clips.append(line_clip)
             
-            # Ensure the combined clip has a duration
-            combined = CompositeVideoClip(line_clips, size=(1080, 1920))
-            return combined.set_duration(total_duration)
+            return line_clips
 
         except Exception as e:
             print(f"Failed to create karaoke captions for Shorts: {e}")
-            return None
+            return []
 
     def _resize_to_vertical(self, clip):
         """Resizes and crops a clip to 1080x1920."""
@@ -520,25 +512,35 @@ class VideoCreator:
         return clip.resize((1080, 1920))
 
     def _ensure_rgb(self, clip):
-        """Ensures the clip frames are in RGB (3 channels) or maintains RGBA with mask."""
+        """Ensures the clip frames are in RGB (3 channels) and explicitly handles masks."""
+        if hasattr(clip, 'mask') and clip.mask is not None:
+             return clip # Already masked
+             
         def make_rgb(frame):
             if len(frame.shape) == 2:
-                # Grayscale to RGB
                 return np.dstack([frame] * 3)
             elif len(frame.shape) == 3:
                 if frame.shape[2] == 4:
-                    # RGBA: Return as is, CompositeVideoClip will handle the alpha
-                    return frame
+                    return frame[:,:,:3] # Return RGB
                 elif frame.shape[2] == 2:
-                    # Grayscale + Alpha to RGB
                     return np.dstack([frame[:,:,0]] * 3)
-                elif frame.shape[2] == 3:
-                    return frame
             return frame
+
+        def make_mask_frame(get_frame, t):
+            frame = get_frame(t)
+            if len(frame.shape) == 3 and frame.shape[2] == 4:
+                return frame[:,:,3] / 255.0
+            return np.ones(frame.shape[:2], dtype=float)
+
+        # Check if the clip's first frame is RGBA
+        test_frame = clip.get_frame(0)
+        if len(test_frame.shape) == 3 and test_frame.shape[2] == 4:
+             mask = VideoClip(lambda t: make_mask_frame(clip.get_frame, t), ismask=True, duration=clip.duration)
+             clip = clip.fl_image(make_rgb).set_mask(mask)
+        else:
+             clip = clip.fl_image(make_rgb)
         
-        # If the clip has a mask, we should preserve it
-        # CRITICAL: We MUST set apply_to=[] so the mask is NOT processed by make_rgb
-        return clip.fl_image(make_rgb, apply_to=[])
+        return clip
 
 
 if __name__ == "__main__":

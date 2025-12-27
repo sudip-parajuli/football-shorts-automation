@@ -37,9 +37,8 @@ class LongFormVideoCreator:
             intro_combined = CompositeVideoClip([intro_visual, intro_overlay], size=(self.width, self.height))
             
             # Add Karaoke for Intro
-            intro_captions = self._create_karaoke_captions("intro.mp3", intro_audio.duration)
-            if intro_captions:
-                intro_combined = CompositeVideoClip([intro_combined, intro_captions], size=(self.width, self.height))
+            intro_captions = self._get_karaoke_clips("intro.mp3", intro_audio.duration, 0)
+            intro_combined = CompositeVideoClip([intro_visual, intro_overlay] + intro_captions, size=(self.width, self.height))
             
             clips.append(intro_combined.crossfadein(0.5))
             current_time += intro_audio.duration
@@ -52,7 +51,7 @@ class LongFormVideoCreator:
                 chap_text_path = self._create_chapter_overlay(f"CHAPTER {i+1}", chapter_title)
                 # Use the first fact's visual as background for the chapter slide
                 first_fact_visual = self._get_visual(chapter['facts'][0]['visual_keyword'], visual_assets, 2.5)
-                chap_slide = CompositeVideoClip([first_fact_visual, self._ensure_rgb(ImageClip(chap_text_path).set_duration(2.5))], size=(self.width, self.height))
+                chap_slide = CompositeVideoClip([first_fact_visual, ImageClip(chap_text_path).set_duration(2.5)], size=(self.width, self.height))
                 clips.append(chap_slide.crossfadein(0.5).fadeout(0.5))
                 current_time += 2.5
                 
@@ -68,9 +67,8 @@ class LongFormVideoCreator:
                     fact_video = visual
                     
                     # Add Karaoke for Fact
-                    fact_captions = self._create_karaoke_captions(filename, audio.duration)
-                    if fact_captions:
-                        fact_video = CompositeVideoClip([fact_video, fact_captions.set_duration(audio.duration)], size=(self.width, self.height))
+                    fact_captions = self._get_karaoke_clips(filename, audio.duration, 0)
+                    fact_video = CompositeVideoClip([visual] + fact_captions, size=(self.width, self.height))
                     
                     clips.append(fact_video.crossfadein(0.5))
                 
@@ -86,9 +84,8 @@ class LongFormVideoCreator:
             outro_combined = CompositeVideoClip([outro_visual, outro_overlay], size=(self.width, self.height))
             
             # Add Karaoke for Outro
-            outro_captions = self._create_karaoke_captions("outro.mp3", outro_audio.duration)
-            if outro_captions:
-                outro_combined = CompositeVideoClip([outro_combined, outro_captions], size=(self.width, self.height))
+            outro_captions = self._get_karaoke_clips("outro.mp3", outro_audio.duration, 0)
+            outro_combined = CompositeVideoClip([outro_visual, outro_overlay] + outro_captions, size=(self.width, self.height))
                 
             clips.append(outro_combined.crossfadein(0.5))
 
@@ -154,23 +151,23 @@ class LongFormVideoCreator:
             return np.array(img)
         return clip.fl(effect)
 
-    def _create_karaoke_captions(self, audio_filename, total_duration):
-        """Creates word-level karaoke captions."""
+    def _get_karaoke_clips(self, audio_filename, total_duration, start_time_offset):
+        """Creates word-level karaoke caption clips list."""
         import json
         json_path = os.path.join("footybitez/media/voice", audio_filename.replace('.mp3', '.json'))
         
         if not os.path.exists(json_path):
-            return None
+            logger.warning(f"JSON not found for karaoke: {json_path}")
+            return []
         
         try:
             with open(json_path, 'r', encoding='utf-8') as f:
                 word_data = json.load(f)
             
             if not word_data:
-                return None
+                return []
 
-            # Group words into lines (sentences) to avoid flickering
-            # For simplicity, we'll show segments of ~5 words
+            # Group words into lines (sentences)
             lines = []
             words_per_line = 6
             for i in range(0, len(word_data), words_per_line):
@@ -182,54 +179,45 @@ class LongFormVideoCreator:
                 line_end = line[-1]['start'] + line[-1]['duration']
                 line_duration = line_end - line_start
                 
-                # Create a clip for this line
                 def make_line_frame(t):
-                    # t is relative to line_start
                     absolute_t = line_start + t
-                    
-                    # Create the canvas (Transparent)
-                    canvas = Image.new('RGBA', (self.width, 250), (0, 0, 0, 0))
+                    # Canvas height increased to 300 for potential 2-line captions if needed
+                    canvas = Image.new('RGBA', (self.width, 300), (0, 0, 0, 0))
                     draw = ImageDraw.Draw(canvas)
                     
                     try:
-                        font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-                        if os.name == 'nt': font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
-                        font = ImageFont.truetype(font_path, 65)
+                        font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
+                        if not os.path.exists(font_path): font_path = "arialbd.ttf"
+                        font = ImageFont.truetype(font_path, 70)
                     except:
                         font = ImageFont.load_default()
 
                     full_text = " ".join([w['word'] for w in line])
                     bbox = draw.textbbox((0, 0), full_text, font=font)
                     text_w = bbox[2] - bbox[0]
-                    # Ensure some margin
                     start_x = (self.width - text_w) // 2
                     
-                    # Draw each word
                     current_x = start_x
                     for word_info in line:
                         word = word_info['word'] + " "
                         w_bbox = draw.textbbox((0, 0), word, font=font)
                         w_w = w_bbox[2] - w_bbox[0]
                         
-                        # Is this word currently being spoken?
                         is_active = word_info['start'] <= absolute_t <= (word_info['start'] + word_info['duration'])
                         
+                        y_pos = 50
                         if is_active:
-                            # Highlight background yellow with rounded-like corners
-                            padding = 5
-                            draw.rectangle([current_x - padding, 40, current_x + w_w + padding, 130], fill=(255, 255, 0, 255))
-                            draw.text((current_x, 40), word, font=font, fill=(0, 0, 0, 255))
+                            padding = 8
+                            draw.rectangle([current_x - padding, y_pos - padding, current_x + w_w + padding, y_pos + 100], fill=(255, 255, 0, 255))
+                            draw.text((current_x, y_pos), word, font=font, fill=(0, 0, 0, 255))
                         else:
-                            # Standard white text with thick black stroke for high visibility
-                            stroke_width = 4
+                            stroke_width = 5
                             for off_x in range(-stroke_width, stroke_width+1):
                                 for off_y in range(-stroke_width, stroke_width+1):
                                     if off_x != 0 or off_y != 0:
-                                        draw.text((current_x + off_x, 40 + off_y), word, font=font, fill=(0, 0, 0, 255))
-                            draw.text((current_x, 40), word, font=font, fill=(255, 255, 255, 255))
-                        
+                                        draw.text((current_x + off_x, y_pos + off_y), word, font=font, fill=(0, 0, 0, 255))
+                            draw.text((current_x, y_pos), word, font=font, fill=(255, 255, 255, 255))
                         current_x += w_w
-                        
                     return np.array(canvas)
 
                 def make_mask_frame(t):
@@ -240,14 +228,16 @@ class LongFormVideoCreator:
                     rgba = make_line_frame(t)
                     return rgba[:,:,:3]
 
-                line_clip = VideoClip(make_rgb_frame, duration=line_duration).set_start(line_start)
-                line_mask = VideoClip(make_mask_frame, ismask=True, duration=line_duration).set_start(line_start)
-                line_clip = line_clip.set_mask(line_mask).set_position(('center', 850))
+                line_clip = VideoClip(make_rgb_frame, duration=line_duration).set_start(start_time_offset + line_start)
+                line_mask = VideoClip(make_mask_frame, ismask=True, duration=line_duration).set_start(start_time_offset + line_start)
+                line_clip = line_clip.set_mask(line_mask).set_position(('center', 780)) # Slightly higher
                 line_clips.append(line_clip)
             
-            # Use CompositeVideoClip to combine all lines for this audio segment
-            combined = CompositeVideoClip(line_clips, size=(self.width, self.height))
-            return combined.set_duration(total_duration)
+            return line_clips
+
+        except Exception as e:
+            logger.error(f"Failed to create karaoke captions: {e}")
+            return []
 
         except Exception as e:
             logger.error(f"Failed to create karaoke captions: {e}")
@@ -287,8 +277,8 @@ class LongFormVideoCreator:
             font_lower = ImageFont.load_default()
 
         import textwrap
-        # Margin: left and right
-        max_width_chars = 25 # roughly for 110pt font on 1920px
+        # Reduced width for better margin safety
+        max_width_chars = 22 
         wrapped_lower = textwrap.wrap(lower_text.upper(), width=max_width_chars)
         
         def draw_text_centered(text_lines, start_y, font, fill, spacing=20):
@@ -316,20 +306,35 @@ class LongFormVideoCreator:
         return temp_path
 
     def _ensure_rgb(self, clip):
-        """Ensures the clip frames are in RGB (3 channels) or maintains RGBA."""
+        """Ensures the clip frames are in RGB (3 channels) and explicitly handles masks."""
+        if hasattr(clip, 'mask') and clip.mask is not None:
+             return clip # Already masked, assume safe
+             
         def make_rgb(frame):
             if len(frame.shape) == 2:
                 return np.dstack([frame] * 3)
             elif len(frame.shape) == 3:
                 if frame.shape[2] == 4:
-                    return frame
+                    return frame[:,:,:3] # Return RGB
                 elif frame.shape[2] == 2:
                     return np.dstack([frame[:,:,0]] * 3)
-                elif frame.shape[2] == 3:
-                    return frame
             return frame
-        # CRITICAL: We MUST set apply_to=[] so the mask is NOT processed by make_rgb
-        return clip.fl_image(make_rgb, apply_to=[])
+
+        def make_mask_frame(get_frame, t):
+            frame = get_frame(t)
+            if len(frame.shape) == 3 and frame.shape[2] == 4:
+                return frame[:,:,3] / 255.0
+            return np.ones(frame.shape[:2], dtype=float)
+
+        # Check if the clip's first frame is RGBA
+        test_frame = clip.get_frame(0)
+        if len(test_frame.shape) == 3 and test_frame.shape[2] == 4:
+             mask = VideoClip(lambda t: make_mask_frame(clip.get_frame, t), ismask=True, duration=clip.duration)
+             clip = clip.fl_image(make_rgb).set_mask(mask)
+        else:
+             clip = clip.fl_image(make_rgb)
+        
+        return clip
 
 if __name__ == "__main__":
     pass
