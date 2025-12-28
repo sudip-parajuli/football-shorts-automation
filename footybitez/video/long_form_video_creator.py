@@ -169,7 +169,7 @@ class LongFormVideoCreator:
 
             # Group words into lines (sentences)
             lines = []
-            words_per_line = 6
+            words_per_line = 4 # Reduced for better sync/visibility
             for i in range(0, len(word_data), words_per_line):
                 lines.append(word_data[i:i+words_per_line])
 
@@ -178,87 +178,83 @@ class LongFormVideoCreator:
                 l_start = line[0]['start']
                 l_end = line[-1]['start'] + line[-1]['duration']
                 l_duration = l_end - l_start
-                l_content = line # Fix closure
+                l_content = line
                 
-                def make_line_frame(t, current_line=l_content, line_start_abs=l_start):
-                    absolute_t = line_start_abs + t
-                    canvas = Image.new('RGBA', (self.width, 300), (0, 0, 0, 0))
-                    draw = ImageDraw.Draw(canvas)
-                    
-                    # Robust Font Selection
-                    font_path = "arialbd.ttf"
-                    if os.name == 'nt':
-                        candidates = ["C:\\Windows\\Fonts\\arialbd.ttf", "C:\\Windows\\Fonts\\impact.ttf", "arialbd.ttf"]
-                    else:
-                        candidates = [
-                            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                            "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-                            "arialbd.ttf"
-                        ]
-                    
-                    font = None
-                    for cp in candidates:
-                        if os.path.exists(cp):
-                            try:
-                                font = ImageFont.truetype(cp, 70)
-                                break
-                            except:
-                                continue
-                    if not font:
-                        font = ImageFont.load_default()
+                # Factory function for Long-form
+                def create_long_clip(current_line, line_start_abs, duration, global_offset):
+                    def make_frame(t):
+                        absolute_t = line_start_abs + t
+                        canvas = Image.new('RGBA', (self.width, 350), (0, 0, 0, 0))
+                        draw = ImageDraw.Draw(canvas)
+                        
+                        # Robust Font Selection
+                        font_path = "arialbd.ttf"
+                        if os.name == 'nt':
+                            candidates = ["C:\\Windows\\Fonts\\arialbd.ttf", "C:\\Windows\\Fonts\\impact.ttf", "arialbd.ttf"]
+                        else:
+                            candidates = [
+                                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                                "arialbd.ttf"
+                            ]
+                        
+                        font = None
+                        for cp in candidates:
+                            if os.path.exists(cp):
+                                try:
+                                    font = ImageFont.truetype(cp, 80)
+                                    break
+                                except:
+                                    continue
+                        if not font:
+                            font = ImageFont.load_default()
 
-                    full_text = " ".join([w['word'] for w in current_line])
-                    bbox = draw.textbbox((0, 0), full_text, font=font)
-                    text_w = bbox[2] - bbox[0]
-                    
-                    # Margin Safety (150px padding each side for 16:9)
-                    safe_width = self.width - 300
-                    if text_w > safe_width:
-                        new_size = int(70 * (safe_width / text_w))
-                        try:
-                            font = ImageFont.truetype(font.path, new_size)
-                        except:
-                            font = ImageFont.truetype("arialbd.ttf", new_size)
+                        full_text = " ".join([w['word'] for w in current_line])
                         bbox = draw.textbbox((0, 0), full_text, font=font)
                         text_w = bbox[2] - bbox[0]
-
-                    start_x = (self.width - text_w) // 2
-                    
-                    current_x = start_x
-                    for word_info in current_line:
-                        word = word_info['word'] + " "
-                        w_bbox = draw.textbbox((0, 0), word, font=font)
-                        w_w = w_bbox[2] - w_bbox[0]
                         
-                        is_active = word_info['start'] <= absolute_t <= (word_info['start'] + word_info['duration'])
+                        # Margin Safety (200px padding each side for 16:9)
+                        safe_width = self.width - 400
+                        if text_w > safe_width:
+                            new_size = int(80 * (safe_width / text_w))
+                            try:
+                                font = ImageFont.truetype(font.path, new_size)
+                            except:
+                                font = ImageFont.truetype("arialbd.ttf", new_size)
+                            bbox = draw.textbbox((0, 0), full_text, font=font)
+                            text_w = bbox[2] - bbox[0]
+
+                        start_x = (self.width - text_w) // 2
                         
-                        y_pos = 50
-                        if is_active:
-                            padding = 8
-                            draw.rectangle([current_x - padding, y_pos - padding, current_x + w_w + padding, y_pos + 100], fill=(255, 255, 0, 255))
-                            draw.text((current_x, y_pos), word, font=font, fill=(0, 0, 0, 255))
-                        else:
-                            stroke_width = 5
-                            for off_x in range(-stroke_width, stroke_width+1):
-                                for off_y in range(-stroke_width, stroke_width+1):
-                                    if off_x != 0 or off_y != 0:
-                                        draw.text((current_x + off_x, y_pos + off_y), word, font=font, fill=(0, 0, 0, 255))
-                            draw.text((current_x, y_pos), word, font=font, fill=(255, 255, 255, 255))
-                        current_x += w_w
-                    return np.array(canvas)
+                        current_x = start_x
+                        for word_info in current_line:
+                            word = word_info['word'] + " "
+                            w_bbox = draw.textbbox((0, 0), word, font=font)
+                            w_w = w_bbox[2] - w_bbox[0]
+                            
+                            # Add 0.05s buffer for sync
+                            is_active = word_info['start'] <= (absolute_t + 0.05) <= (word_info['start'] + word_info['duration'] + 0.05)
+                            
+                            y_pos = 50
+                            if is_active:
+                                padding = 10
+                                draw.rectangle([current_x - padding, y_pos - 5, current_x + w_w + padding, y_pos + 110], fill=(255, 255, 0, 255))
+                                draw.text((current_x, y_pos), word, font=font, fill=(0, 0, 0, 255))
+                            else:
+                                stroke_width = 5
+                                for off_x in range(-stroke_width, stroke_width+1):
+                                    for off_y in range(-stroke_width, stroke_width+1):
+                                        if off_x != 0 or off_y != 0:
+                                            draw.text((current_x + off_x, y_pos + off_y), word, font=font, fill=(0, 0, 0, 255))
+                                draw.text((current_x, y_pos), word, font=font, fill=(255, 255, 255, 255))
+                            current_x += w_w
+                        return np.array(canvas)
 
-                def make_mask_frame(t):
-                    rgba = make_line_frame(t)
-                    return rgba[:,:,3] / 255.0
+                    clip = VideoClip(lambda t: make_frame(t)[:,:,:3], duration=duration)
+                    mask = VideoClip(lambda t: make_frame(t)[:,:,3]/255.0, ismask=True, duration=duration)
+                    return clip.set_mask(mask).set_start(global_offset + line_start_abs).set_position(('center', 780))
 
-                def make_rgb_frame(t):
-                    rgba = make_line_frame(t)
-                    return rgba[:,:,:3]
-
-                line_clip = VideoClip(lambda t: make_rgb_frame(t), duration=l_duration).set_start(start_time_offset + l_start)
-                line_mask = VideoClip(lambda t: make_mask_frame(t), ismask=True, duration=l_duration).set_start(start_time_offset + l_start)
-                line_clip = line_clip.set_mask(line_mask).set_position(('center', 780)) # Slightly higher
-                line_clips.append(line_clip)
+                line_clips.append(create_long_clip(l_content, l_start, l_duration, start_time_offset))
             
             return line_clips
 
