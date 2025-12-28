@@ -175,12 +175,13 @@ class LongFormVideoCreator:
 
             line_clips = []
             for line in lines:
-                line_start = line[0]['start']
-                line_end = line[-1]['start'] + line[-1]['duration']
-                line_duration = line_end - line_start
+                l_start = line[0]['start']
+                l_end = line[-1]['start'] + line[-1]['duration']
+                l_duration = l_end - l_start
+                l_content = line # Fix closure
                 
-                def make_line_frame(t):
-                    absolute_t = line_start + t
+                def make_line_frame(t, current_line=l_content, line_start_abs=l_start):
+                    absolute_t = line_start_abs + t
                     canvas = Image.new('RGBA', (self.width, 300), (0, 0, 0, 0))
                     draw = ImageDraw.Draw(canvas)
                     
@@ -206,13 +207,25 @@ class LongFormVideoCreator:
                     if not font:
                         font = ImageFont.load_default()
 
-                    full_text = " ".join([w['word'] for w in line])
+                    full_text = " ".join([w['word'] for w in current_line])
                     bbox = draw.textbbox((0, 0), full_text, font=font)
                     text_w = bbox[2] - bbox[0]
+                    
+                    # Margin Safety (150px padding each side for 16:9)
+                    safe_width = self.width - 300
+                    if text_w > safe_width:
+                        new_size = int(70 * (safe_width / text_w))
+                        try:
+                            font = ImageFont.truetype(font.path, new_size)
+                        except:
+                            font = ImageFont.truetype("arialbd.ttf", new_size)
+                        bbox = draw.textbbox((0, 0), full_text, font=font)
+                        text_w = bbox[2] - bbox[0]
+
                     start_x = (self.width - text_w) // 2
                     
                     current_x = start_x
-                    for word_info in line:
+                    for word_info in current_line:
                         word = word_info['word'] + " "
                         w_bbox = draw.textbbox((0, 0), word, font=font)
                         w_w = w_bbox[2] - w_bbox[0]
@@ -242,8 +255,8 @@ class LongFormVideoCreator:
                     rgba = make_line_frame(t)
                     return rgba[:,:,:3]
 
-                line_clip = VideoClip(make_rgb_frame, duration=line_duration).set_start(start_time_offset + line_start)
-                line_mask = VideoClip(make_mask_frame, ismask=True, duration=line_duration).set_start(start_time_offset + line_start)
+                line_clip = VideoClip(lambda t: make_rgb_frame(t), duration=l_duration).set_start(start_time_offset + l_start)
+                line_mask = VideoClip(lambda t: make_mask_frame(t), ismask=True, duration=l_duration).set_start(start_time_offset + l_start)
                 line_clip = line_clip.set_mask(line_mask).set_position(('center', 780)) # Slightly higher
                 line_clips.append(line_clip)
             
