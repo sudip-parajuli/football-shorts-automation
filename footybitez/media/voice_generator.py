@@ -60,8 +60,9 @@ class VoiceGenerator:
         json_path = output_path.replace('.mp3', '.json')
         
         os.makedirs(self.output_dir, exist_ok=True)
-        # Aria is very stable for WordBoundaries
-        voice = "en-US-AriaNeural" 
+        # Christopher is a strong male voice, very popular for football shorts
+        # It also supports WordBoundaries reliably.
+        voice = "en-US-ChristopherNeural" 
         
         max_retries = 3
         for attempt in range(max_retries):
