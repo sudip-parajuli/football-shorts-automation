@@ -293,8 +293,8 @@ class LongFormVideoCreator:
         try:
             font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
             if os.name == 'nt': font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
-            font_upper = ImageFont.truetype(font_path, 50)
-            font_lower = ImageFont.truetype(font_path, 110)
+            font_upper = ImageFont.truetype(font_path, 40)
+            font_lower = ImageFont.truetype(font_path, 80)
         except:
             font_upper = ImageFont.load_default()
             font_lower = ImageFont.load_default()
@@ -319,8 +319,8 @@ class LongFormVideoCreator:
                 current_y += (bbox[3] - bbox[1]) + spacing
             return current_y
 
-        # Draw Upper Text
-        y_after_upper = draw_text_centered([upper_text.upper()], self.height//2 - 120, font_upper, (200, 200, 200, 255))
+        # Draw Upper Text (Shifted up more to avoid caption overlap)
+        y_after_upper = draw_text_centered([upper_text.upper()], self.height//2 - 180, font_upper, (200, 200, 200, 255))
         # Draw Lower Text (Wrapped)
         draw_text_centered(wrapped_lower, y_after_upper + 10, font_lower, (255, 255, 255, 255))
         
