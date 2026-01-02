@@ -55,36 +55,66 @@ class LongFormVideoCreator:
             title_img_clip = ImageClip(title_text_path).set_duration(4.0).set_position('center')
             
             # 3. Sheen Effect (Glowing Multicolor Line runs "through" words)
+            # 3. Sheen Effect (Glowing Multicolor Line runs "through" words)
             # Use a mask generated from the title text alpha channel
-            title_mask = ImageClip(title_text_path, ismask=True).to_mask()
+            # We get the raw mask array to use for alpha multiplication
+            title_mask_clip = ImageClip(title_text_path, ismask=True)
+            title_mask_arr = title_mask_clip.get_frame(0)
             
             # Create a moving gradient bar (Gold/Cyan)
             def make_sheen_frame(t):
                 w, h = 150, self.height 
+                # Default empty RGBA frame
+                frame = np.zeros((self.height, self.width, 4), dtype=np.uint8)
+                
                 if t < 0.5 or t > 2.5:
-                    return np.zeros((self.height, self.width, 3), dtype=np.uint8)
+                    return frame 
                 
                 progress = (t - 0.5) / 1.5 
                 center_x = -w + (self.width + w*2) * progress
-                
-                frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
                 
                 x_start = int(max(0, center_x))
                 x_end = int(min(self.width, center_x + w))
                 
                 if x_end > x_start:
-                    # Simple robust implementation: Two bands
-                    # 50% Gold [255, 215, 0], 50% Cyan [0, 255, 255]
+                    # Draw the sheen bar
                     mid = x_start + (x_end - x_start)//2
                     if mid > x_start:
-                        frame[:, x_start:mid] = [0, 255, 255] # Cyan
+                        frame[:, x_start:mid] = [0, 255, 255, 255] # Cyan (Full opacity initially)
                     if x_end > mid:
-                        frame[:, mid:x_end] = [255, 215, 0] # Gold
+                        frame[:, mid:x_end] = [255, 215, 0, 255] # Gold (Full opacity initially)
                 
+                # Apply the Text Mask to the Alpha Channel
+                # title_mask_arr is HxW (float 0..1). frame alpha is index 3.
+                # We want: FinalAlpha = BarAlpha * TextMask
+                # BarAlpha is 255 where bar is, 0 where not.
+                # TextMask is 1 where text is, 0 where not.
+                
+                # Careful with shapes and types
+                if title_mask_arr.shape == (self.height, self.width):
+                     mask_u8 = (title_mask_arr * 255).astype(np.uint8)
+                     # Multiply channel 3 (alpha)
+                     # If bar is present (255) and text is present (255) -> 255.
+                     # If bar is 0 -> 0.
+                     # If text is 0 -> 0.
+                     
+                     # Optimization: Only multiply where bar is drawn? 
+                     # Simpler: just multiply the whole alpha plane
+                     current_alpha = frame[:,:,3]
+                     # Using bitwise_and or multiplication. 
+                     # current_alpha has 255 only in the bar strip.
+                     # mask_u8 has 255 only in text shape.
+                     # result should be 255 only where BOTH overlap.
+                     
+                     # Simple multiplication with normalization or conversion
+                     # float mult is easiest
+                     new_alpha = (current_alpha.astype(float) * title_mask_arr).astype(np.uint8)
+                     frame[:,:,3] = new_alpha
+
                 return frame
 
-            sheen_clip = VideoClip(make_sheen_frame, duration=4.0).set_opacity(0.8)
-            sheen_masked = sheen_clip.set_mask(title_mask)
+            # Create clip with ismask=False (RGBA)
+            sheen_masked = VideoClip(make_sheen_frame, duration=4.0, ismask=False).set_position('center')
 
             # 4. SFX (Kick)
             sfx_kick = self.sfx_man.get_sfx("kick")
