@@ -19,42 +19,78 @@ class LongFormVideoCreator:
 
     def create_long_video(self, script_data, visual_assets, background_music_path=None):
         """
-        Creates a long-form 16:9 video with karaoke captions and transitions.
+        Creates a long-form 16:9 video with 5 distinct phases:
+        1. Cold Hook (VO + Subs, NO Title)
+        2. Main Title (Silent, Title Text, NO Subs)
+        3. Intro (VO + Subs, NO Title)
+        4. Chapters (Silent Card -> VO + Subs)
+        5. Outro
         """
         try:
             clips = []
-            current_time = 0
             
-            # 1. Process Intro
+            # --- PHASE 1: COLD HOOK ---
+            # For backward compatibility, check if 'hook' exists. If not, skip to Intro.
+            if 'hook' in script_data:
+                hook_audio_path = self.voice_gen.generate(script_data['hook']['text'], "hook.mp3")
+                hook_audio = AudioFileClip(hook_audio_path)
+                hook_visual = self._get_visual(script_data['hook']['visual_keyword'], visual_assets, hook_audio.duration)
+                hook_visual = self._ensure_rgb(hook_visual).set_audio(hook_audio)
+                
+                # Karaoke for Hook (Larger font: 45% vs 35%)
+                hook_captions = self._get_karaoke_clips("hook.mp3", hook_audio.duration, 0, font_scale=1.3)
+                hook_combined = CompositeVideoClip([hook_visual] + hook_captions, size=(self.width, self.height))
+                clips.append(hook_combined.crossfadein(0.5))
+
+            # --- PHASE 2: MAIN TITLE CARD (SILENT HERO MOMENT) ---
+            # Duration 4 seconds. Background music will play over this later.
+            # NO Voiceover, NO Subtitles.
+            title_text_path = self._create_chapter_overlay("FOOTYBITEZ PRESENTS", script_data['metadata']['title'])
+            
+            # Use a high-quality visual for background
+            title_bg_keyword = script_data.get('intro', {}).get('visual_keyword', 'football stadium')
+            title_visual = self._get_visual(title_bg_keyword, visual_assets, 4.0)
+            
+            # Create composite (Visual + Title Overlay)
+            title_card = CompositeVideoClip([
+                title_visual, 
+                ImageClip(title_text_path).set_duration(4.0).set_position('center')
+            ], size=(self.width, self.height))
+            
+            clips.append(title_card.crossfadein(1.0).fadeout(0.5))
+
+            # --- PHASE 3: SPOKEN INTRO ---
+            # Voiceover + Subtitles. NO Title Overlay.
             intro_audio_path = self.voice_gen.generate(script_data['intro']['text'], "intro.mp3")
             intro_audio = AudioFileClip(intro_audio_path)
             intro_visual = self._get_visual(script_data['intro']['visual_keyword'], visual_assets, intro_audio.duration)
             intro_visual = self._ensure_rgb(intro_visual).set_audio(intro_audio)
             
-            intro_text = self._create_chapter_overlay("FOOTY BITEZ PRESENTS", script_data['metadata']['title'])
-            intro_overlay = self._ensure_rgb(ImageClip(intro_text).set_duration(intro_audio.duration)).set_position('center')
-            
-            intro_combined = CompositeVideoClip([intro_visual, intro_overlay], size=(self.width, self.height))
-            
-            # Add Karaoke for Intro
-            intro_captions = self._get_karaoke_clips("intro.mp3", intro_audio.duration, 0)
-            intro_combined = CompositeVideoClip([intro_visual, intro_overlay] + intro_captions, size=(self.width, self.height))
-            
+            # Karaoke for Intro (Standard scale)
+            intro_captions = self._get_karaoke_clips("intro.mp3", intro_audio.duration, 0, font_scale=1.0)
+            intro_combined = CompositeVideoClip([intro_visual] + intro_captions, size=(self.width, self.height))
             clips.append(intro_combined.crossfadein(0.5))
-            current_time += intro_audio.duration
             
-            # 2. Process Chapters
+            # --- PHASE 4: CHAPTER FLOW ---
             for i, chapter in enumerate(script_data['chapters']):
                 chapter_title = chapter['chapter_title']
                 
-                # CHAPTER START SLIDE (Pause for 2 seconds)
+                # A) CHAPTER TITLE CARD (SILENT)
+                # Duration ~2 seconds total. Pacing: Fade-in 0.3s, Hold 1.4s, Fade-out 0.3s
                 chap_text_path = self._create_chapter_overlay(f"CHAPTER {i+1}", chapter_title)
-                # Use the first fact's visual as background for the chapter slide
-                first_fact_visual = self._get_visual(chapter['facts'][0]['visual_keyword'], visual_assets, 2.5)
-                chap_slide = CompositeVideoClip([first_fact_visual, ImageClip(chap_text_path).set_duration(2.5)], size=(self.width, self.height))
-                clips.append(chap_slide.crossfadein(0.5).fadeout(0.5))
-                current_time += 2.5
                 
+                # Visual background
+                first_fact_visual = self._get_visual(chapter['facts'][0]['visual_keyword'], visual_assets, 2.0)
+                
+                chap_slide = CompositeVideoClip([
+                    first_fact_visual, 
+                    ImageClip(chap_text_path).set_duration(2.0).set_position('center')
+                ], size=(self.width, self.height))
+                
+                # REFINED PACING
+                clips.append(chap_slide.crossfadein(0.3).fadeout(0.3))
+                
+                # B) CHAPTER NARRATION
                 for j, fact in enumerate(chapter['facts']):
                     filename = f"chap_{i}_fact_{j}.mp3"
                     audio_path = self.voice_gen.generate(fact['text'], filename)
@@ -63,47 +99,48 @@ class LongFormVideoCreator:
                     visual = self._get_visual(fact['visual_keyword'], visual_assets, audio.duration)
                     visual = self._ensure_rgb(visual).set_audio(audio)
                     
-                    # Chapter overlay removed from facts (moved to separate slide)
-                    fact_video = visual
-                    
-                    # Add Karaoke for Fact
-                    fact_captions = self._get_karaoke_clips(filename, audio.duration, 0)
+                    # Karaoke for Fact (Standard scale)
+                    fact_captions = self._get_karaoke_clips(filename, audio.duration, 0, font_scale=1.0)
                     fact_video = CompositeVideoClip([visual] + fact_captions, size=(self.width, self.height))
                     
                     clips.append(fact_video.crossfadein(0.5))
                 
-            # 3. Process Outro
+            # --- PHASE 5: OUTRO ---
             outro_audio_path = self.voice_gen.generate(script_data['outro']['text'], "outro.mp3")
             outro_audio = AudioFileClip(outro_audio_path)
             outro_visual = self._get_visual(script_data['outro']['visual_keyword'], visual_assets, outro_audio.duration)
             outro_visual = self._ensure_rgb(outro_visual).set_audio(outro_audio)
             
-            outro_text = self._create_chapter_overlay("THANKS FOR WATCHING", "SUBSCRIBE FOR MORE")
-            outro_overlay = self._ensure_rgb(ImageClip(outro_text).set_duration(outro_audio.duration)).set_position('center')
+            # Outro Text Overlay (Refined Soft CTA)
+            # "More untold football stories — FootyBitez"
+            outro_captions = self._get_karaoke_clips("outro.mp3", outro_audio.duration, 0, font_scale=1.0)
             
-            outro_combined = CompositeVideoClip([outro_visual, outro_overlay], size=(self.width, self.height))
+            # Create a simple final card for the last 3-4 seconds
+            final_card_dur = 4.0
+            final_card_start = max(0, outro_audio.duration - final_card_dur)
+            outro_text = self._create_chapter_overlay("FOOTYBITEZ", "MORE UNTOLD STORIES")
+            outro_overlay = ImageClip(outro_text).set_duration(final_card_dur).set_start(final_card_start).set_position('center')
             
-            # Add Karaoke for Outro
-            outro_captions = self._get_karaoke_clips("outro.mp3", outro_audio.duration, 0)
             outro_combined = CompositeVideoClip([outro_visual, outro_overlay] + outro_captions, size=(self.width, self.height))
-                
             clips.append(outro_combined.crossfadein(0.5))
 
-            # 4. Concatenate and Music
+            # --- CONCATENATE & MIXING ---
             final_video = concatenate_videoclips(clips, method="compose")
             total_duration = final_video.duration
             
+            # Add Background Music (Looping)
             if background_music_path and os.path.exists(background_music_path):
-                music = AudioFileClip(background_music_path).volumex(0.1)
+                music = AudioFileClip(background_music_path).volumex(0.1) # Low volume
                 if music.duration < total_duration:
                     music = afx.audio_loop(music, duration=total_duration)
                 else:
                     music = music.subclip(0, total_duration)
                 
+                # Mix audio: Voiceover from video + Background Music
                 final_audio = CompositeAudioClip([final_video.audio, music])
                 final_video = final_video.set_audio(final_audio)
 
-            # 5. Export
+            # Export
             output_path = os.path.join(self.output_dir, "long_form_video.mp4")
             final_video.write_videofile(output_path, fps=30, codec="libx264", audio_codec="aac", logger=None)
             
@@ -151,7 +188,7 @@ class LongFormVideoCreator:
             return np.array(img)
         return clip.fl(effect)
 
-    def _get_karaoke_clips(self, audio_filename, total_duration, start_time_offset):
+    def _get_karaoke_clips(self, audio_filename, total_duration, start_time_offset, font_scale=1.0):
         """Creates word-level karaoke caption clips list."""
         import json
         json_path = os.path.join("footybitez/media/voice", audio_filename.replace('.mp3', '.json'))
@@ -199,10 +236,13 @@ class LongFormVideoCreator:
                             ]
                         
                         font = None
+                        # Base size 80 * scale
+                        base_size = int(80 * font_scale)
+                        
                         for cp in candidates:
                             if os.path.exists(cp):
                                 try:
-                                    font = ImageFont.truetype(cp, 80)
+                                    font = ImageFont.truetype(cp, base_size)
                                     break
                                 except:
                                     continue
@@ -216,7 +256,8 @@ class LongFormVideoCreator:
                         # Margin Safety (200px padding each side for 16:9)
                         safe_width = self.width - 400
                         if text_w > safe_width:
-                            new_size = int(80 * (safe_width / text_w))
+                            # Recalculate size to fit
+                            new_size = int(base_size * (safe_width / text_w))
                             try:
                                 font = ImageFont.truetype(font.path, new_size)
                             except:
@@ -285,46 +326,76 @@ class LongFormVideoCreator:
             
         return clip.resize((self.width, self.height))
 
-    def _create_chapter_overlay(self, upper_text, lower_text):
-        """Creates a clean documentary-style text overlay image with multi-line support."""
+    def _create_chapter_overlay(self, upper_small_text, main_large_text):
+        """
+        Creates a clean documentary-style text overlay image with strong visual hierarchy.
+        
+        Args:
+            upper_small_text (str): Top line, smaller font (e.g., "FOOTYBITEZ PRESENTS" or "CHAPTER 1").
+            main_large_text (str): Main content, larger font (e.g., Topic or Chapter Title).
+        """
         img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
         
         try:
             font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
             if os.name == 'nt': font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
-            font_upper = ImageFont.truetype(font_path, 40)
-            font_lower = ImageFont.truetype(font_path, 80)
+            
+            # HIERARCHY: Main Text = 100%, Upper Text = ~70% of Main (relative visual weight)
+            # Actually, User requested: Main 100%, Chapter 70%.
+            # Let's set baselines:
+            # Main Title Large: 120px
+            # Chapter Title: 90px
+            # Upper Label ("PRESENTS"/"CHAPTER"): 50px
+            
+            # Heuristic: Detect if this is Main Title or Chapter based on content?
+            # Better: Make the caller decide? For now, I'll infer slightly or use safe defaults.
+            
+            # Default sizes
+            size_upper = 50
+            size_main = 100 
+            
+            font_upper = ImageFont.truetype(font_path, size_upper)
+            font_main = ImageFont.truetype(font_path, size_main)
         except:
             font_upper = ImageFont.load_default()
-            font_lower = ImageFont.load_default()
+            font_main = ImageFont.load_default()
 
         import textwrap
-        # Reduced width for better margin safety
-        max_width_chars = 22 
-        wrapped_lower = textwrap.wrap(lower_text.upper(), width=max_width_chars)
+        max_width_chars = 20
+        wrapped_main = textwrap.wrap(main_large_text.upper(), width=max_width_chars)
         
         def draw_text_centered(text_lines, start_y, font, fill, spacing=20):
             current_y = start_y
             for line in text_lines:
                 bbox = draw.textbbox((0, 0), line, font=font)
                 w = bbox[2] - bbox[0]
+                h = bbox[3] - bbox[1]
                 x = (self.width - w) // 2
-                # Stroke for visibility
+                
+                # Stroke
                 stroke_w = 4
                 for ox in range(-stroke_w, stroke_w+1):
                     for oy in range(-stroke_w, stroke_w+1):
                         draw.text((x+ox, current_y+oy), line, font=font, fill=(0,0,0,255))
+                
                 draw.text((x, current_y), line, font=font, fill=fill)
-                current_y += (bbox[3] - bbox[1]) + spacing
+                current_y += h + spacing
             return current_y
 
-        # Draw Upper Text (Shifted up more to avoid caption overlap)
-        y_after_upper = draw_text_centered([upper_text.upper()], self.height//2 - 180, font_upper, (200, 200, 200, 255))
-        # Draw Lower Text (Wrapped)
-        draw_text_centered(wrapped_lower, y_after_upper + 10, font_lower, (255, 255, 255, 255))
+        # Layout
+        # Calculate total height to center vertically
+        # Rough estimation
+        total_h = 60 + (len(wrapped_main) * 120) 
+        start_y = (self.height - total_h) // 2
         
-        temp_path = os.path.join(self.output_dir, "temp_text", f"overlay_{hash(upper_text+lower_text)}.png")
+        # Draw Upper Small Text
+        y_cursor = draw_text_centered([upper_small_text.upper()], start_y, font_upper, (200, 200, 200, 255))
+        
+        # Draw Main Large Text
+        draw_text_centered(wrapped_main, y_cursor + 30, font_main, (255, 255, 255, 255))
+        
+        temp_path = os.path.join(self.output_dir, "temp_text", f"overlay_{hash(upper_small_text+main_large_text)}.png")
         img.save(temp_path)
         return temp_path
 

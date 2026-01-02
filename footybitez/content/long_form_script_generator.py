@@ -39,12 +39,17 @@ class LongFormScriptGenerator:
         Style: Documentary, Clean, Minimal, Engaging.
         
         STRUCTURE:
-        1. INTRO: A strong 8-12 second hook.
-        2. BODY: 25 to 30 individual football facts related to "{topic}".
+        1. COLD HOOK: A 4-6 second mystery hook. 
+           - MUST NOT mention Player Name or Club Name. 
+           - Must imply curiosity or mystery. 
+           - 1 sentence only. Max 8-10 words.
+        2. INTRO: A strong 8-12 second explanation.
+        3. BODY: 25 to 30 individual football facts related to "{topic}".
            - Group them into 3-5 distinct THEMES (e.g., Records, Early Life, Controversies, etc.).
            - Each fact should be a punchy sentence or two.
            - Provide a "chapter_title" for each theme.
-        3. OUTRO: A 10-15 second call to action and wrap-up.
+        4. OUTRO: A 10-15 second soft call to action. 
+           - Focus on "More untold stories" or similar soft continuation.
 
         CRITICAL OUTPUT FORMAT (JSON ONLY):
         {{
@@ -52,6 +57,10 @@ class LongFormScriptGenerator:
                 "title": "Long-form SEO Title here",
                 "description": "500-800 character description here containing keywords.",
                 "tags": ["tag1", "tag2", "tag3"]
+            }},
+            "hook": {{
+                "text": "Hook text here (mystery building)",
+                "visual_keyword": "mysterious football visual"
             }},
             "intro": {{
                 "text": "Intro text here",
@@ -115,7 +124,7 @@ class LongFormScriptGenerator:
         return None
 
     def _validate_long_script(self, data):
-        required = ["intro", "chapters", "outro", "metadata"]
+        required = ["hook", "intro", "chapters", "outro", "metadata"]
         return all(k in data for k in required)
 
 if __name__ == "__main__":
