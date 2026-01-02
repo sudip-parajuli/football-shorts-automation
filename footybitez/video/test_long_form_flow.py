@@ -100,14 +100,13 @@ class TestLongFormVideoFlow(unittest.TestCase):
         print(f"Total CompositeVideoClip calls: {len(calls)}")
         
         # Analyze Calls (This is a heuristic based on my implementation knowledge)
-        # 1. Hook: list length 2 (Visual + [Karaoke...])
-        # 2. Title: list length 2 (Visual + Overlay)
-        # 3. Intro: list length 2 (Visual + [Karaoke...])
-        # 4. Chapter Card: list length 2 (Visual + Overlay)
-        # 5. Chapter Fact: list length 2 (Visual + [Karaoke...])
-        # 6. Outro: list length ~3 (Visual + Overlay + [Karaoke...])
+        # 1. Title: list length 2 (Visual + Overlay)
+        # 2. Intro: list length 2 (Visual + [Karaoke...])
+        # 3. Chapter Card: list length 2 (Visual + Overlay)
+        # 4. Chapter Fact: list length 2 (Visual + [Karaoke...])
+        # 5. Outro: list length ~3 (Visual + Overlay + [Karaoke...])
         
-        self.assertTrue(len(calls) >= 6, f"Should have at least 6 composite clips for the phases, got {len(calls)}")
+        self.assertTrue(len(calls) >= 5, f"Should have at least 5 composite clips for the phases, got {len(calls)}")
         
         # Specific check: Main Title Card
         # Arguments to _create_chapter_overlay for Main Title

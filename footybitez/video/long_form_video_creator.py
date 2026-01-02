@@ -3,8 +3,9 @@ import random
 import numpy as np
 import logging
 from moviepy.editor import *
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from footybitez.media.voice_generator import VoiceGenerator
+from footybitez.media.sfx_manager import SFXManager
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +13,7 @@ class LongFormVideoCreator:
     def __init__(self, output_dir="footybitez/output"):
         self.output_dir = output_dir
         self.voice_gen = VoiceGenerator()
+        self.sfx_man = SFXManager()
         os.makedirs(output_dir, exist_ok=True)
         os.makedirs(os.path.join(output_dir, "temp_text"), exist_ok=True)
         self.width = 1920
@@ -19,76 +21,122 @@ class LongFormVideoCreator:
 
     def create_long_video(self, script_data, visual_assets, background_music_path=None):
         """
-        Creates a long-form 16:9 video with 5 distinct phases:
-        1. Cold Hook (VO + Subs, NO Title)
-        2. Main Title (Silent, Title Text, NO Subs)
-        3. Intro (VO + Subs, NO Title)
-        4. Chapters (Silent Card -> VO + Subs)
-        5. Outro
+        Creates a long-form 16:9 video with distinct phases:
+        1. Main Title (Silent, Title Text, NO Subs)
+        2. Intro (VO + Subs, NO Title)
+        3. Chapters (Silent Card -> VO + Subs)
+        4. Outro
         """
         try:
             clips = []
             
-            # --- PHASE 1: COLD HOOK ---
-            # For backward compatibility, check if 'hook' exists. If not, skip to Intro.
-            if 'hook' in script_data:
-                hook_audio_path = self.voice_gen.generate(script_data['hook']['text'], "hook.mp3")
-                hook_audio = AudioFileClip(hook_audio_path)
-                hook_visual = self._get_visual(script_data['hook']['visual_keyword'], visual_assets, hook_audio.duration)
-                hook_visual = self._ensure_rgb(hook_visual).set_audio(hook_audio)
-                
-                # Karaoke for Hook (Larger font: 45% vs 35%)
-                hook_captions = self._get_karaoke_clips("hook.mp3", hook_audio.duration, 0, font_scale=1.3)
-                hook_combined = CompositeVideoClip([hook_visual] + hook_captions, size=(self.width, self.height))
-                clips.append(hook_combined.crossfadein(0.5))
+            # Prepare Media Deck (Shuffle to avoid repeats)
+            segment_media = visual_assets.get('segment_media', [])
+            if segment_media:
+                random.shuffle(segment_media)
+            self.media_deck = list(segment_media) # Copy
+            self.used_media_indices = []
 
-            # --- PHASE 2: MAIN TITLE CARD (SILENT HERO MOMENT) ---
-            # Duration 4 seconds. Background music will play over this later.
-            # NO Voiceover, NO Subtitles.
+            # --- PHASE 1: MAIN TITLE CARD (HERO MOMENT) ---
+            # Visuals: Blurred + Zoomed Background
+            # Overlays: Text + Sheen Effect (Glowing line runs through words)
+            # Audio: Kick SFX
+            
             title_text_path = self._create_chapter_overlay("FOOTYBITEZ PRESENTS", script_data['metadata']['title'])
             
-            # Use a high-quality visual for background
+            # 1. Background
             title_bg_keyword = script_data.get('intro', {}).get('visual_keyword', 'football stadium')
             title_visual = self._get_visual(title_bg_keyword, visual_assets, 4.0)
+            title_visual = self._add_blur_effect(title_visual, radius=20)
+            if not hasattr(title_visual, 'fl'):
+                 title_visual = self._add_zoom_effect(title_visual, 0.05)
             
-            # Create composite (Visual + Title Overlay)
+            # 2. Text Overlay Base
+            title_img_clip = ImageClip(title_text_path).set_duration(4.0).set_position('center')
+            
+            # 3. Sheen Effect (Glowing Multicolor Line runs "through" words)
+            # Use a mask generated from the title text alpha channel
+            title_mask = ImageClip(title_text_path, ismask=True).to_mask()
+            
+            # Create a moving gradient bar (Gold/Cyan)
+            def make_sheen_frame(t):
+                w, h = 150, self.height 
+                if t < 0.5 or t > 2.5:
+                    return np.zeros((self.height, self.width, 3), dtype=np.uint8)
+                
+                progress = (t - 0.5) / 1.5 
+                center_x = -w + (self.width + w*2) * progress
+                
+                frame = np.zeros((self.height, self.width, 3), dtype=np.uint8)
+                
+                x_start = int(max(0, center_x))
+                x_end = int(min(self.width, center_x + w))
+                
+                if x_end > x_start:
+                    # Simple robust implementation: Two bands
+                    # 50% Gold [255, 215, 0], 50% Cyan [0, 255, 255]
+                    mid = x_start + (x_end - x_start)//2
+                    if mid > x_start:
+                        frame[:, x_start:mid] = [0, 255, 255] # Cyan
+                    if x_end > mid:
+                        frame[:, mid:x_end] = [255, 215, 0] # Gold
+                
+                return frame
+
+            sheen_clip = VideoClip(make_sheen_frame, duration=4.0).set_opacity(0.8)
+            sheen_masked = sheen_clip.set_mask(title_mask)
+
+            # 4. SFX (Kick)
+            sfx_kick = self.sfx_man.get_sfx("kick")
+            
             title_card = CompositeVideoClip([
                 title_visual, 
-                ImageClip(title_text_path).set_duration(4.0).set_position('center')
-            ], size=(self.width, self.height))
+                title_img_clip, 
+                sheen_masked.set_position('center') 
+            ], size=(self.width, self.height)).set_duration(4.0)
+            
+            # Attach SFX
+            if sfx_kick:
+                sfx_kick = sfx_kick.volumex(0.8)
+                title_card = title_card.set_audio(sfx_kick)
             
             clips.append(title_card.crossfadein(1.0).fadeout(0.5))
 
-            # --- PHASE 3: SPOKEN INTRO ---
-            # Voiceover + Subtitles. NO Title Overlay.
+            # --- PHASE 2: SPOKEN INTRO ---
             intro_audio_path = self.voice_gen.generate(script_data['intro']['text'], "intro.mp3")
             intro_audio = AudioFileClip(intro_audio_path)
             intro_visual = self._get_visual(script_data['intro']['visual_keyword'], visual_assets, intro_audio.duration)
             intro_visual = self._ensure_rgb(intro_visual).set_audio(intro_audio)
             
-            # Karaoke for Intro (Standard scale)
             intro_captions = self._get_karaoke_clips("intro.mp3", intro_audio.duration, 0, font_scale=1.0)
-            intro_combined = CompositeVideoClip([intro_visual] + intro_captions, size=(self.width, self.height))
+            intro_combined = CompositeVideoClip([intro_visual] + intro_captions, size=(self.width, self.height)).set_duration(intro_audio.duration)
             clips.append(intro_combined.crossfadein(0.5))
             
-            # --- PHASE 4: CHAPTER FLOW ---
+            # --- PHASE 3: CHAPTER FLOW ---
             for i, chapter in enumerate(script_data['chapters']):
                 chapter_title = chapter['chapter_title']
                 
-                # A) CHAPTER TITLE CARD (SILENT)
-                # Duration ~2 seconds total. Pacing: Fade-in 0.3s, Hold 1.4s, Fade-out 0.3s
+                # A) CHAPTER TITLE CARD (KICK EFFECT)
                 chap_text_path = self._create_chapter_overlay(f"CHAPTER {i+1}", chapter_title)
                 
                 # Visual background
                 first_fact_visual = self._get_visual(chapter['facts'][0]['visual_keyword'], visual_assets, 2.0)
                 
+                # SFX: Kick
+                sfx_kick_chap = self.sfx_man.get_sfx("kick", duration=0.5)
+                
                 chap_slide = CompositeVideoClip([
                     first_fact_visual, 
                     ImageClip(chap_text_path).set_duration(2.0).set_position('center')
-                ], size=(self.width, self.height))
+                ], size=(self.width, self.height)).set_duration(2.0)
                 
-                # REFINED PACING
-                clips.append(chap_slide.crossfadein(0.3).fadeout(0.3))
+                # Attach Kick SFX
+                if sfx_kick_chap:
+                    sfx_kick_chap = sfx_kick_chap.volumex(0.7)
+                    chap_slide = chap_slide.set_audio(sfx_kick_chap.set_start(0))
+                
+                # TRANSITION: Fast Fade In (0.1s)
+                clips.append(chap_slide.fadein(0.1).fadeout(0.3)) 
                 
                 # B) CHAPTER NARRATION
                 for j, fact in enumerate(chapter['facts']):
@@ -99,13 +147,12 @@ class LongFormVideoCreator:
                     visual = self._get_visual(fact['visual_keyword'], visual_assets, audio.duration)
                     visual = self._ensure_rgb(visual).set_audio(audio)
                     
-                    # Karaoke for Fact (Standard scale)
                     fact_captions = self._get_karaoke_clips(filename, audio.duration, 0, font_scale=1.0)
-                    fact_video = CompositeVideoClip([visual] + fact_captions, size=(self.width, self.height))
+                    fact_video = CompositeVideoClip([visual] + fact_captions, size=(self.width, self.height)).set_duration(audio.duration)
                     
                     clips.append(fact_video.crossfadein(0.5))
                 
-            # --- PHASE 5: OUTRO ---
+            # --- PHASE 4: OUTRO ---
             outro_audio_path = self.voice_gen.generate(script_data['outro']['text'], "outro.mp3")
             outro_audio = AudioFileClip(outro_audio_path)
             outro_visual = self._get_visual(script_data['outro']['visual_keyword'], visual_assets, outro_audio.duration)
@@ -121,20 +168,20 @@ class LongFormVideoCreator:
             outro_text = self._create_chapter_overlay("FOOTYBITEZ", "MORE UNTOLD STORIES")
             outro_overlay = ImageClip(outro_text).set_duration(final_card_dur).set_start(final_card_start).set_position('center')
             
-            outro_combined = CompositeVideoClip([outro_visual, outro_overlay] + outro_captions, size=(self.width, self.height))
+            outro_combined = CompositeVideoClip([outro_visual, outro_overlay] + outro_captions, size=(self.width, self.height)).set_duration(outro_audio.duration)
             clips.append(outro_combined.crossfadein(0.5))
 
             # --- CONCATENATE & MIXING ---
             final_video = concatenate_videoclips(clips, method="compose")
-            total_duration = final_video.duration
             
             # Add Background Music (Looping)
             if background_music_path and os.path.exists(background_music_path):
                 music = AudioFileClip(background_music_path).volumex(0.1) # Low volume
-                if music.duration < total_duration:
-                    music = afx.audio_loop(music, duration=total_duration)
+                # Loop explicitly to avoid cutoff
+                if music.duration < final_video.duration:
+                    music = afx.audio_loop(music, duration=final_video.duration)
                 else:
-                    music = music.subclip(0, total_duration)
+                    music = music.subclip(0, final_video.duration)
                 
                 # Mix audio: Voiceover from video + Background Music
                 final_audio = CompositeAudioClip([final_video.audio, music])
@@ -142,7 +189,9 @@ class LongFormVideoCreator:
 
             # Export
             output_path = os.path.join(self.output_dir, "long_form_video.mp4")
-            final_video.write_videofile(output_path, fps=30, codec="libx264", audio_codec="aac", logger=None)
+            # Using 'threads' can sometimes cause sync issues or freezing on windows
+            # Reduced threads to 4 often fixes freeze at complex joins
+            final_video.write_videofile(output_path, fps=30, codec="libx264", audio_codec="aac", threads=4, logger=None)
             
             return output_path
 
@@ -152,23 +201,49 @@ class LongFormVideoCreator:
 
     def _get_visual(self, keyword, assets, duration):
         """Fetches visual and applies effects."""
-        segment_media = assets.get('segment_media', [])
-        if not segment_media:
-            return ColorClip(size=(self.width, self.height), color=(0,0,0)).set_duration(duration)
         
-        path = random.choice(segment_media)
+        # Use Media Deck first for unique visuals
+        path = None
+        if hasattr(self, 'media_deck') and self.media_deck:
+            path = self.media_deck.pop(0) 
+        
+        if not path:
+             # Fallback to random if deck empty
+            segment_media = assets.get('segment_media', [])
+            if not segment_media:
+                 return ColorClip(size=(self.width, self.height), color=(0,0,0)).set_duration(duration)
+            path = random.choice(segment_media)
+
+        if not os.path.exists(path):
+            logger.warning(f"Media path does not exist: {path}")
+            return ColorClip(size=(self.width, self.height), color=(0,0,0)).set_duration(duration)
+
         if path.endswith(('.mp4', '.mov')):
             clip = VideoFileClip(path)
-            if clip.duration < duration:
-                clip = clip.loop(duration=duration)
+            # FORCE MUTE video segments to avoid noise
+            clip = clip.without_audio()
+            
+            if clip.duration is None:
+                 pass # Trust moviepy
+            
+            if clip.duration and clip.duration < duration:
+                # Loop
+                try:
+                    clip = clip.loop(duration=duration)
+                except Exception as e:
+                    logger.warning(f"Failed to loop clip: {e}. using subclip/color fallback")
+                    return ColorClip(size=(self.width, self.height), color=(0,0,0)).set_duration(duration)
             else:
                 clip = clip.subclip(0, duration)
-            return self._resize_to_horizontal(clip)
+            
+            # Ensure resizing matches target
+            clip = self._resize_to_horizontal(clip)
+            return clip.set_duration(duration)
         else:
             # Static Image with Zoom Effect
             clip = ImageClip(path).set_duration(duration)
             clip = self._resize_to_horizontal(clip)
-            return self._add_zoom_effect(clip)
+            return self._add_zoom_effect(clip).set_duration(duration)
 
     def _add_zoom_effect(self, clip, zoom_ratio=0.04):
         """Adds a subtle Ken Burns zoom-in effect."""
@@ -187,6 +262,12 @@ class LongFormVideoCreator:
             img = img.crop((left, top, left + w, top + h))
             return np.array(img)
         return clip.fl(effect)
+
+    def _add_blur_effect(self, clip, radius=15):
+        """Applies Gaussian Blur to the clip."""
+        def filter(image):
+            return np.array(Image.fromarray(image).filter(ImageFilter.GaussianBlur(radius)))
+        return clip.fl_image(filter)
 
     def _get_karaoke_clips(self, audio_filename, total_duration, start_time_offset, font_scale=1.0):
         """Creates word-level karaoke caption clips list."""
@@ -390,7 +471,7 @@ class LongFormVideoCreator:
         start_y = (self.height - total_h) // 2
         
         # Draw Upper Small Text
-        y_cursor = draw_text_centered([upper_small_text.upper()], start_y, font_upper, (200, 200, 200, 255))
+        y_cursor = draw_text_centered([upper_small_text.upper()], start_y, font_upper, (220, 220, 220, 255))
         
         # Draw Main Large Text
         draw_text_centered(wrapped_main, y_cursor + 30, font_main, (255, 255, 255, 255))
