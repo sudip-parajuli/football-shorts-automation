@@ -113,8 +113,48 @@ class LongFormVideoCreator:
 
                 return frame
 
-            # Create clip with ismask=False (RGBA)
-            sheen_masked = VideoClip(make_sheen_frame, duration=4.0, ismask=False).set_position('center')
+            # Create separate RGB and Mask clips for MoviePy compatibility
+            # Mixing raw RGBA clips into RGB composites often causes broadcast errors
+            
+            def make_sheen_image(t):
+                 # ... same logic as before but returns the frame
+                 # We copy the logic here to ensure closure works
+                 w, h = 150, self.height 
+                 frame = np.zeros((self.height, self.width, 4), dtype=np.uint8)
+                 
+                 if t < 0.5 or t > 2.5:
+                     return frame 
+                 
+                 progress = (t - 0.5) / 1.5 
+                 center_x = -w + (self.width + w*2) * progress
+                 
+                 x_start = int(max(0, center_x))
+                 x_end = int(min(self.width, center_x + w))
+                 
+                 if x_end > x_start:
+                     mid = x_start + (x_end - x_start)//2
+                     if mid > x_start:
+                         frame[:, x_start:mid] = [0, 255, 255, 255] # Cyan
+                     if x_end > mid:
+                         frame[:, mid:x_end] = [255, 215, 0, 255] # Gold
+                 
+                 # Apply Text Mask Logic
+                 if title_mask_arr.shape == (self.height, self.width):
+                      current_alpha = frame[:,:,3]
+                      # float mult
+                      new_alpha = (current_alpha.astype(float) * title_mask_arr).astype(np.uint8)
+                      frame[:,:,3] = new_alpha
+                 return frame
+
+            # Create base RGB clip (discard alpha for color source)
+            sheen_color = VideoClip(lambda t: make_sheen_image(t)[:,:,:3], duration=4.0)
+            
+            # Create mask clip (extract alpha, normalize to 0.0-1.0)
+            # ismask=True is important.
+            sheen_mask_clip = VideoClip(lambda t: make_sheen_image(t)[:,:,3] / 255.0, duration=4.0, ismask=True)
+            
+            # Combine
+            sheen_masked = sheen_color.set_mask(sheen_mask_clip).set_position('center')
 
             # 4. SFX (Kick)
             sfx_kick = self.sfx_man.get_sfx("kick")
