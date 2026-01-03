@@ -126,6 +126,9 @@ def main():
             video_id = uploader.upload_video(video_path, title, description, tags)
             if video_id:
                 logger.info(f"Successfully uploaded long-form video: {video_id}")
+                # Mark topic as used to prevent repetition
+                topic_gen.mark_topic_as_used(topic)
+                logger.info(f"Topic '{topic}' marked as used.")
             else:
                 logger.error("Upload failed.")
         
