@@ -343,11 +343,34 @@ class VideoCreator:
                 
                 is_title = chunk.get('is_title', False)
                 if is_title:
-                    # Simple title overlay for title card
-                    path = self.create_text_image(chunk['text'], fontsize=110, color_scheme="orange")
-                    title_clip = ImageClip(path).set_start(accumulated_time).set_duration(duration).set_position('center')
-                    # Add subtle zoom to title too
-                    title_clip = title_clip.resize(lambda t: 1 + 0.05 * t/duration)
+                    # Animated Typewriter Title (TextRenderer)
+                    from footybitez.video.text_renderer import TextRenderer
+                    renderer = TextRenderer()
+                    
+                    # Create fake timestamped words for title since we don't have word-level timestamps for the hook yet
+                    # We just distribute them evenly across the audio duration
+                    raw_words = chunk['text'].split()
+                    word_duration = duration / max(1, len(raw_words))
+                    
+                    phrase_data = []
+                    for w_idx, w in enumerate(raw_words):
+                        phrase_data.append({
+                            "word": w,
+                            "start": 0 + (w_idx * word_duration), # Relative start
+                            "duration": word_duration
+                        })
+                        
+                    # Render
+                    # Force GOLD for Title Card (Hook) as requested
+                    title_clip = renderer.render_phrase(
+                        phrase_data, 
+                        duration, 
+                        1080, # Shorts Width
+                        is_shorts=True,
+                        override_color="gold"
+                    ).set_start(accumulated_time).set_position('center')
+                    
+                    text_clips.append(title_clip)
                     text_clips.append(title_clip)
                 else:
                     # Karaoke for segments/outro
@@ -403,115 +426,41 @@ class VideoCreator:
         except Exception as e:
              print(f"Video creation failed: {e}")
              raise e
-    def _get_karaoke_clips(self, audio_path, total_duration, start_time_offset):
-        """Creates word-level karaoke caption clips list for Shorts (Portrait)."""
-        import json
-        json_path = audio_path.replace('.mp3', '.json')
-        
-        if not os.path.exists(json_path):
-            return []
-        
+    def _get_karaoke_clips(self, audio_path, total_duration, start_time_offset, override_color=None):
+        """Creates word-level karaoke caption clips using TextRenderer."""
         try:
-            with open(json_path, 'r', encoding='utf-8') as f:
-                word_data = json.load(f)
+            print(f"DEBUG: Generating karaoke for {audio_path}...")
+            from footybitez.video.text_renderer import TextRenderer
+            renderer = TextRenderer()
             
-            if not word_data:
-                return []
+            json_path = audio_path.replace('.mp3', '.json')
+            if not os.path.exists(json_path):
+                 print(f"DEBUG: JSON missing: {json_path}")
+                 return []
 
-            # Group words into short lines (max 3 words for Shorts visibility)
-            lines = []
-            words_per_line = 3
-            for i in range(0, len(word_data), words_per_line):
-                lines.append(word_data[i:i+words_per_line])
-
-            line_clips = []
-            line_clips = []
-            for line in lines:
-                l_start = line[0]['start']
-                l_end = line[-1]['start'] + line[-1]['duration']
-                l_duration = l_end - l_start
-                l_content = line
+            clips = renderer.render_karaoke_clips(
+                json_path, 
+                total_duration, 
+                1080, # Shorts Width 
+                1920, # Shorts Height
+                is_shorts=True,
+                override_color=override_color
+            )
+            print(f"DEBUG: Renderer returned {len(clips)} clips for {audio_path}")
+            
+            # Apply global offset
+            final_clips = []
+            for c in clips:
+                # Debug Check
+                # print(f"DEBUG: Clip start: {c.start} + {start_time_offset}")
+                final_clips.append(c.set_start(c.start + start_time_offset))
                 
-                # Use a factory function to bind variables and avoid closure issues
-                def create_clip(current_line, line_start_abs, duration, global_offset):
-                    def make_frame(t):
-                        absolute_t = line_start_abs + t
-                        
-                        # Create the canvas (Portrait width 1080)
-                        canvas = Image.new('RGBA', (1080, 450), (0, 0, 0, 0))
-                        draw = ImageDraw.Draw(canvas)
-                        
-                        # Robust Font Selection
-                        candidates = []
-                        if os.name == 'nt':
-                            candidates = ["C:\\Windows\\Fonts\\impact.ttf", "C:\\Windows\\Fonts\\arialbd.ttf", "impact.ttf"]
-                        else:
-                            candidates = [
-                                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-                                "impact.ttf"
-                            ]
-
-                        font = None
-                        for cp in candidates:
-                            if os.path.exists(cp):
-                                try:
-                                    font = ImageFont.truetype(cp, 95) # Slightly larger font
-                                    break
-                                except:
-                                    continue
-                        if not font:
-                            font = ImageFont.load_default()
-
-                        full_text = " ".join([w['word'] for w in current_line])
-                        bbox = draw.textbbox((0, 0), full_text, font=font)
-                        text_w = bbox[2] - bbox[0]
-                        
-                        # Margin Safety (120px padding each side)
-                        safe_width = 1080 - 240
-                        if text_w > safe_width:
-                            new_size = int(95 * (safe_width / text_w))
-                            try:
-                                font = ImageFont.truetype(font.path, new_size)
-                            except:
-                                font = ImageFont.truetype(candidates[0], new_size)
-                            bbox = draw.textbbox((0, 0), full_text, font=font)
-                            text_w = bbox[2] - bbox[0]
-
-                        start_x = (1080 - text_w) // 2
-                        
-                        current_x = start_x
-                        for word_info in current_line:
-                            word = word_info['word'] + " "
-                            w_bbox = draw.textbbox((0, 0), word, font=font)
-                            w_w = w_bbox[2] - w_bbox[0]
-                            
-                            is_active = word_info['start'] <= (absolute_t + 0.05) <= (word_info['start'] + word_info['duration'] + 0.05)
-                            
-                            if is_active:
-                                # Highlight background yellow
-                                draw.rectangle([current_x - 5, 10, current_x + w_w + 5, 140], fill=(255, 255, 0, 255))
-                                draw.text((current_x, 10), word, font=font, fill=(0, 0, 0, 255))
-                            else:
-                                # Standard white text with thick black stroke
-                                stroke_width = 6
-                                for off_x in range(-stroke_width, stroke_width+1):
-                                    for off_y in range(-stroke_width, stroke_width+1):
-                                        draw.text((current_x + off_x, 10 + off_y), word, font=font, fill=(0, 0, 0, 255))
-                                draw.text((current_x, 10), word, font=font, fill=(255, 255, 255, 255))
-                            current_x += w_w
-                        return np.array(canvas)
-
-                    clip = VideoClip(lambda t: make_frame(t)[:,:,:3], duration=duration)
-                    mask = VideoClip(lambda t: make_frame(t)[:,:,3]/255.0, ismask=True, duration=duration)
-                    return clip.set_mask(mask).set_start(global_offset + line_start_abs).set_position(('center', 1400))
-
-                line_clips.append(create_clip(l_content, l_start, l_duration, start_time_offset))
-            
-            return line_clips
+            return final_clips
 
         except Exception as e:
             print(f"Failed to create karaoke captions for Shorts: {e}")
+            import traceback
+            traceback.print_exc()
             return []
 
     def _resize_to_vertical(self, clip):

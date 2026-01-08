@@ -99,8 +99,9 @@ class ScriptGenerator:
         The JSON structure must be:
         {{
             "hook": "The first 3 seconds hook text (max 10 words)",
+            "primary_entity": "Name of the main person or club (e.g. Lionel Messi, Real Madrid)",
             "segments": [
-                {{ "text": "Sentence 1 (Fact part 1)...", "visual_keyword": "messi face" }},
+                {{ "text": "Sentence 1 (Fact part 1)...", "visual_keyword": "lionel messi face" }},
                 {{ "text": "Sentence 2 (Fact part 2)...", "visual_keyword": "camp nou stadium" }}
             ],
             "outro": "Call to action text"
@@ -108,9 +109,15 @@ class ScriptGenerator:
 
         CONTENT RULES:
         1. "hook": Must be shocking/intriguing.
-        2. "segments": The main fact split into 2-3 short, punchy sentences.
-        3. "visual_keyword": A specific search term (e.g. "Messi lifting trophy", "Real Madrid Stadium"). ALWAYS include the word "football" or "soccer" in keywords.
-        4. HIGHLIGHTING: You MUST enclose *Key Entities* (Names, Clubs, Numbers) in asterisks. Example: "*Messi* won *7* Ballon d'Ors." This is critical.
+        2. "primary_entity": EXTRACT the exact name of the main subject. If topic is "Fastest Goal", entity is "Hakan Sukur".
+        3. "segments": The main fact split into 2-3 short, punchy sentences.
+        4. "visual_keyword": A specific search term. ALWAYS include "football".
+        5. HIGHLIGHTING (CRITICAL): You MUST enclose the following in asterisks (*):
+           - Player Names (*Messi*, *Ronaldo*)
+           - Club/Country Names (*Real Madrid*, *Brazil*)
+           - Stadium/Place Names (*Camp Nou*, *London*)
+           - ALL Numerical Values (*7*, *1999*, *90+5*, *first*, *billion*)
+           - Superlatives (*Best*, *Fastest*, *Legend*)
         """
 
     def _validate_script_data(self, data):
@@ -124,8 +131,13 @@ class ScriptGenerator:
                     new_segments.append(s)
             data["segments"] = new_segments
             
+            # Ensure primary_entity exists (Fallback to None or empty string will be handled by main)
+            if "primary_entity" not in data:
+                data["primary_entity"] = ""
+            
             full_text = f"{data['hook']} {' '.join([s['text'] for s in data['segments']])} {data.get('outro', '')}"
-            data['full_text'] = full_text.replace('*', '') 
+            # Preserve asterisks for TextRenderer to use for styling (Gold/Magenta)
+            data['full_text'] = full_text 
             return True
         return False
 

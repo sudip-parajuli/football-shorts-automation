@@ -44,6 +44,7 @@ class LongFormVideoCreator:
             
             title_text_path = self._create_chapter_overlay("FOOTYBITEZ PRESENTS", script_data['metadata']['title'])
             
+            # --- PHASE 1: MAIN TITLE CARD (EXACT-TIME VISUAL TYPEWRITER) ---
             # 1. Background
             title_bg_keyword = script_data.get('intro', {}).get('visual_keyword', 'football stadium')
             title_visual = self._get_visual(title_bg_keyword, visual_assets, 4.0)
@@ -51,121 +52,71 @@ class LongFormVideoCreator:
             if not hasattr(title_visual, 'fl'):
                  title_visual = self._add_zoom_effect(title_visual, 0.05)
             
-            # 2. Text Overlay Base
-            title_img_clip = ImageClip(title_text_path).set_duration(4.0).set_position('center')
+            # 2. Render Animated Text (Typewriter + Gold Colors)
+            from footybitez.video.text_renderer import TextRenderer
+            renderer = TextRenderer()
             
-            # 3. Sheen Effect (Glowing Multicolor Line runs "through" words)
-            # 3. Sheen Effect (Glowing Multicolor Line runs "through" words)
-            # Use a mask generated from the title text alpha channel
-            # We get the raw mask array to use for alpha multiplication
-            title_mask_clip = ImageClip(title_text_path, ismask=True)
-            title_mask_arr = title_mask_clip.get_frame(0)
+            # Create a fake "phrase" to feed the renderer
+            # We want to display: "TOPIC NAME"
+            # Split into words for animation
+            title_words = script_data['metadata']['title'].split()
             
-            # Create a moving gradient bar (Gold/Cyan)
-            def make_sheen_frame(t):
-                w, h = 150, self.height 
-                # Default empty RGBA frame
-                frame = np.zeros((self.height, self.width, 4), dtype=np.uint8)
-                
-                if t < 0.5 or t > 2.5:
-                    return frame 
-                
-                progress = (t - 0.5) / 1.5 
-                center_x = -w + (self.width + w*2) * progress
-                
-                x_start = int(max(0, center_x))
-                x_end = int(min(self.width, center_x + w))
-                
-                if x_end > x_start:
-                    # Draw the sheen bar
-                    mid = x_start + (x_end - x_start)//2
-                    if mid > x_start:
-                        frame[:, x_start:mid] = [0, 255, 255, 255] # Cyan (Full opacity initially)
-                    if x_end > mid:
-                        frame[:, mid:x_end] = [255, 215, 0, 255] # Gold (Full opacity initially)
-                
-                # Apply the Text Mask to the Alpha Channel
-                # title_mask_arr is HxW (float 0..1). frame alpha is index 3.
-                # We want: FinalAlpha = BarAlpha * TextMask
-                # BarAlpha is 255 where bar is, 0 where not.
-                # TextMask is 1 where text is, 0 where not.
-                
-                # Careful with shapes and types
-                if title_mask_arr.shape == (self.height, self.width):
-                     mask_u8 = (title_mask_arr * 255).astype(np.uint8)
-                     # Multiply channel 3 (alpha)
-                     # If bar is present (255) and text is present (255) -> 255.
-                     # If bar is 0 -> 0.
-                     # If text is 0 -> 0.
-                     
-                     # Optimization: Only multiply where bar is drawn? 
-                     # Simpler: just multiply the whole alpha plane
-                     current_alpha = frame[:,:,3]
-                     # Using bitwise_and or multiplication. 
-                     # current_alpha has 255 only in the bar strip.
-                     # mask_u8 has 255 only in text shape.
-                     # result should be 255 only where BOTH overlap.
-                     
-                     # Simple multiplication with normalization or conversion
-                     # float mult is easiest
-                     new_alpha = (current_alpha.astype(float) * title_mask_arr).astype(np.uint8)
-                     frame[:,:,3] = new_alpha
-
-                return frame
-
-            # Create separate RGB and Mask clips for MoviePy compatibility
-            # Mixing raw RGBA clips into RGB composites often causes broadcast errors
+            # Create timing data (distribute 2.0s duration across words)
+            # Start at 0.5s
+            start_offset = 0.5
+            phrase_duration = 2.5
+            step = phrase_duration / max(1, len(title_words))
             
-            def make_sheen_image(t):
-                 # ... same logic as before but returns the frame
-                 # We copy the logic here to ensure closure works
-                 w, h = 150, self.height 
-                 frame = np.zeros((self.height, self.width, 4), dtype=np.uint8)
-                 
-                 if t < 0.5 or t > 2.5:
-                     return frame 
-                 
-                 progress = (t - 0.5) / 1.5 
-                 center_x = -w + (self.width + w*2) * progress
-                 
-                 x_start = int(max(0, center_x))
-                 x_end = int(min(self.width, center_x + w))
-                 
-                 if x_end > x_start:
-                     mid = x_start + (x_end - x_start)//2
-                     if mid > x_start:
-                         frame[:, x_start:mid] = [0, 255, 255, 255] # Cyan
-                     if x_end > mid:
-                         frame[:, mid:x_end] = [255, 215, 0, 255] # Gold
-                 
-                 # Apply Text Mask Logic
-                 if title_mask_arr.shape == (self.height, self.width):
-                      current_alpha = frame[:,:,3]
-                      # float mult
-                      new_alpha = (current_alpha.astype(float) * title_mask_arr).astype(np.uint8)
-                      frame[:,:,3] = new_alpha
-                 return frame
+            phrase_data = []
+            for i, word in enumerate(title_words):
+                phrase_data.append({
+                    "word": f"*{word}*", # Force GOLD via asterisk
+                    "start": start_offset + (i * step),
+                    "duration": step
+                })
+                
+            # Render the animated title clip
+            # Render the animated title clip
+            # Using shorts=False (1920x1080)
+            # Width = 1920
+            # Force GOLD for Title
+            title_anim_clip = renderer.render_phrase(
+                phrase_data, 
+                duration=4.0, 
+                video_width=self.width, 
+                is_shorts=False,
+                override_color="gold" 
+            ).set_position('center')
+            
+            # "FOOTYBITEZ PRESENTS" (Small, static above)
+            # Kept simple to not distract from main typewriter
+            presents_path = self._create_chapter_overlay("", "FOOTYBITEZ PRESENTS") 
+            presents_clip = ImageClip(presents_path).set_duration(4.0).set_position(('center', 200)) # Top offset
 
+            # 3. Sheen Effect (Kept but simplified to overlay)
             # Create base RGB clip (discard alpha for color source)
-            sheen_color = VideoClip(lambda t: make_sheen_image(t)[:,:,:3], duration=4.0)
+            # We'll re-use the function but just make it a simple overlay that moves across
+            # Not masking by text anymore because text is animated/complex.
+            # Just a subtle "Light Sweep" across the screen?
+            # User asked for "Glowing effect". The renderer already does Gold/Stroke.
+            # Let's add a "Flash" or "Bloom" if possible?
+            # Or just keep the Sheen logic but apply it to the *whole* title duration?
+            # Simpler: Make the typewriter text contain the glow? 
+            # The renderer is returning a VideoClip. 
+            # Converting it to a Glow is expensive (blurring every frame).
             
-            # Create mask clip (extract alpha, normalize to 0.0-1.0)
-            # ismask=True is important.
-            sheen_mask_clip = VideoClip(lambda t: make_sheen_image(t)[:,:,3] / 255.0, duration=4.0, ismask=True)
+            # Let's stick to the Typewriter as the main effect. 
+            # Maybe add a "God Ray" or "Spotlight" background?
+            # We already have Blur + Zoom background.
             
-            # Combine
-            sheen_masked = sheen_color.set_mask(sheen_mask_clip).set_position('center')
-
             # 4. SFX (Kick)
             sfx_kick = self.sfx_man.get_sfx("kick")
             
             title_card = CompositeVideoClip([
                 title_visual, 
-                title_img_clip, 
-                sheen_masked.set_position('center') 
+                title_anim_clip
             ], size=(self.width, self.height)).set_duration(4.0)
             
-            # Attach SFX
             if sfx_kick:
                 sfx_kick = sfx_kick.volumex(0.8)
                 title_card = title_card.set_audio(sfx_kick)
@@ -340,115 +291,43 @@ class LongFormVideoCreator:
         return clip.fl_image(filter)
 
     def _get_karaoke_clips(self, audio_filename, total_duration, start_time_offset, font_scale=1.0):
-        """Creates word-level karaoke caption clips list."""
-        import json
-        json_path = os.path.join("footybitez/media/voice", audio_filename.replace('.mp3', '.json'))
-        
-        if not os.path.exists(json_path):
-            logger.warning(f"JSON not found for karaoke: {json_path}")
-            return []
-        
+        """Creates word-level karaoke caption clips using TextRenderer."""
         try:
-            with open(json_path, 'r', encoding='utf-8') as f:
-                word_data = json.load(f)
+            from footybitez.video.text_renderer import TextRenderer
+            renderer = TextRenderer()
             
-            if not word_data:
-                return []
-
-            # Group words into lines (sentences)
-            lines = []
-            words_per_line = 4 # Reduced for better sync/visibility
-            for i in range(0, len(word_data), words_per_line):
-                lines.append(word_data[i:i+words_per_line])
-
-            line_clips = []
-            for line in lines:
-                l_start = line[0]['start']
-                l_end = line[-1]['start'] + line[-1]['duration']
-                l_duration = l_end - l_start
-                l_content = line
+            # Construct path (assumes caller passes filename in footybitez/media/voice relative path or full?)
+            # The caller passes "intro.mp3" or similar.
+            # LongFormVideoCreator usage suggests it assumes it is in "footybitez/media/voice"
+            # BUT renderer expects full path or correct relative.
+            # Let's verify caller.
+            # Caller: audio_path = self.voice_gen.generate(...) -> returns full path.
+            # Caller: self._get_karaoke_clips("intro.mp3", ...) 
+            # Wait, caller passes filename, and original method constructed path:
+            # json_path = os.path.join("footybitez/media/voice", audio_filename.replace('.mp3', '.json'))
+            
+            # New renderer expects full path.
+            import os
+            base_dir = "footybitez/media/voice"
+            json_path = os.path.join(base_dir, audio_filename.replace('.mp3', '.json'))
+            
+            # Need absolute path usually for file ops if CWD varies?
+            # Assuming CWD is project root.
+            
+            clips = renderer.render_karaoke_clips(
+                json_path, 
+                total_duration, 
+                self.width, 
+                self.height,
+                is_shorts=False
+            )
+            
+            # Apply global offset
+            final_clips = []
+            for c in clips:
+                final_clips.append(c.set_start(c.start + start_time_offset))
                 
-                # Factory function for Long-form
-                def create_long_clip(current_line, line_start_abs, duration, global_offset):
-                    def make_frame(t):
-                        absolute_t = line_start_abs + t
-                        canvas = Image.new('RGBA', (self.width, 350), (0, 0, 0, 0))
-                        draw = ImageDraw.Draw(canvas)
-                        
-                        # Robust Font Selection
-                        font_path = "arialbd.ttf"
-                        if os.name == 'nt':
-                            candidates = ["C:\\Windows\\Fonts\\arialbd.ttf", "C:\\Windows\\Fonts\\impact.ttf", "arialbd.ttf"]
-                        else:
-                            candidates = [
-                                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
-                                "arialbd.ttf"
-                            ]
-                        
-                        font = None
-                        # Base size 80 * scale
-                        base_size = int(80 * font_scale)
-                        
-                        for cp in candidates:
-                            if os.path.exists(cp):
-                                try:
-                                    font = ImageFont.truetype(cp, base_size)
-                                    break
-                                except:
-                                    continue
-                        if not font:
-                            font = ImageFont.load_default()
-
-                        full_text = " ".join([w['word'] for w in current_line])
-                        bbox = draw.textbbox((0, 0), full_text, font=font)
-                        text_w = bbox[2] - bbox[0]
-                        
-                        # Margin Safety (200px padding each side for 16:9)
-                        safe_width = self.width - 400
-                        if text_w > safe_width:
-                            # Recalculate size to fit
-                            new_size = int(base_size * (safe_width / text_w))
-                            try:
-                                font = ImageFont.truetype(font.path, new_size)
-                            except:
-                                font = ImageFont.truetype("arialbd.ttf", new_size)
-                            bbox = draw.textbbox((0, 0), full_text, font=font)
-                            text_w = bbox[2] - bbox[0]
-
-                        start_x = (self.width - text_w) // 2
-                        
-                        current_x = start_x
-                        for word_info in current_line:
-                            word = word_info['word'] + " "
-                            w_bbox = draw.textbbox((0, 0), word, font=font)
-                            w_w = w_bbox[2] - w_bbox[0]
-                            
-                            # Add 0.05s buffer for sync
-                            is_active = word_info['start'] <= (absolute_t + 0.05) <= (word_info['start'] + word_info['duration'] + 0.05)
-                            
-                            y_pos = 50
-                            if is_active:
-                                padding = 10
-                                draw.rectangle([current_x - padding, y_pos - 5, current_x + w_w + padding, y_pos + 110], fill=(255, 255, 0, 255))
-                                draw.text((current_x, y_pos), word, font=font, fill=(0, 0, 0, 255))
-                            else:
-                                stroke_width = 5
-                                for off_x in range(-stroke_width, stroke_width+1):
-                                    for off_y in range(-stroke_width, stroke_width+1):
-                                        if off_x != 0 or off_y != 0:
-                                            draw.text((current_x + off_x, y_pos + off_y), word, font=font, fill=(0, 0, 0, 255))
-                                draw.text((current_x, y_pos), word, font=font, fill=(255, 255, 255, 255))
-                            current_x += w_w
-                        return np.array(canvas)
-
-                    clip = VideoClip(lambda t: make_frame(t)[:,:,:3], duration=duration)
-                    mask = VideoClip(lambda t: make_frame(t)[:,:,3]/255.0, ismask=True, duration=duration)
-                    return clip.set_mask(mask).set_start(global_offset + line_start_abs).set_position(('center', 780))
-
-                line_clips.append(create_long_clip(l_content, l_start, l_duration, start_time_offset))
-            
-            return line_clips
+            return final_clips
 
         except Exception as e:
             logger.error(f"Failed to create karaoke captions: {e}")

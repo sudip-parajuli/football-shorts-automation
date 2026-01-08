@@ -65,8 +65,13 @@ def main():
         title_card_path = media_sourcer.get_title_card_image(topic)
         
         # 2. Fetch Profile Image
-        logger.info("Fetching Profile Image...")
-        profile_image_path = media_sourcer.get_profile_image(topic)
+        entity_query = script.get('primary_entity')
+        if not entity_query:
+            logger.info("No primary_entity found in script, falling back to topic.")
+            entity_query = topic
+            
+        logger.info(f"Fetching Profile Image for: {entity_query}")
+        profile_image_path = media_sourcer.get_profile_image(entity_query)
         
         # 2.1 Last resort: Reuse Title Card if Profile Image fails
         if not profile_image_path and title_card_path:
