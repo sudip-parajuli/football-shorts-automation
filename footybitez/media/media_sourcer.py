@@ -10,6 +10,7 @@ class MediaSourcer:
         self.download_dir = download_dir
         os.makedirs(download_dir, exist_ok=True)
         self.headers = {'Authorization': self.api_key} if self.api_key else {}
+        self.neg_keywords = "-nfl -american -rugby -superbowl -touchdown -helmet"
 
     def cleanup(self):
         """Deletes all downloaded media files to save space."""
@@ -40,21 +41,34 @@ class MediaSourcer:
     def get_title_card_image(self, query):
         """Fetches a high-impact cinematic image."""
         # Try DDG first for specific match
-        filepath = self._fetch_ddg_image(f"{query} football cinematic 4k wallpaper", "title")
+        # STRICT NEGATIVE KEYWORDS for all searches to avoid NFL/Rugby
+        filepath = self._fetch_ddg_image(f"{query} football cinematic 4k wallpaper {self.neg_keywords}", "title")
         if filepath: return filepath
         # Fallback Pexels
         return self._fetch_pexels_image(f"{query} stadium", "portrait")
 
     def get_profile_image(self, query):
         """Fetches a specific person's portrait."""
-        # 1. DDG (Best for specific players/managers)
-        # Use simple, direct query with strict terms
-        full_query = f"{query} football player face portrait real life -cricket -cartoon -drawing"
-        print(f"DEBUG: Searching DDG for Profile: '{full_query}'")
-        filepath = self._fetch_ddg_image(full_query, "profile")
+        # 1. Determine if Club or Player
+        club_keywords = ["fc", "united", "city", "real", "inter", "ac", "bayern", "dortmund", 
+                         "juventus", "liverpool", "arsenal", "chelsea", "tottenham", "barcelona", 
+                         "madrid", "psg", "ajax", "benfica", "porto", "club", "team"]
+        
+        is_club = any(k in query.lower() for k in club_keywords)
+        
+        # 2. DDG (Best for specific players/managers/logos)
+        if is_club:
+            full_query = f"{query} football club logo badge stadium wallpaper {self.neg_keywords}"
+            print(f"DEBUG: Searching DDG for CLUB Profile: '{full_query}'")
+            filepath = self._fetch_ddg_image(full_query, "profile")
+        else:
+            full_query = f"{query} football player face portrait real life {self.neg_keywords} -cartoon -drawing -game"
+            print(f"DEBUG: Searching DDG for PLAYER Profile: '{full_query}'")
+            filepath = self._fetch_ddg_image(full_query, "profile")
+
         if filepath: return filepath
         
-        # 2. Pexels (Fallback)
+        # 3. Pexels (Fallback)
         print(f"DEBUG: Fallback to Pexels for Profile: '{query}'")
         return self._fetch_pexels_image(f"{query} face", "square")
 
@@ -79,7 +93,8 @@ class MediaSourcer:
             print(f"Fetching specific images from DDG (Target: {needed_images})...")
             # Get extra matches to filter
             # Add strict negative keywords to avoid other sports
-            strict_query = f"{clean_query} football player real life -cricket -basketball -baseball -drawing -cartoon"
+            # Add strict negative keywords to avoid other sports
+            strict_query = f"{clean_query} football match action real life {self.neg_keywords} -drawing -cartoon"
             imgs = self._fetch_ddg_images(strict_query, count=needed_images + 3)
             paths.extend(imgs)
             
@@ -95,7 +110,8 @@ class MediaSourcer:
             needed = count - len(paths)
             print(f"Fetching generic fallback videos (Need {needed})...")
             # Fallback should still try to be relevant to the query + football
-            fallback_query = f"{clean_query} football stadium atmosphere"
+            # Fallback should still try to be relevant to the query + football
+            fallback_query = f"{clean_query} football stadium atmosphere" # Pexels usually safe, but let's trust their engine
             fallback_vids = self._fetch_pexels_videos(fallback_query, count=needed, orientation=orientation)
             if not fallback_vids:
                  # Absolute fallback

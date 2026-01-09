@@ -183,13 +183,9 @@ class LongFormVideoCreator:
             # "More untold football stories — FootyBitez"
             outro_captions = self._get_karaoke_clips("outro.mp3", outro_audio.duration, 0, font_scale=1.0)
             
-            # Create a simple final card for the last 3-4 seconds
-            final_card_dur = 4.0
-            final_card_start = max(0, outro_audio.duration - final_card_dur)
-            outro_text = self._create_chapter_overlay("FOOTYBITEZ", "MORE UNTOLD STORIES")
-            outro_overlay = ImageClip(outro_text).set_duration(final_card_dur).set_start(final_card_start).set_position('center')
+            # Removed static overlay to avoid overlap with captions
             
-            outro_combined = CompositeVideoClip([outro_visual, outro_overlay] + outro_captions, size=(self.width, self.height)).set_duration(outro_audio.duration)
+            outro_combined = CompositeVideoClip([outro_visual] + outro_captions, size=(self.width, self.height)).set_duration(outro_audio.duration)
             clips.append(outro_combined.crossfadein(0.5))
 
             # --- CONCATENATE & MIXING ---
