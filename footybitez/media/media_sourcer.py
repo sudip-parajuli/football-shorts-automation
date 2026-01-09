@@ -95,6 +95,8 @@ class MediaSourcer:
             }
             
             headers = {'User-Agent': 'FootyBitezBot/1.0 (sudip@example.com)'} # Good practice
+            import time
+            time.sleep(1)
             r = requests.get(search_url, params=params, headers=headers, timeout=10)
             data = r.json()
             
@@ -218,7 +220,9 @@ class MediaSourcer:
                     urls.append(url)
                     
             # Download
+            import time
             for url in urls[:count]:
+                time.sleep(1) # Be polite to Wikimedia API (avoid 429)
                 fname = f"wiki_bg_{hash(url)}.jpg"
                 fpath = os.path.join(self.download_dir, fname)
                 self._download_file(url, fpath)
