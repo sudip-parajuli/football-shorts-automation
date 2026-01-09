@@ -77,6 +77,12 @@ class VoiceGenerator:
                 
                 if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
                     logger.info(f"Successfully generated audio for {filename}")
+                    
+                    # If JSON is empty or missing, create a word-count fallback
+                    if not os.path.exists(json_path) or os.path.getsize(json_path) <= 2:
+                        logger.warning(f"JSON timing missing for {filename}. Creating fallback.")
+                        self._generate_json_fallback(clean_text, json_path, output_path)
+                        
                     generated_ok = True
                     break
                 else:
@@ -211,7 +217,7 @@ class VoiceGenerator:
             })
         
         with open(json_path, 'w', encoding='utf-8') as f:
-            json.dump(word_map, f)
+            json.dump(word_map, f, indent=2)
 
     def _generate_fallback_vtt(self, text, vtt_path, audio_path=None):
         """Generates a rough VTT file for fallback."""

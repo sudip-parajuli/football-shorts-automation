@@ -56,7 +56,13 @@ class MediaSourcer:
         
         is_club = any(k in query.lower() for k in club_keywords)
         
-        # 2. DDG (Best for specific players/managers/logos)
+        # 2. Try Wikimedia Commons (High Priority for verifiable profiles)
+        print(f"DEBUG: Searching Wikimedia for Profile: '{query}'")
+        wiki_query = f"{query} logo" if is_club else f"{query}"
+        wiki_path = self._fetch_wikimedia_image(wiki_query)
+        if wiki_path: return wiki_path
+
+        # 3. DDG (Best for specific players/managers/logos)
         if is_club:
             full_query = f"{query} football club logo badge stadium wallpaper {self.neg_keywords}"
             print(f"DEBUG: Searching DDG for CLUB Profile: '{full_query}'")
@@ -68,16 +74,63 @@ class MediaSourcer:
 
         if filepath: return filepath
         
-        # 3. Pexels (Fallback)
+        # 4. Pexels (Fallback)
         print(f"DEBUG: Fallback to Pexels for Profile: '{query}'")
         return self._fetch_pexels_image(f"{query} face", "square")
+
+    def _fetch_wikimedia_image(self, query):
+        """Fetches image from Wikimedia Commons API."""
+        try:
+            # Search for files
+            search_url = "https://commons.wikimedia.org/w/api.php"
+            params = {
+                "action": "query",
+                "format": "json",
+                "generator": "search",
+                "gsrnamespace": 6, # File namespace
+                "gsrsearch": f"{query} filetype:bitmap", # Prefer bitmaps (jpg/png) over huge TIFFs/SVGs for simple usage
+                "gsrlimit": 3,
+                "prop": "imageinfo",
+                "iiprop": "url|size|mime",
+            }
+            
+            headers = {'User-Agent': 'FootyBitezBot/1.0 (sudip@example.com)'} # Good practice
+            r = requests.get(search_url, params=params, headers=headers, timeout=10)
+            data = r.json()
+            
+            pages = data.get("query", {}).get("pages", {})
+            if not pages: return None
+            
+            # Select best candidate
+            best_url = None
+            for page_id in pages:
+                page = pages[page_id]
+                imageinfo = page.get("imageinfo", [])[0]
+                url = imageinfo.get("url")
+                mime = imageinfo.get("mime", "")
+                
+                # Filter useful types
+                if "image/jpeg" in mime or "image/png" in mime:
+                    best_url = url
+                    break
+            
+            if best_url:
+                fname = f"wiki_{hash(best_url)}.jpg"
+                fpath = os.path.join(self.download_dir, fname)
+                self._download_file(best_url, fpath)
+                if os.path.exists(fpath): return fpath
+                
+        except Exception as e:
+            print(f"Wikimedia error: {e}")
+        return None
 
     def get_media(self, query, count=5, orientation="portrait"):
         """
         Fetches media with strict prioritization:
-        1. Specific Image (DDG) - HIGHEST PRIORITY (User Request).
-        2. Specific Video (Pexels) - Dynamic background if available.
-        3. Generic Video (Pexels) - Fallback.
+        1. Specific Image (Wikimedia) - HIGHEST PRIORITY (Accuracy).
+        2. Specific Image (DDG) - High Priority (Variety).
+        3. Specific Video (Pexels) - Dynamic background.
+        4. Generic Video (Pexels) - Fallback.
         """
         paths = []
         
@@ -86,41 +139,95 @@ class MediaSourcer:
         
         print(f"Sourcing media for: {clean_query} (Need {count})")
         
-        # 1. Specific Images (DDG) - Primary Source
-        # We try to fill MOST slots with specific images.
-        needed_images = count
-        if needed_images > 0:
-            print(f"Fetching specific images from DDG (Target: {needed_images})...")
-            # Get extra matches to filter
-            # Add strict negative keywords to avoid other sports
-            # Add strict negative keywords to avoid other sports
-            strict_query = f"{clean_query} football match action real life {self.neg_keywords} -drawing -cartoon"
-            imgs = self._fetch_ddg_images(strict_query, count=needed_images + 3)
-            paths.extend(imgs)
+        needed = count
+        
+        # 1. Wikimedia (Most Accurate)
+        if needed > 0:
+            print(f"Fetching specific images from Wikimedia (Target: {needed})...")
+            # Try to get half from Wiki if we need many, or all if few?
+            # User wants accurate images. Let's try to get as many as possible from Wiki first.
+            wiki_imgs = self._fetch_wikimedia_images(clean_query, count=needed)
+            paths.extend(wiki_imgs)
+            needed -= len(wiki_imgs)
             
-        # 2. Specific Video (Pexels) - Start mixing in if we have space or valid specific videos
-        # Just grab 1 or 2 to mix in if possible, but keep images as main.
-        if len(paths) < count:
-            print(f"Fetching specific videos from Pexels (Fallback)...")
-            vids = self._fetch_pexels_videos(f"{clean_query} football match", count=2, orientation=orientation)
-            paths.extend(vids)
+        # 2. DDG (Supplement)
+        if needed > 0:
+            print(f"Fetching specific images from DDG (Target: {needed})...")
+            strict_query = f"{clean_query} football match action real life {self.neg_keywords} -drawing -cartoon"
+            # Request a few extra in case of duplicates/failures
+            ddg_imgs = self._fetch_ddg_images(strict_query, count=needed + 2)
+            paths.extend(ddg_imgs[:needed])
+            
+        # Check count again
+        current_count = len(paths)
+        if current_count < count:
+            # 3. Pexels Videos (Dynamic Fallback)
+            needed = count - current_count
+            print(f"Fetching specific videos from Pexels (Fallback, Need {needed})...")
+            vids = self._fetch_pexels_videos(f"{clean_query} football match", count=needed + 1, orientation=orientation)
+            paths.extend(vids[:needed])
 
-        # 3. Generic Video (Final Fallback)
-        if len(paths) < count:
-            needed = count - len(paths)
+        # 4. Generic Video (Final Fallback)
+        current_count = len(paths)
+        if current_count < count:
+            needed = count - current_count
             print(f"Fetching generic fallback videos (Need {needed})...")
-            # Fallback should still try to be relevant to the query + football
-            # Fallback should still try to be relevant to the query + football
-            fallback_query = f"{clean_query} football stadium atmosphere" # Pexels usually safe, but let's trust their engine
+            fallback_query = f"{clean_query} football stadium atmosphere" 
             fallback_vids = self._fetch_pexels_videos(fallback_query, count=needed, orientation=orientation)
             if not fallback_vids:
-                 # Absolute fallback
                  fallback_vids = self._fetch_pexels_videos("football cinematic", count=needed, orientation=orientation)
             paths.extend(fallback_vids)
             
-        # Shuffle slightly so we don't have all images then all videos
-        # But ensure we return enough
         return paths[:count]
+
+    def _fetch_wikimedia_images(self, query, count):
+        """Fetches multiple images from Wikimedia Commons."""
+        paths = []
+        try:
+            search_url = "https://commons.wikimedia.org/w/api.php"
+            params = {
+                "action": "query",
+                "format": "json",
+                "generator": "search",
+                "gsrnamespace": 6, 
+                "gsrsearch": f"{query} filetype:bitmap",
+                "gsrlimit": count + 2, # Request extra
+                "prop": "imageinfo",
+                "iiprop": "url|size|mime",
+            }
+            
+            headers = {'User-Agent': 'FootyBitezBot/1.0 (sudip@example.com)'}
+            r = requests.get(search_url, params=params, headers=headers, timeout=10)
+            data = r.json()
+            
+            pages = data.get("query", {}).get("pages", {})
+            if not pages: return []
+            
+            # Collect URLs
+            urls = []
+            for page_id in pages:
+                page = pages[page_id]
+                imageinfo = page.get("imageinfo", [])
+                if not imageinfo: continue
+                
+                info = imageinfo[0]
+                url = info.get("url")
+                mime = info.get("mime", "")
+                
+                if "image/jpeg" in mime or "image/png" in mime:
+                    urls.append(url)
+                    
+            # Download
+            for url in urls[:count]:
+                fname = f"wiki_bg_{hash(url)}.jpg"
+                fpath = os.path.join(self.download_dir, fname)
+                self._download_file(url, fpath)
+                if os.path.exists(fpath):
+                    paths.append(fpath)
+                    
+        except Exception as e:
+            print(f"Wikimedia multiple error: {e}")
+        return paths
 
     def _fetch_pexels_videos(self, query, count, orientation):
         paths = []
