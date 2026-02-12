@@ -20,7 +20,7 @@ class ScriptGenerator:
             
         self.models = ["models/gemini-1.5-flash", "models/gemini-1.5-pro", "models/gemini-1.0-pro"]
 
-    def generate_script(self, topic):
+    def generate_script(self, topic, category="General"):
         """
         Generates a short video script using Groq (Priority), Gemini, or Wikipedia (Fallback).
         """
@@ -29,9 +29,9 @@ class ScriptGenerator:
             try:
                 from groq import Groq
                 client = Groq(api_key=self.groq_api_key)
-                logger.info("Generating script with Groq (Llama3)...")
+                logger.info(f"Generating script with Groq (Llama3) for category: {category}...")
                 
-                prompt = self._get_prompt(topic)
+                prompt = self._get_prompt(topic, category)
                 completion = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[{"role": "user", "content": prompt}],
@@ -48,8 +48,8 @@ class ScriptGenerator:
                 logger.error(f"Groq generation failed: {e}")
 
         if self.api_key:
-            logger.info("Generating script with Gemini...")
-            prompt = self._get_prompt(topic)
+            logger.info(f"Generating script with Gemini for category: {category}...")
+            prompt = self._get_prompt(topic, category)
             
             # Try configured models
             for attempt, model_name in enumerate(self.models):
@@ -89,10 +89,36 @@ class ScriptGenerator:
         logger.warning("All AI models failed. Converting to Wikipedia Mode.")
         return self._get_wikipedia_script(topic)
 
-    def _get_prompt(self, topic):
+    def _get_prompt(self, topic, category):
+        """Generates the prompt based on the category."""
+        
+        base_style = "High energy, 'Did you know?' style."
+        extra_instructions = ""
+        
+        if category == "Football Stories":
+            base_style = "Narrative storytelling, dramatic, emotional."
+            extra_instructions = "Focus on the hero's journey: rise, fall, and redemption (if applicable). Make the viewer feel the emotion."
+        elif category == "Mysteries & Dark Side":
+            base_style = "Suspenseful, investigative, slightly dark."
+            extra_instructions = "Build tension. Use words like 'unexplained', 'vanished', 'shocking'. Focus on the unknown."
+        elif category == "Comparisons & Debates":
+            base_style = "Analytical but controversial, engaging."
+            extra_instructions = "Present stats for Side A, then Side B. End with a question to provoke comments."
+        elif category == "What If?":
+            base_style = "Imaginative, hypothetical, 'alternate history'."
+            extra_instructions = "Describe the scenario vividly. Use 'Imagine a world where...'. Focus on the ripple effects."
+        elif category == "Tactics & IQ":
+            base_style = "Educational, smart, inside scoop."
+            extra_instructions = "Explain complex ideas simply. Use analogies. Make the viewer feel like an expert."
+        elif category == "Shocking Moments":
+            base_style = "Viral, explosive, reaction-heavy."
+            extra_instructions = "Build up to the moment. Describe the exact split-second it happened."
+        
         return f"""
         create a viral YouTube Short script about: "{topic}".
-        Style: High energy, "Did you know?" style.
+        Category: {category}
+        Style: {base_style}
+        {extra_instructions}
         
         CRITICAL OUTPUT FORMAT:
         You MUST return valid JSON.
@@ -101,16 +127,16 @@ class ScriptGenerator:
             "hook": "The first 3 seconds hook text (max 10 words)",
             "primary_entity": "Name of the main person or club (e.g. Lionel Messi, Real Madrid)",
             "segments": [
-                {{ "text": "Sentence 1 (Fact part 1)...", "visual_keyword": "lionel messi face" }},
-                {{ "text": "Sentence 2 (Fact part 2)...", "visual_keyword": "camp nou stadium" }}
+                {{ "text": "Sentence 1...", "visual_keyword": "search term 1" }},
+                {{ "text": "Sentence 2...", "visual_keyword": "search term 2" }}
             ],
             "outro": "Call to action text"
         }}
 
         CONTENT RULES:
         1. "hook": Must be shocking/intriguing.
-        2. "primary_entity": EXTRACT the exact name of the main subject. If topic is "Fastest Goal", entity is "Hakan Sukur".
-        3. "segments": The main fact split into 2-3 short, punchy sentences.
+        2. "primary_entity": EXTRACT the exact name of the main subject. if multiple, pick the most famous.
+        3. "segments": The main content split into 3-4 short, punchy sentences. Total video under 40 seconds speaking time.
         4. "visual_keyword": A specific search term. ALWAYS include "football".
         5. HIGHLIGHTING (CRITICAL): You MUST enclose the following in asterisks (*):
            - Player Names (*Messi*, *Ronaldo*)

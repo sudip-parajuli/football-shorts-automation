@@ -1,70 +1,126 @@
 import random
 import os
+import json
 
 class TopicGenerator:
     def __init__(self):
         self.used_topics_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "used_topics.json")
         os.makedirs(os.path.dirname(self.used_topics_file), exist_ok=True)
         
-        self.topics = [
-            "Lionel Messi's 91 goal year",
-            "Cristiano Ronaldo's jumping height",
-            "Leicester City's 2016 Premier League win",
-            "Pele's 3 World Cups",
-            "Zinedine Zidane's 2006 headbutt",
-            "The fastest goal in World Cup history",
-            "Lewandowski's 5 goals in 9 minutes",
-            "Arsenal's Invincibles season",
-            "Maradona's Hand of God",
-            "Real Madrid's 3-peat Champions League",
-            "Neymar's world record transfer",
-            "Andres Iniesta's 2010 World Cup winner",
-            "The originals rules of football",
-            "Why Brazil wears yellow",
-            "The highest attendance in a football match",
-            "Rogerio Ceni: The goalscoring goalkeeper",
-            "Just Fontaine's 13 goals in one World Cup",
-            "Nottingham Forest winning back-to-back UCL",
-            "Greece winning Euro 2004",
-            "Denmark winning Euro 1992",
-            "Luis Suarez biting incidents",
-            "The story of the Jules Rimet Trophy",
-            "Why football balls have honeycombs",
-            "The first ever World Cup in 1930",
-            "Miroslav Klose's World Cup record",
-            "Ali Daei's international goal record",
-            "Sadio Mane's fastest hat-trick",
-            "Jose Mourinho's home unbeaten run",
-            "Fergie Time",
-            "The 'Aguerrooooo' moment",
-            "Zlatan Ibrahimovic's bicycle kick vs England",
-            "Roberto Carlos' free kick vs France",
-            "Dennis Bergkamp's turn vs Newcastle",
-            "Thierry Henry's handball vs Ireland",
-            "Germany 7-1 Brazil",
-            "Iceland's thunder clap",
-            "South Korea's 2002 World Cup run",
-            "James Rodriguez 2014 World Cup volley",
-            "Ronaldo Nazario's haircut 2002",
-            "David Beckham's halfway line goal",
-            "Eric Cantona's kung fu kick",
-            "Liverpool's comeback in Istanbul 2005",
-            "Man Utd 1999 Treble",
-            "Barcelona's Tiki Taka era",
-            "Total Football by Netherlands",
-            "Garrincha: The angel with bent legs",
-            "Lev Yashin: The Black Spider",
-            "Ferenc Puskas",
-            "George Best",
-            "Johan Cruyff"
-        ]
+        # Define categories and their specific topics
+        self.categories = {
+            "Football Stories": [
+                "The rise and fall of Ronaldinho",
+                "How Leicester City won the impossible title",
+                "The tragic career of Adriano",
+                "The day football changed forever",
+                "Jamie Vardy's rise from non-league",
+                "The miracle of Istanbul 2005",
+                "Zlatan Ibrahimovic's journey",
+                "Didier Drogba stopping a civil war"
+            ],
+            "Mysteries & Dark Side": [
+                "The strangest match ever played",
+                "Footballers who disappeared",
+                "The biggest scandals in football history",
+                "Matches that were fixed",
+                "The curse of Bela Guttmann",
+                "Ronaldo's 1998 World Cup final mystery",
+                "The darker side of the Qatar World Cup"
+            ],
+            "Comparisons & Debates": [
+                "Messi vs Ronaldo: who really won more?",
+                "Prime Neymar vs Prime Ronaldinho",
+                "Best World Cup team ever?",
+                "Top 5 most clutch players",
+                "Is Haaland better than Mbappe?",
+                "Pelé vs Maradona: The ultimate debate",
+                "Premier League vs La Liga: Which is harder?"
+            ],
+            "What If?": [
+                "What if Neymar never left Barcelona?",
+                "What if Messi joined Chelsea?",
+                "What if VAR existed in 1990?",
+                "What if Brazil didn’t lose 7–1?",
+                "What if Cristiano Ronaldo stayed at Man Utd (2009)?",
+                "What if Lewandowski joined Blackburn Rovers?"
+            ],
+            "Tactics & IQ": [
+                "Why Pep Guardiola changed football",
+                "How tiki-taka really works",
+                "Why parking the bus works",
+                "The most dangerous counterattack ever",
+                "The role of the False 9 explained",
+                "Gegenpressing explained simply"
+            ],
+            "Shocking Moments": [
+                "The goal that shocked the world",
+                "The worst miss in football history",
+                "The most disrespectful celebration ever",
+                "When a goalkeeper scored from 100 meters",
+                "Zidane's headbutt in 2006",
+                "Suarez's bite at the 2014 World Cup"
+            ],
+            "Money & Transfers": [
+                "The most expensive mistake in football",
+                "Transfers that destroyed careers",
+                "Why PSG failed despite billions",
+                "How agents control football",
+                "The Neymar transfer that broke the market",
+                "Chelsea's billion pound squad"
+            ],
+            "Referees, Rules & Weird Laws": [
+                "Goals that shouldn’t have counted",
+                "Strangest red cards ever",
+                "Rules you didn’t know exist",
+                "When referees decided championships",
+                "The story of the first ever red card",
+                "Why goalkeepers can't pick up backpasses"
+            ],
+            "Rankings & Lists": [
+                "Top 10 one-season wonders",
+                "Top 5 greatest comebacks",
+                "Top 7 fastest goals",
+                "Top 10 dirtiest players",
+                "Top 5 goalkeepers of all time",
+                "The most decorated players in history"
+            ],
+            "Psychology & Mental Side": [
+                "Why players choke in finals",
+                "How pressure destroys talent",
+                "Why penalties are psychological",
+                "Why home fans matter",
+                "The psychology of a captain",
+                "How confidence affects goalscoring"
+            ],
+            "Football Explained Simply": [
+                "Why offsides exist",
+                "Why goalkeepers wear gloves",
+                "Why kits change every season",
+                "Why football has 11 players",
+                "How transfer fees work",
+                "How the offside rule has changed"
+            ],
+            "Rivalries & Wars": [
+                "El Clasico: more than football",
+                "Why Boca vs River is dangerous",
+                "The deadliest rivalry match",
+                "Derbies that started riots",
+                "Celtic vs Rangers: The Old Firm",
+                "Manchester United vs Liverpool hate"
+            ]
+        }
+        
+        # Flatten for legacy support or random "any" selection
+        self.all_topics = []
+        for cat_topics in self.categories.values():
+            self.all_topics.extend(cat_topics)
 
     def _load_used_topics(self):
         """Loads the set of used topics from JSON."""
         if not os.path.exists(self.used_topics_file):
             return set()
         try:
-            import json
             with open(self.used_topics_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 return set(t.lower() for t in data)
@@ -75,7 +131,6 @@ class TopicGenerator:
     def mark_topic_as_used(self, topic):
         """Adds a topic to the used list and persists it."""
         try:
-            import json
             used = self._load_used_topics()
             used.add(topic.lower())
             
@@ -84,19 +139,32 @@ class TopicGenerator:
         except Exception as e:
             print(f"Error saving used topic: {e}")
 
-    def get_random_topic(self):
-        """Selects a random topic from the list that hasn't been used yet."""
+    def get_random_topic(self, category=None):
+        """
+        Selects a random topic.
+        If category is provided, selects from that category.
+        Otherwise, selects a random category first.
+        """
         used_topics = self._load_used_topics()
         
+        # Select Category
+        if not category:
+            category = random.choice(list(self.categories.keys()))
+            
+        print(f"Selected Category: {category}")
+        
+        possible_topics = self.categories.get(category, self.all_topics)
+        
         # Filter available topics
-        available_topics = [t for t in self.topics if t.lower() not in used_topics]
+        available_topics = [t for t in possible_topics if t.lower() not in used_topics]
         
         if not available_topics:
-            print("Warning: All topics have been covered! Resetting or recycling...")
-            return random.choice(self.topics)
+            print(f"Warning: All topics in {category} coverered! Recycling...")
+            return random.choice(possible_topics), category
             
-        return random.choice(available_topics)
+        return random.choice(available_topics), category
 
 if __name__ == "__main__":
     generator = TopicGenerator()
-    print(f"Selected Topic: {generator.get_random_topic()}")
+    topic, cat = generator.get_random_topic()
+    print(f"Category: {cat}\nTopic: {topic}")

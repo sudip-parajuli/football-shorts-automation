@@ -5,6 +5,8 @@ import random
 from PIL import Image, ImageDraw, ImageFont
 import warnings
 
+import logging
+
 # Fix for MoviePy + ImageIO v3 deprecation warning
 try:
     import imageio
@@ -28,7 +30,10 @@ warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="moviepy")
 
 from moviepy.editor import *
+import moviepy.video.fx.all as vfx
 from footybitez.media.voice_generator import VoiceGenerator
+
+logger = logging.getLogger(__name__)
 
 class VideoCreator:
     def __init__(self, output_dir="footybitez/output"):
@@ -37,6 +42,25 @@ class VideoCreator:
         os.makedirs(output_dir, exist_ok=True)
         # Helper folder for text images
         os.makedirs(os.path.join(output_dir, "temp_text"), exist_ok=True)
+
+    def create_text_image(self, text, fontsize=85, max_width=20, color_scheme="white"):
+        """
+        Creates a high-visibility text image.
+        color_scheme: "white" (default logic) or "orange" (for title cards).
+        """
+        # ... (rest of method unchanged until next modifications)
+        # For this tool call we only update imports and init. 
+        # Wait, I need to update the methods where I used print too.
+        # I will do that in the "create_video" replacement below.
+        
+        # ... (skipping to create_video for brevity in this thought trace, 
+        # but for the tool call I must act on specific lines.
+        # I will split this into two replacement chunks if needed, or one big one if contiguous?
+        # They are not contiguous. Imports are at top, create_video is at line 205.
+        
+        # I will use multi_replace for this.
+
+
 
     def create_text_image(self, text, fontsize=85, max_width=20, color_scheme="white"):
         """
@@ -284,12 +308,16 @@ class VideoCreator:
                 if c_time["is_title"]:
                      # Show Title Card
                      img_path = title_img if title_img and os.path.exists(title_img) else segment_media_pool[0]
+                     logger.info(f"DEBUG: Title Card: {img_path}, Duration: {duration}")
                      
                      if img_path.endswith(('.mp4', '.mov')):
-                         clip = VideoFileClip(img_path)
+                         clip = VideoFileClip(img_path).without_audio()
                          all_video_clips.append(clip)
-                         if clip.duration < duration: clip = clip.loop(duration=duration)
-                         else: clip = clip.subclip(0, duration)
+                         if clip.duration < duration: 
+                             # Loop video to fill time
+                             clip = vfx.loop(clip, duration=duration)
+                         else: 
+                             clip = clip.subclip(0, duration)
                          clip = self._resize_to_vertical(clip)
                          visual_clips.append(self._ensure_rgb(clip))
                      else:
@@ -303,21 +331,20 @@ class VideoCreator:
                     remaining_chunk = duration
                     chunk_visuals = []
                     
-                    while remaining_chunk > 0:
+                    while remaining_chunk > 0.1: # Threshold to avoid tiny frames
                         cut_dur = min(3.0, remaining_chunk)
                         
                         # Decide media: Pick from pool.
-                        # Ideally, if this is "segment_0", pick media[0]. 
-                        # But we might need multiple cuts for segment_0.
-                        # So we rotate through.
                         media_path = segment_media_pool[seg_media_idx % len(segment_media_pool)]
                         seg_media_idx += 1
                         
+                        logger.info(f"DEBUG: Segment Clip: {media_path}, Cut Duration: {cut_dur}")
+                        
                         if media_path.endswith(('.mp4', '.mov')):
-                            v = VideoFileClip(media_path)
+                            v = VideoFileClip(media_path).without_audio()
                             all_video_clips.append(v)
                             if v.duration < cut_dur:
-                                v = v.loop(duration=cut_dur)
+                                v = vfx.loop(v, duration=cut_dur)
                             else:
                                 max_s = v.duration - cut_dur
                                 s = 0 if max_s <= 0 else random.uniform(0, max_s)

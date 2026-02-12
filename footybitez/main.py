@@ -40,14 +40,14 @@ def main():
     try:
         logger.info("Starting FootyBitez Automation...")
         
-        # 1. Select Topic
+        # 1. Select Topic & Category
         topic_gen = TopicGenerator()
-        topic = topic_gen.get_random_topic()
-        logger.info(f"Selected Topic: {topic}")
+        topic, category = topic_gen.get_random_topic()
+        logger.info(f"Selected Category: {category} | Topic: {topic}")
         
         # 2. Generate Script
         script_gen = ScriptGenerator()
-        script = script_gen.generate_script(topic)
+        script = script_gen.generate_script(topic, category)
         
         if not script:
             logger.error("Failed to generate script. Aborting.")

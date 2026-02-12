@@ -266,7 +266,10 @@ class LongFormVideoCreator:
         """Adds a subtle Ken Burns zoom-in effect."""
         def effect(get_frame, t):
             frame = get_frame(t)
-            h, w, c = frame.shape
+            if len(frame.shape) == 2:
+                h, w = frame.shape
+            else:
+                h, w, c = frame.shape
             # Calculate zoom factor
             zoom = 1 + (zoom_ratio * (t / clip.duration))
             # Resize frame

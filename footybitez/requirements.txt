@@ -13,3 +13,4 @@ duckduckgo-search
 beautifulsoup4
 wikipedia
 opencv-python-headless
+yt-dlp
