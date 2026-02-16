@@ -32,6 +32,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="moviepy")
 from moviepy.editor import *
 import moviepy.video.fx.all as vfx
 from footybitez.media.voice_generator import VoiceGenerator
+from footybitez.media.sfx_manager import SFXManager
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,7 @@ class VideoCreator:
     def __init__(self, output_dir="footybitez/output"):
         self.output_dir = output_dir
         self.voice_gen = VoiceGenerator()
+        self.sfx_man = SFXManager()
         os.makedirs(output_dir, exist_ok=True)
         # Helper folder for text images
         os.makedirs(os.path.join(output_dir, "temp_text"), exist_ok=True)
@@ -320,12 +322,32 @@ class VideoCreator:
                              clip = clip.subclip(0, duration)
                          clip = self._resize_to_vertical(clip)
                          visual_clips.append(self._ensure_rgb(clip))
-                     else:
-                         clip = ImageClip(img_path).set_duration(duration)
-                         # Slow Zoom
-                         clip = clip.resize(lambda t: 1 + 0.05 * t/duration)
                          clip = self._resize_to_vertical(clip)
                          visual_clips.append(self._ensure_rgb(clip))
+                     else:
+                         clip = ImageClip(img_path).set_duration(duration)
+                         
+                         # Random Effect for Title Image (Sniper or Glitch or Slow Zoom)
+                         effect_choice = random.choice(["sniper", "glitch", "slow_zoom"])
+                         if effect_choice == "sniper":
+                             clip = self._apply_sniper_zoom(clip)
+                         elif effect_choice == "glitch":
+                             clip = self._apply_glitch_effect(clip)
+                         else:
+                             # Slow Zoom
+                             clip = clip.resize(lambda t: 1 + 0.05 * t/duration)
+                             
+                         clip = self._resize_to_vertical(clip)
+                         visual_clips.append(self._ensure_rgb(clip))
+                         
+                     # Title SFX (Riser Shake)
+                     sfx = self.sfx_man.get_sfx("riser_shake", duration=min(4.0, duration))
+                     if sfx:
+                         # Attach to the first clip we just added (or overlay)
+                         # Easier to mix later? No, let's attach audio to this specific clip if possible?
+                         # visual_clips is a list of VideoClips.
+                         # set_audio on the clip works.
+                         visual_clips[-1] = visual_clips[-1].set_audio(sfx)
                 else:
                     # Segment/Outro - use multiple cuts if long
                     remaining_chunk = duration
@@ -352,8 +374,26 @@ class VideoCreator:
                             chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(v)))
                         else:
                             img = ImageClip(media_path).set_duration(cut_dur)
-                            img = img.resize(lambda t: 1 + 0.1 * t/cut_dur)
+                            
+                            # Random Effect
+                            eff = random.choice(["sniper", "glitch", "slow_zoom", "slow_zoom"])
+                            if eff == "sniper":
+                                img = self._apply_sniper_zoom(img)
+                                # Add Sound?
+                            elif eff == "glitch":
+                                img = self._apply_glitch_effect(img)
+                            else:
+                                img = img.resize(lambda t: 1 + 0.1 * t/cut_dur)
+                                
                             chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(img)))
+                            
+                            # Add transition SFX (Slide Bounce or Alien) randomly
+                            if random.random() > 0.7:
+                                sfx_type = random.choice(["slide_bounce", "alien_invert"])
+                                sfx = self.sfx_man.get_sfx(sfx_type)
+                                if sfx:
+                                    # Attach to this chunk visual
+                                    chunk_visuals[-1] = chunk_visuals[-1].set_audio(sfx)
                             
                         remaining_chunk -= cut_dur
                         
@@ -437,7 +477,7 @@ class VideoCreator:
 
             # 7. Music
             if background_music_path and os.path.exists(background_music_path):
-                music = AudioFileClip(background_music_path).volumex(0.1)
+                music = AudioFileClip(background_music_path).volumex(0.05) # Lower to 5%
                 if music.duration < total_duration:
                     music = afx.audio_loop(music, duration=total_duration)
                 else:
@@ -541,6 +581,64 @@ class VideoCreator:
              clip = clip.fl_image(make_rgb)
         
         return clip
+        
+    def _apply_sniper_zoom(self, clip):
+        """Rapid zoom in/out effect."""
+        def effect(get_frame, t):
+            frame = get_frame(t)
+            
+            # Ensure uint8 for PIL
+            if frame.dtype != np.uint8:
+                 frame = frame.astype(np.uint8)
+                 
+            h, w = frame.shape[:2]
+            
+            # Simple Sniper: Fast zoom in and hold
+            # 0.0 -> 0.2s: Zoom 1.0 -> 1.5
+            # 0.2 -> end: Hold 1.5
+            target_zoom = 1.5
+            zoom_duration = 0.2
+            
+            if t < zoom_duration:
+                zoom = 1.0 + ((target_zoom - 1.0) * (t / zoom_duration))
+            else:
+                zoom = target_zoom
+                
+            # Resize frame
+            new_h, new_w = int(h * zoom), int(w * zoom)
+            img = Image.fromarray(frame)
+            img = img.resize((new_w, new_h), Image.LANCZOS)
+            
+            # Center Crop
+            left = (new_w - w) // 2
+            top = (new_h - h) // 2
+            img = img.crop((left, top, left + w, top + h))
+            return np.array(img)
+        return clip.fl(effect)
+
+    def _apply_glitch_effect(self, clip):
+        """RGB Channel split glitch."""
+        def filter(image):
+            # For simplicity: Constant RGB split
+            # Shift Red channel left, Blue channel right
+            rows, cols, chans = image.shape
+            if chans < 3: return image
+            
+            offset = random.randint(5, 20) # Significant jitter
+            
+            r = np.roll(image[:,:,0], offset, axis=1)
+            g = image[:,:,1]
+            b = np.roll(image[:,:,2], -offset, axis=1)
+            
+            # Add some vertical scanline jitter
+            if random.random() > 0.8:
+                v_offset = random.randint(-10, 10)
+                r = np.roll(r, v_offset, axis=0)
+                b = np.roll(b, v_offset, axis=0)
+                
+            return np.dstack((r, g, b))
+            
+        return clip.fl_image(filter)
 
 
 if __name__ == "__main__":
