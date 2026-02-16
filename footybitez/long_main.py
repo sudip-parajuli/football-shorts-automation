@@ -61,9 +61,10 @@ def main():
         logger.info("Starting FootyBitez LONG-FORM Automation...")
         
         # 1. Select Topic
+        # 1. Select Topic
         topic_gen = TopicGenerator()
-        topic = topic_gen.get_random_topic()
-        logger.info(f"Selected Topic: {topic}")
+        topic, category = topic_gen.get_random_topic()
+        logger.info(f"Selected Topic: {topic} | Category: {category}")
         
         # 2. Generate Long Script
         script_gen = LongFormScriptGenerator()

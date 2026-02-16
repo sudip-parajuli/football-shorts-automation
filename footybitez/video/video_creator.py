@@ -359,7 +359,8 @@ class VideoCreator:
                         
                     visual_clips.extend(chunk_visuals)
 
-            final_video_track = concatenate_videoclips(visual_clips).set_duration(total_duration)
+            # Use method='compose' to avoid IndexError due to floating point duration mismatches
+            final_video_track = concatenate_videoclips(visual_clips, method="compose").set_duration(total_duration)
 
             # 4. Text Overlays (Karaoke)
             text_clips = []
