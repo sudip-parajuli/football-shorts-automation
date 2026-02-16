@@ -11,7 +11,7 @@ class MediaSourcer:
         self.download_dir = download_dir
         os.makedirs(download_dir, exist_ok=True)
         self.headers = {'Authorization': self.api_key} if self.api_key else {}
-        self.neg_keywords = "-nfl -american -rugby -superbowl -touchdown -helmet"
+        self.neg_keywords = "-nfl -american -rugby -superbowl -touchdown -helmet -cfl -afl -handball"
 
     def cleanup(self):
         """Deletes all downloaded media files to save space."""
@@ -86,8 +86,19 @@ class MediaSourcer:
         4. Pexels Videos (Dynamic Fallback)
         """
         paths = []
+        # Cleanup query but FORCE specific context
         clean_query = query.replace(" football", "").replace(" soccer", "").strip()
-        print(f"Sourcing media for: {clean_query} (Need {count})")
+        
+        # Determine strict query for searches
+        # If it's a specific entity (Messi, Ronaldo), we might not need "soccer" as much, 
+        # but for safety, we append it to ambiguous terms.
+        # actually, let's just append "soccer" to all search queries to be safe against "Giants" (NFL) vs "Giants" (Baseball/etc)
+        # But for specific player names, it might dilute. 
+        # Strategy: Use clean_query for specific checks, but constructed_query for APIs.
+        
+        search_term = f"{clean_query} soccer" 
+        
+        print(f"Sourcing media for: {clean_query} (Search Term: {search_term}) (Need {count})")
         needed = count
         
         # 1. ScoreBat Highlights (Experimental - Metadata/Limited)
@@ -139,10 +150,11 @@ class MediaSourcer:
             if not is_specific or current_count == 0:
                 print(f"Fetching videos from Pexels (Fallback, Need {remaining})...")
                 # Try specific query first
-                vids = self._fetch_pexels_videos(f"{clean_query} football", count=remaining + 1, orientation=orientation)
+                # Force "soccer" to avoid NFL
+                vids = self._fetch_pexels_videos(f"{clean_query} soccer", count=remaining + 1, orientation=orientation)
                 if not vids:
                     # Fallback to team color or generic
-                    vids = self._fetch_pexels_videos("football stadium atmosphere", count=remaining, orientation=orientation)
+                    vids = self._fetch_pexels_videos("soccer stadium atmosphere", count=remaining, orientation=orientation)
                 paths.extend(vids[:remaining])
             else:
                 print("Skipping generic Pexels video fallback to preserve specificity (using existing images).")
@@ -193,7 +205,8 @@ class MediaSourcer:
             import logging
             
             # Search for more candidates to increase chance of finding a short video
-            search_query = f"ytsearch5:{query} football shorts"
+            # Strict filtering in search query
+            search_query = f"ytsearch5:{query} soccer shorts {self.neg_keywords}"
             ydl_opts = {
                 'format': 'best[ext=mp4]/best', 
                 'outtmpl': os.path.join(self.download_dir, 'yt_%(id)s.%(ext)s'),
@@ -201,6 +214,8 @@ class MediaSourcer:
                 'max_filesize': 50 * 1024 * 1024, 
                 'quiet': True,
                 'no_warnings': True,
+                'socket_timeout': 10, # Add timeout to prevent hang
+                'retries': 3,
                 # Remove match_filter here to handle logical filtering manually
             }
 
@@ -340,7 +355,9 @@ class MediaSourcer:
         if not self.api_key: return []
         try:
             url = "https://api.pexels.com/videos/search"
-            params = {"query": query, "per_page": count, "orientation": orientation}
+            # Ensure query has no "NFL" context
+            final_query = f"{query} {self.neg_keywords}"
+            params = {"query": final_query, "per_page": count, "orientation": orientation}
             res = requests.get(url, headers=self.headers, params=params)
             if res.status_code == 200:
                 for vid in res.json().get('videos', []):

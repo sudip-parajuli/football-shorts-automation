@@ -40,7 +40,7 @@ class LongFormVideoCreator:
             # --- PHASE 1: MAIN TITLE CARD (HERO MOMENT) ---
             # Visuals: Blurred + Zoomed Background
             # Overlays: Text + Sheen Effect (Glowing line runs through words)
-            # Audio: Kick SFX
+            # Audio: Riser Shake SFX
             
             title_text_path = self._create_chapter_overlay("FOOTYBITEZ PRESENTS", script_data['metadata']['title'])
             
@@ -109,8 +109,8 @@ class LongFormVideoCreator:
             # Maybe add a "God Ray" or "Spotlight" background?
             # We already have Blur + Zoom background.
             
-            # 4. SFX (Kick)
-            sfx_kick = self.sfx_man.get_sfx("kick")
+            # 4. SFX (Riser Shake)
+            sfx_kick = self.sfx_man.get_sfx("riser_shake")
             
             title_card = CompositeVideoClip([
                 title_visual, 
@@ -143,8 +143,8 @@ class LongFormVideoCreator:
                 # Visual background
                 first_fact_visual = self._get_visual(chapter['facts'][0]['visual_keyword'], visual_assets, 2.0)
                 
-                # SFX: Kick
-                sfx_kick_chap = self.sfx_man.get_sfx("kick", duration=0.5)
+                # SFX: Alien Invert
+                sfx_kick_chap = self.sfx_man.get_sfx("alien_invert", duration=1.5)
                 
                 chap_slide = CompositeVideoClip([
                     first_fact_visual, 
@@ -193,7 +193,7 @@ class LongFormVideoCreator:
             
             # Add Background Music (Looping)
             if background_music_path and os.path.exists(background_music_path):
-                music = AudioFileClip(background_music_path).volumex(0.1) # Low volume
+                music = AudioFileClip(background_music_path).volumex(0.05) # Lower volume (5%)
                 # Loop explicitly to avoid cutoff
                 if music.duration < final_video.duration:
                     music = afx.audio_loop(music, duration=final_video.duration)
@@ -257,10 +257,18 @@ class LongFormVideoCreator:
             clip = self._resize_to_horizontal(clip)
             return clip.set_duration(duration)
         else:
-            # Static Image with Zoom Effect
+            # Static Image with Random Effects (Sniper Zoom, Glitch, or Slow Zoom)
             clip = ImageClip(path).set_duration(duration)
             clip = self._resize_to_horizontal(clip)
-            return self._add_zoom_effect(clip).set_duration(duration)
+            
+            effect_choice = random.choice(["sniper", "glitch", "slow_zoom", "slow_zoom"]) # Bias towards slow zoom
+            
+            if effect_choice == "sniper":
+                return self._apply_sniper_zoom(clip).set_duration(duration)
+            elif effect_choice == "glitch":
+                return self._apply_glitch_effect(clip).set_duration(duration)
+            else:
+                 return self._add_zoom_effect(clip).set_duration(duration)
 
     def _add_zoom_effect(self, clip, zoom_ratio=0.04):
         """Adds a subtle Ken Burns zoom-in effect."""
@@ -287,6 +295,68 @@ class LongFormVideoCreator:
         """Applies Gaussian Blur to the clip."""
         def filter(image):
             return np.array(Image.fromarray(image).filter(ImageFilter.GaussianBlur(radius)))
+        return clip.fl_image(filter)
+
+    def _apply_sniper_zoom(self, clip):
+        """Rapid zoom in/out effect."""
+        def effect(get_frame, t):
+            frame = get_frame(t)
+            
+            # Ensure uint8 for PIL
+            if frame.dtype != np.uint8:
+                 frame = frame.astype(np.uint8)
+                 
+            h, w = frame.shape[:2]
+            
+            # Simple Sniper: Fast zoom in and hold
+            # 0.0 -> 0.2s: Zoom 1.0 -> 1.5
+            # 0.2 -> end: Hold 1.5
+            target_zoom = 1.5
+            zoom_duration = 0.2
+            
+            if t < zoom_duration:
+                zoom = 1.0 + ((target_zoom - 1.0) * (t / zoom_duration))
+            else:
+                zoom = target_zoom
+                
+            # Resize frame
+            new_h, new_w = int(h * zoom), int(w * zoom)
+            img = Image.fromarray(frame)
+            img = img.resize((new_w, new_h), Image.LANCZOS)
+            
+            # Center Crop
+            left = (new_w - w) // 2
+            top = (new_h - h) // 2
+            img = img.crop((left, top, left + w, top + h))
+            return np.array(img)
+        return clip.fl(effect)
+
+    def _apply_glitch_effect(self, clip):
+        """RGB Channel split glitch."""
+        def filter(image):
+            # Random chance of glitch per frame? No, makes it too noisy.
+            # Constant slight offset?
+            # Or randomized offset every few frames.
+            
+            # For simplicity: Constant RGB split
+            # Shift Red channel left, Blue channel right
+            rows, cols, chans = image.shape
+            if chans < 3: return image
+            
+            offset = random.randint(5, 20) # Significant jitter
+            
+            r = np.roll(image[:,:,0], offset, axis=1)
+            g = image[:,:,1]
+            b = np.roll(image[:,:,2], -offset, axis=1)
+            
+            # Add some vertical scanline jitter
+            if random.random() > 0.8:
+                v_offset = random.randint(-10, 10)
+                r = np.roll(r, v_offset, axis=0)
+                b = np.roll(b, v_offset, axis=0)
+                
+            return np.dstack((r, g, b))
+            
         return clip.fl_image(filter)
 
     def _get_karaoke_clips(self, audio_filename, total_duration, start_time_offset, font_scale=1.0):

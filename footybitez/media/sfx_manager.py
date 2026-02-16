@@ -62,6 +62,15 @@ class SFXManager:
         elif effect_type == "riser":
             dur = duration or 3.0
             return self._make_riser(dur)
+        elif effect_type == "alien_invert":
+            dur = duration or 1.5
+            return self._make_alien_invert(dur)
+        elif effect_type == "slide_bounce":
+            dur = duration or 0.4
+            return self._make_slide_bounce(dur)
+        elif effect_type == "riser_shake":
+            dur = duration or 4.0
+            return self._make_riser_shake(dur)
         else:
             return self._make_whoosh(0.6)
 
@@ -138,6 +147,50 @@ class SFXManager:
             if np.isscalar(t):
                 return np.array([result, result])
             return self._to_stereo(result)
+
+    def _make_alien_invert(self, duration):
+        """High pitch sine wave modulating down rapidly + tremolo."""
+        def make_frame(t):
+            t_arr = np.atleast_1d(t)
+            # Freq drop: 2000Hz -> 200Hz
+            freq = 2000 * np.exp(-3 * t_arr)
+            # Add some wobble (alien texture)
+            mod = np.sin(2 * np.pi * 30 * t_arr) * 200
+            wave = np.sin(2 * np.pi * (freq + mod) * t_arr)
+            envelope = np.exp(-1 * t_arr)
+            result = wave * envelope * 0.5
+            if np.isscalar(t): return np.array([result, result])
+            return self._to_stereo(result)
+        return AudioClip(make_frame, duration=duration, fps=self.sample_rate)
+
+    def _make_slide_bounce(self, duration):
+        """Cartoonish boing/slide."""
+        def make_frame(t):
+            t_arr = np.atleast_1d(t)
+            # Pitch bend up then down
+            # 200Hz -> 400Hz -> 200Hz
+            freq = 200 + (200 * np.sin(np.pi * t_arr / duration))
+            wave = np.sin(2 * np.pi * freq * t_arr)
+            envelope = np.sin(np.pi * t_arr / duration)
+            result = wave * envelope * 0.6
+            if np.isscalar(t): return np.array([result, result])
+            return self._to_stereo(result)
+        return AudioClip(make_frame, duration=duration, fps=self.sample_rate)
+
+    def _make_riser_shake(self, duration):
+        """Riser with violent amplitude modulation."""
+        def make_frame(t):
+            t_arr = np.atleast_1d(t)
+            # Freq: 100 -> 1000
+            freq = 100 + (900 * (t_arr / duration)**2)
+            wave = np.sin(2 * np.pi * freq * t_arr)
+            # Shake: AM at 15Hz
+            shake = (np.sin(2 * np.pi * 15 * t_arr) + 1) / 2
+            # Gated riser
+            result = wave * (t_arr/duration) * shake
+            if np.isscalar(t): return np.array([result, result])
+            return self._to_stereo(result)
+        return AudioClip(make_frame, duration=duration, fps=self.sample_rate)
 
 if __name__ == "__main__":
     man = SFXManager()
