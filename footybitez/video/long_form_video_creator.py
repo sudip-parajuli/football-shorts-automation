@@ -207,8 +207,8 @@ class LongFormVideoCreator:
             # Export
             output_path = os.path.join(self.output_dir, "long_form_video.mp4")
             # Using 'threads' can sometimes cause sync issues or freezing on windows
-            # Reduced threads to 4 often fixes freeze at complex joins
-            final_video.write_videofile(output_path, fps=30, codec="libx264", audio_codec="aac", threads=4, logger=None)
+            # Reduced threads to 1 (single threaded) to prevent deadlocks on Windows
+            final_video.write_videofile(output_path, fps=30, codec="libx264", audio_codec="aac", threads=1, logger='bar')
             
             return output_path
 
