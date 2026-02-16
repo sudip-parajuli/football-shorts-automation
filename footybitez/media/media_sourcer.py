@@ -90,15 +90,16 @@ class MediaSourcer:
         clean_query = query.replace(" football", "").replace(" soccer", "").strip()
         
         # Determine strict query for searches
-        # If it's a specific entity (Messi, Ronaldo), we might not need "soccer" as much, 
-        # but for safety, we append it to ambiguous terms.
-        # actually, let's just append "soccer" to all search queries to be safe against "Giants" (NFL) vs "Giants" (Baseball/etc)
-        # But for specific player names, it might dilute. 
         # Strategy: Use clean_query for specific checks, but constructed_query for APIs.
+        neg_keywords = "-nfl -rugby -american -touchdown -helmet -superbowl -gridiron -quarterback"
         
-        search_term = f"{clean_query} soccer" 
+        # Base query for Pexels (safer without negative keywords if API doesn't support)
+        base_search = f"{clean_query} soccer"
         
-        print(f"Sourcing media for: {clean_query} (Search Term: {search_term}) (Need {count})")
+        # Strict query for DDG/Google (supports negative keywords)
+        strict_search = f"{clean_query} soccer {neg_keywords}" 
+        
+        print(f"Sourcing media for: {clean_query} (Base: {base_search}) (Strict: {strict_search}) (Need {count})")
         needed = count
         
         # 1. ScoreBat Highlights (Experimental - Metadata/Limited)
@@ -111,8 +112,8 @@ class MediaSourcer:
         # 2. YouTube Clips (High Specificity)
         # Attempt to find a short clip for specific entities
         if needed > 0:
-            print(f"Fetching YouTube clip for: {clean_query}")
-            yt_clip = self._fetch_youtube_clip(clean_query)
+            print(f"Fetching YouTube clip for: {strict_search}")
+            yt_clip = self._fetch_youtube_clip(strict_search)
             if yt_clip:
                 paths.append(yt_clip)
                 needed -= 1
@@ -122,15 +123,16 @@ class MediaSourcer:
             print(f"Fetching specific images from Wikimedia (Target: {needed})...")
             # If we found a video, we might only need images to fill gaps.
             # If we didn't find video, we rely heavily on images for specificity.
-            wiki_imgs = self._fetch_wikimedia_images(clean_query, count=needed)
+            wiki_imgs = self._fetch_wikimedia_images(base_search, count=needed)
             paths.extend(wiki_imgs)
             needed -= len(wiki_imgs)
             
         # 4. DDG Images (Variety/Specific Action)
         if needed > 0:
             print(f"Fetching specific images from DDG (Target: {needed})...")
-            strict_query = f"{clean_query} football match action real life {self.neg_keywords} -drawing -cartoon"
-            ddg_imgs = self._fetch_ddg_images(strict_query, count=needed + 2)
+            # DDG supports negation perfectly
+            ddg_query = f"{strict_search} match action real life -drawing -cartoon"
+            ddg_imgs = self._fetch_ddg_images(ddg_query, count=needed + 2)
             paths.extend(ddg_imgs[:needed])
             needed -= len(ddg_imgs[:needed]) # Correctly subtract what we added
             
@@ -149,9 +151,8 @@ class MediaSourcer:
             
             if not is_specific or current_count == 0:
                 print(f"Fetching videos from Pexels (Fallback, Need {remaining})...")
-                # Try specific query first
-                # Force "soccer" to avoid NFL
-                vids = self._fetch_pexels_videos(f"{clean_query} soccer", count=remaining + 1, orientation=orientation)
+                # Pexels: Use base_search ("messi soccer match")
+                vids = self._fetch_pexels_videos(f"{base_search} match", count=remaining + 1, orientation=orientation)
                 if not vids:
                     # Fallback to team color or generic
                     vids = self._fetch_pexels_videos("soccer stadium atmosphere", count=remaining, orientation=orientation)
