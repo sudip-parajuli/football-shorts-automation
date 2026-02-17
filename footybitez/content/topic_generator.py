@@ -53,7 +53,6 @@ class TopicGenerator:
                 "The role of the False 9 explained",
                 "Gegenpressing explained simply"
             ],
-            ],
             "World Cup & Stats": [
                 "History of the FIFA World Cup",
                 "Total cost of hosting the World Cup by country",
