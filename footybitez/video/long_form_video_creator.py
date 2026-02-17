@@ -109,8 +109,8 @@ class LongFormVideoCreator:
             # Maybe add a "God Ray" or "Spotlight" background?
             # We already have Blur + Zoom background.
             
-            # 4. SFX (Riser Shake)
-            sfx_kick = self.sfx_man.get_sfx("riser_shake")
+            # 4. SFX (Kick - Short & Punchy)
+            sfx_kick = self.sfx_man.get_sfx("kick")
             
             title_card = CompositeVideoClip([
                 title_visual, 
@@ -118,7 +118,7 @@ class LongFormVideoCreator:
             ], size=(self.width, self.height)).set_duration(4.0)
             
             if sfx_kick:
-                sfx_kick = sfx_kick.volumex(0.8)
+                sfx_kick = sfx_kick.subclip(0, 0.5).volumex(0.3)
                 title_card = title_card.set_audio(sfx_kick)
             
             clips.append(title_card.crossfadein(1.0).fadeout(0.5))
@@ -153,7 +153,7 @@ class LongFormVideoCreator:
                 
                 # Attach Kick SFX
                 if sfx_kick_chap:
-                    sfx_kick_chap = sfx_kick_chap.volumex(0.7)
+                    sfx_kick_chap = sfx_kick_chap.subclip(0, 0.5).volumex(0.3)
                     chap_slide = chap_slide.set_audio(sfx_kick_chap.set_start(0))
                 
                 # TRANSITION: Fast Fade In (0.1s)

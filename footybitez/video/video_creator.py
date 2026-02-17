@@ -392,6 +392,8 @@ class VideoCreator:
                                 sfx_type = random.choice(["slide_bounce", "alien_invert"])
                                 sfx = self.sfx_man.get_sfx(sfx_type)
                                 if sfx:
+                                    # Make SFX small and short as requested
+                                    sfx = sfx.subclip(0, 0.5).volumex(0.3)
                                     # Attach to this chunk visual
                                     chunk_visuals[-1] = chunk_visuals[-1].set_audio(sfx)
                             

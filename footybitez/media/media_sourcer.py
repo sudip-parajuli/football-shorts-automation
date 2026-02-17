@@ -90,8 +90,13 @@ class MediaSourcer:
         clean_query = query.replace(" football", "").replace(" soccer", "").strip()
         
         # Determine strict query for searches
-        # Strategy: Use clean_query for specific checks, but constructed_query for APIs.
-        neg_keywords = "-nfl -rugby -american -touchdown -helmet -superbowl -gridiron -quarterback"
+        # Strategy: Use clean_query for specific checks,        # FIX: Strict negative keywords (User Provided List + Common Terms)
+        # We must exclude ALL rugby code names, variations, and related terms.
+        rugby_terms = "-rugby -union -league -rugger -sevens -scrum -ruck -maul -try -touchdown"
+        american_terms = "-nfl -american -gridiron -superbowl -quarterback -helmet -canadian -gaelic"
+        misc_terms = "-wheelchair -beach -touch -tag -mini -drawing -cartoon -sketch"
+        
+        neg_keywords = f"{rugby_terms} {american_terms} {misc_terms}"
         
         # Base query for Pexels (safer without negative keywords if API doesn't support)
         base_search = f"{clean_query} soccer"

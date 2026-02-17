@@ -133,13 +133,12 @@ class ScriptGenerator:
             "outro": "Call to action text"
         }}
 
-        CONTENT RULES:
-        1. "hook": Must be shocking/intriguing. If Title implies a list (e.g. Top 5), the script MUST cover that many items!
-        2. "primary_entity": EXTRACT the exact name of the main subject. if multiple, pick the most famous.
+        1. "hook": Must be shocking/intriguing but FACTUAL.
+        2. "primary_entity": EXTRACT the exact name of the main subject.
         3. "segments": 
            - CRITICAL: Split segments whenever the VISUAL SUBJECT changes. 
-           - Example: "Messi won 7 (Segment 1: Messi)... but Ronaldo has more goals (Segment 2: Ronaldo)."
-           - Do NOT lump multiple entities into one segment.
+           - CRITICAL: NO FICTION. Do not invent matches, dates, or events.
+           - If category is "Mysteries", use REAL unexplained events (e.g. Ronaldo 1998 final, R9's seizure). DO NOT MAKE UP STORIES.
         4. "visual_keyword": A specific search term. ALWAYS include "soccer" or "football player".
            - BAD: "football" (ambiguous)
            - GOOD: "Lionel Messi face", "Old Trafford stadium", "Champions League trophy soccer"
