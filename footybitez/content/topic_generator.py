@@ -53,8 +53,18 @@ class TopicGenerator:
                 "The role of the False 9 explained",
                 "Gegenpressing explained simply"
             ],
+            ],
+            "World Cup & Stats": [
+                "History of the FIFA World Cup",
+                "Total cost of hosting the World Cup by country",
+                "Top 5 highest attendance in football history",
+                "The future of the FIFA World Cup (48 teams)",
+                "Who will host the next World Cups?",
+                "The most expensive World Cup ever (Qatar)",
+                "Evolution of the World Cup Trophy"
+            ],
             "Shocking Moments": [
-                "The goal that shocked the world",
+            	"The goal that shocked the world",
                 "The worst miss in football history",
                 "The most disrespectful celebration ever",
                 "When a goalkeeper scored from 100 meters",
