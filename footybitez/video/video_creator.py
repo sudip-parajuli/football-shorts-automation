@@ -340,14 +340,10 @@ class VideoCreator:
                          clip = self._resize_to_vertical(clip)
                          visual_clips.append(self._ensure_rgb(clip))
                          
-                     # Title SFX (Riser Shake)
-                     sfx = self.sfx_man.get_sfx("riser_shake", duration=min(4.0, duration))
-                     if sfx:
-                         # Attach to the first clip we just added (or overlay)
-                         # Easier to mix later? No, let's attach audio to this specific clip if possible?
-                         # visual_clips is a list of VideoClips.
-                         # set_audio on the clip works.
-                         visual_clips[-1] = visual_clips[-1].set_audio(sfx)
+                     # Title SFX (Dong Only - Bounce handled later)
+                     pass # Removed riser_shake as per user request
+                     # Removed riser_shake logic.
+                     pass
                 else:
                     # Segment/Outro - use multiple cuts if long
                     remaining_chunk = duration
@@ -384,17 +380,16 @@ class VideoCreator:
                                 sfx_to_use = "dong"
                             else:
                                 # Random Effect for normal chunks
+                                # REMOVED: alien_invert, sniper (maybe keep visual?), glitch (keep visual?)
+                                # User said "No need to use other sfx than that (dong/whoosh)"
+                                # Visual effects are fine, but NO SFX strictly.
                                 eff = random.choice(["sniper", "glitch", "slow_zoom", "slide_bounce"])
                             
                             if eff == "bounce":
-                                # Simple "Pop" or "Bounce" (Scale Up)
-                                img = img.resize(lambda t: 1 + 0.15 * np.sin(np.pi * t/cut_dur)) # Sine wave bounce
-                                # Or just a simple zoom out? 
-                                # "Bounce" usually implies motion. Let's do a scale pulse.
-                                # Actually, let's stick to a strong zoom for "Bounce" interpretation or Pulse.
-                                # Let's do a pulse: Scale 1.0 -> 1.1 -> 1.0
+                                # Pulse: Scale 1.0 -> 1.1 -> 1.0
+                                img = img.resize(lambda t: 1 + 0.15 * np.sin(np.pi * t/cut_dur)) 
                                 
-                                # Add Dong SFX
+                                # Add Dong SFX (Strictly Requested)
                                 if sfx_to_use == "dong":
                                     sfx = self.sfx_man.get_sfx("dong")
                                     if sfx:
@@ -405,23 +400,19 @@ class VideoCreator:
                                 img = self._apply_sniper_zoom(img)
                             elif eff == "glitch":
                                 img = self._apply_glitch_effect(img)
-                            elif eff == "slow_zoom":
-                                img = img.resize(lambda t: 1 + 0.05 * t/cut_dur)
 
                             chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(img)))
                             
-                            # Add transition SFX (Slide/Whoosh) for NON-Title
+                            # Add transition SFX (Whoosh ONLY) for NON-Title
+                            # We use 'slide_bounce' as the trigger for whoosh.
+                            # Alien Invert is REMOVED.
                             if not is_title and eff == "slide_bounce":
-                                sfx = self.sfx_man.get_sfx("whoosh") # Renamed from woosh (1)
-                                if sfx:
-                                     # Make short and punchy
-                                    sfx = sfx.subclip(0, 0.5).volumex(0.3)
-                                    chunk_visuals[-1] = chunk_visuals[-1].set_audio(sfx)
-                            elif eff == "alien_invert":
-                                sfx = self.sfx_man.get_sfx("alien_invert")
+                                sfx = self.sfx_man.get_sfx("whoosh")
                                 if sfx:
                                     sfx = sfx.subclip(0, 0.5).volumex(0.3)
                                     chunk_visuals[-1] = chunk_visuals[-1].set_audio(sfx)
+                            
+                            # Removed alien_invert SFX block entirely.
                             
                         remaining_chunk -= cut_dur
                         

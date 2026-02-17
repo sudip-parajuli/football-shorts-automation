@@ -210,58 +210,45 @@ class MediaSourcer:
             import yt_dlp
             import logging
             
-            # Search for more candidates to increase chance of finding a short video
-            # Strict filtering in search query
-            search_query = f"ytsearch5:{query} soccer shorts {self.neg_keywords}"
+            # Search options
             ydl_opts = {
-                'format': 'best[ext=mp4]/best', 
-                'outtmpl': os.path.join(self.download_dir, 'yt_%(id)s.%(ext)s'),
+                'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                'outtmpl': os.path.join(self.download_dir, 'temp_yt_%(id)s.%(ext)s'),
                 'noplaylist': True,
-                'max_filesize': 50 * 1024 * 1024, 
                 'quiet': True,
                 'no_warnings': True,
-                'socket_timeout': 10, # Add timeout to prevent hang
                 'retries': 3,
-                # Remove match_filter here to handle logical filtering manually
             }
 
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                # download=False first to inspect metadata
-                info = ydl.extract_info(search_query, download=False)
-                
-                entries = info.get('entries', [])
-                if not entries:
-                    logging.warning(f"No YouTube results found for: {query}")
-                    return None
-                
-                best_video = None
-                for video in entries:
-                    duration = video.get('duration', 0)
-                    if duration and duration < 60:
-                        best_video = video
-                        break
-                
-                if not best_video:
-                    logging.warning(f"No short videos found for: {query}")
-                    return None
-
-                # Now download the specific video
-                # We need to set the URL or id
-                webpage_url = best_video.get('webpage_url')
-                if not webpage_url: return None
-                
-                # Download using the specific URL
-                info = ydl.extract_info(webpage_url, download=True)
-                filename = ydl.prepare_filename(info)
-                
-                base, _ = os.path.splitext(filename)
-                for ext in ['.mp4', '.mkv', '.webm']:
-                     if os.path.exists(base + ext):
-                         return base + ext
-                
-                if os.path.exists(filename):
-                    return filename
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    # 1. Search
+                    search_query = f"ytsearch1:{query}"
+                    info = ydl.extract_info(search_query, download=False)
                     
+                    if 'entries' in info and len(info['entries']) > 0:
+                        video_url = info['entries'][0]['webpage_url']
+                        print(f"YouTube Match: {video_url}")
+                        
+                        # 2. Download
+                        ydl.download([video_url])
+                        
+                        # 3. Rename/Verify
+                        # Find the downloaded file
+                        for f in os.listdir(self.download_dir):
+                            if f.endswith(".mp4") and "temp_yt" in f:
+                                final_path = os.path.join(self.download_dir, f"yt_{hash(query)}.mp4")
+                                os.rename(os.path.join(self.download_dir, f), final_path)
+                                return final_path
+            except Exception as e:
+                # Silence specific "Sign in" errors or generic blocking
+                err_msg = str(e).lower()
+                if "sign in" in err_msg or "bot" in err_msg or "429" in err_msg or "forbidden" in err_msg:
+                    print(f"YouTube Warning: Access blocked (Sign-in/Bot detection). Skipping to fallback.")
+                else:
+                    print(f"YouTube Download Error: {e}")
+            return None
+
         except ImportError:
             import logging
             logging.warning("yt-dlp not installed. Skipping YouTube fetch.")
@@ -401,34 +388,71 @@ class MediaSourcer:
         return None
 
     def _fetch_ddg_image(self, query, suffix):
+        """Fetches an image using the new 'duckduckgo_search' (ddgs) library."""
         try:
-            from duckduckgo_search import DDGS
+            # Try new package name first, then old
+            try:
+                from ddgs import DDGS
+            except ImportError:
+                from duckduckgo_search import DDGS
+                
             import time
-            time.sleep(1)
+            time.sleep(2) # Increased delay to be safer
+            
             with DDGS() as ddgs:
-                results = list(ddgs.images(query, max_results=2))
+                # Use 'images' method
+                results = list(ddgs.images(
+                    query, 
+                    region="wt-wt", 
+                    safesearch="off", 
+                    max_results=3
+                ))
+                
                 if results:
-                    url = results[0]['image']
-                    fpath = os.path.join(self.download_dir, f"ddg_{suffix}_{hash(url)}.jpg")
-                    self._download_file(url, fpath)
-                    if os.path.exists(fpath): return fpath
+                    for res in results:
+                        image_url = res.get('image')
+                        if not image_url: continue
+                        
+                        try:
+                            ext = image_url.split('.')[-1].split('?')[0]
+                            if len(ext) > 4: ext = "jpg"
+                            filename = f"ddg_{suffix}_{hash(query)}_{random.randint(0,1000)}.{ext}"
+                            filepath = os.path.join(self.download_dir, filename)
+                            
+                            self._download_file(image_url, filepath)
+                            if os.path.exists(filepath):
+                                return filepath
+                        except Exception:
+                            continue
         except Exception as e:
-            print(f"DDG error: {e}")
+            # Log as warning, don't crash
+            print(f"DDG Search Warning (Falling back to Pexels): {e}")
         return None
 
     def _fetch_ddg_images(self, query, count):
         paths = []
         try:
-            from duckduckgo_search import DDGS
+            try:
+                from ddgs import DDGS
+            except ImportError:
+                from duckduckgo_search import DDGS
+                
             import time
-            time.sleep(1)
+            time.sleep(2)
+            
             with DDGS() as ddgs:
-                results = list(ddgs.images(query, max_results=count))
+                results = list(ddgs.images(query, max_results=count + 2))
                 for res in results:
-                    url = res['image']
-                    fpath = os.path.join(self.download_dir, f"ddg_{hash(url)}.jpg")
-                    self._download_file(url, fpath)
-                    if os.path.exists(fpath): paths.append(fpath)
+                    if len(paths) >= count: break
+                    url = res.get('image')
+                    if not url: continue
+                    
+                    try:
+                        fpath = os.path.join(self.download_dir, f"ddg_{hash(url)}.jpg")
+                        self._download_file(url, fpath)
+                        if os.path.exists(fpath): paths.append(fpath)
+                    except:
+                        continue
         except Exception as e:
-            print(f"DDG multiple error: {e}")
+            print(f"DDG Search Warning: {e}")
         return paths
