@@ -375,26 +375,52 @@ class VideoCreator:
                         else:
                             img = ImageClip(media_path).set_duration(cut_dur)
                             
-                            # Random Effect
-                            eff = random.choice(["sniper", "glitch", "slow_zoom", "slow_zoom"])
-                            if eff == "sniper":
+                            # E) Effects Logic
+                            is_title = chunk.get('is_title', False)
+                            
+                            if is_title:
+                                # User Request: "use dong SFX and bounce effect to the title"
+                                eff = "bounce"
+                                sfx_to_use = "dong"
+                            else:
+                                # Random Effect for normal chunks
+                                eff = random.choice(["sniper", "glitch", "slow_zoom", "slide_bounce"])
+                            
+                            if eff == "bounce":
+                                # Simple "Pop" or "Bounce" (Scale Up)
+                                img = img.resize(lambda t: 1 + 0.15 * np.sin(np.pi * t/cut_dur)) # Sine wave bounce
+                                # Or just a simple zoom out? 
+                                # "Bounce" usually implies motion. Let's do a scale pulse.
+                                # Actually, let's stick to a strong zoom for "Bounce" interpretation or Pulse.
+                                # Let's do a pulse: Scale 1.0 -> 1.1 -> 1.0
+                                
+                                # Add Dong SFX
+                                if sfx_to_use == "dong":
+                                    sfx = self.sfx_man.get_sfx("dong")
+                                    if sfx:
+                                        sfx = sfx.volumex(0.5)
+                                        img = img.set_audio(sfx)
+                                        
+                            elif eff == "sniper":
                                 img = self._apply_sniper_zoom(img)
-                                # Add Sound?
                             elif eff == "glitch":
                                 img = self._apply_glitch_effect(img)
-                            else:
-                                img = img.resize(lambda t: 1 + 0.1 * t/cut_dur)
-                                
+                            elif eff == "slow_zoom":
+                                img = img.resize(lambda t: 1 + 0.05 * t/cut_dur)
+
                             chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(img)))
                             
-                            # Add transition SFX (Slide Bounce or Alien) randomly
-                            if random.random() > 0.7:
-                                sfx_type = random.choice(["slide_bounce", "alien_invert"])
-                                sfx = self.sfx_man.get_sfx(sfx_type)
+                            # Add transition SFX (Slide/Whoosh) for NON-Title
+                            if not is_title and eff == "slide_bounce":
+                                sfx = self.sfx_man.get_sfx("whoosh") # Renamed from woosh (1)
                                 if sfx:
-                                    # Make SFX small and short as requested
+                                     # Make short and punchy
                                     sfx = sfx.subclip(0, 0.5).volumex(0.3)
-                                    # Attach to this chunk visual
+                                    chunk_visuals[-1] = chunk_visuals[-1].set_audio(sfx)
+                            elif eff == "alien_invert":
+                                sfx = self.sfx_man.get_sfx("alien_invert")
+                                if sfx:
+                                    sfx = sfx.subclip(0, 0.5).volumex(0.3)
                                     chunk_visuals[-1] = chunk_visuals[-1].set_audio(sfx)
                             
                         remaining_chunk -= cut_dur

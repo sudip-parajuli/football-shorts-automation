@@ -109,17 +109,17 @@ class LongFormVideoCreator:
             # Maybe add a "God Ray" or "Spotlight" background?
             # We already have Blur + Zoom background.
             
-            # 4. SFX (Kick - Short & Punchy)
-            sfx_kick = self.sfx_man.get_sfx("kick")
+            # 4. SFX (Dong - Title Reveal)
+            sfx_title = self.sfx_man.get_sfx("dong")
             
             title_card = CompositeVideoClip([
                 title_visual, 
                 title_anim_clip
             ], size=(self.width, self.height)).set_duration(4.0)
             
-            if sfx_kick:
-                sfx_kick = sfx_kick.subclip(0, 0.5).volumex(0.3)
-                title_card = title_card.set_audio(sfx_kick)
+            if sfx_title:
+                sfx_title = sfx_title.volumex(0.5) # Dong can be a bit louder than kick
+                title_card = title_card.set_audio(sfx_title)
             
             clips.append(title_card.crossfadein(1.0).fadeout(0.5))
 
@@ -143,18 +143,18 @@ class LongFormVideoCreator:
                 # Visual background
                 first_fact_visual = self._get_visual(chapter['facts'][0]['visual_keyword'], visual_assets, 2.0)
                 
-                # SFX: Alien Invert
-                sfx_kick_chap = self.sfx_man.get_sfx("alien_invert", duration=1.5)
+                # SFX: Whoosh (Slide Effect)
+                sfx_chap = self.sfx_man.get_sfx("whoosh")
                 
                 chap_slide = CompositeVideoClip([
                     first_fact_visual, 
                     ImageClip(chap_text_path).set_duration(2.0).set_position('center')
                 ], size=(self.width, self.height)).set_duration(2.0)
                 
-                # Attach Kick SFX
-                if sfx_kick_chap:
-                    sfx_kick_chap = sfx_kick_chap.subclip(0, 0.5).volumex(0.3)
-                    chap_slide = chap_slide.set_audio(sfx_kick_chap.set_start(0))
+                # Attach Whoosh SFX
+                if sfx_chap:
+                    sfx_chap = sfx_chap.subclip(0, 0.5).volumex(0.3)
+                    chap_slide = chap_slide.set_audio(sfx_chap.set_start(0))
                 
                 # TRANSITION: Fast Fade In (0.1s)
                 clips.append(chap_slide.fadein(0.1).fadeout(0.3)) 

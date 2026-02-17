@@ -113,6 +113,9 @@ class ScriptGenerator:
         elif category == "Shocking Moments":
             base_style = "Viral, explosive, reaction-heavy."
             extra_instructions = "Build up to the moment. Describe the exact split-second it happened."
+        elif category == "Rankings & Lists":
+            base_style = "Fast-paced, countdown style."
+            extra_instructions = "CRITICAL: TOPICS MUST BE ABOUT FOOTBALL (SOCCER) PLAYERS/TEAMS. DO NOT TALK ABOUT TV SHOWS OR MOVIES. IF TOPIC IS 'ONE SEASON WONDERS', TALK ABOUT MICHU, AMR ZAKIT, ETC."
         elif category == "World Cup & Stats":
             base_style = "Informative, epic, data-driven."
             extra_instructions = "Use impressive numbers. Highlight the scale of the event. Connect history to modern day."
