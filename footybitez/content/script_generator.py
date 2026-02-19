@@ -24,6 +24,13 @@ class ScriptGenerator:
         """
         Generates a short video script using Groq (Priority), Gemini, or Wikipedia (Fallback).
         """
+        # 0. Fetch Context for Factual Grounding (Skip for 'What If?')
+        context = ""
+        if category != "What If?":
+            context = self._fetch_context(topic)
+            if context:
+                logger.info(f"Fetched factual context for grounding ({len(context)} chars).")
+
         # 1. Try Groq (User preferred for facts)
         if self.groq_api_key:
             try:
@@ -31,7 +38,7 @@ class ScriptGenerator:
                 client = Groq(api_key=self.groq_api_key)
                 logger.info(f"Generating script with Groq (Llama3) for category: {category}...")
                 
-                prompt = self._get_prompt(topic, category)
+                prompt = self._get_prompt(topic, category, context=context)
                 completion = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[{"role": "user", "content": prompt}],
@@ -49,7 +56,7 @@ class ScriptGenerator:
 
         if self.api_key:
             logger.info(f"Generating script with Gemini for category: {category}...")
-            prompt = self._get_prompt(topic, category)
+            prompt = self._get_prompt(topic, category, context=context)
             
             # Try configured models
             for attempt, model_name in enumerate(self.models):
@@ -89,7 +96,74 @@ class ScriptGenerator:
         logger.warning("All AI models failed. Converting to Wikipedia Mode.")
         return self._get_wikipedia_script(topic)
 
-    def _get_prompt(self, topic, category):
+    def _fetch_context(self, topic):
+        """Fetches background info from Wikipedia to ground the LLM in facts."""
+        import wikipedia
+        
+        # 1. Extract potential entities
+        # Remove common filler words to improve search precision
+        clean_topic = topic.replace("Most clutch", "").replace("Top 5", "").replace("Why", "").strip()
+        
+        potential_entities = [clean_topic]
+        for joiner in [" vs ", " and ", " versus ", " & "]:
+            if joiner in clean_topic.lower():
+                potential_entities = clean_topic.lower().split(joiner)
+                break
+        
+        # Fallback to the original topic if cleaning was too aggressive
+        if len(potential_entities) == 0:
+             potential_entities = [topic]
+        
+        full_context = []
+        seen_pages = set()
+        
+        for ent in potential_entities[:2]: # Limit to first 2 main entities
+            try:
+                ent = ent.strip()
+                if not ent or len(ent) < 2: continue
+                
+                # Bias towards Association Football (Soccer) to avoid NFL/Rugby/Flag results
+                search_query = ent
+                if "soccer" not in ent.lower() and "football" not in ent.lower():
+                    search_query += " association football"
+                elif "football" in ent.lower() and "soccer" not in ent.lower() and "association" not in ent.lower():
+                    search_query += " soccer"
+
+                search_res = wikipedia.search(search_query, results=1)
+                if not search_res: continue
+                
+                page_title = search_res[0]
+                if page_title in seen_pages: continue
+                seen_pages.add(page_title)
+                
+                page = wikipedia.page(page_title, auto_suggest=False)
+                
+                # Context snippet
+                context_parts = [f"ENTITY: {page.title}\nSUMMARY: {page.summary[:700]}"]
+                
+                # Important sections
+                sections = page.sections
+                for target in ["Honours", "Career statistics", "Club career", "International career", "Records", "Rules"]:
+                    match = next((s for s in sections if target.lower() in s.lower()), None)
+                    if match:
+                        try:
+                            sec_text = page.section(match)
+                            if sec_text:
+                                context_parts.append(f"--- {match.upper()} ---\n{sec_text[:800]}")
+                        except: continue
+                
+                full_context.append("\n".join(context_parts))
+                
+                # Stop if we have enough context (avoiding token limits)
+                if len("\n\n".join(full_context)) > 4000:
+                    break
+            except Exception as e:
+                logger.warning(f"Failed to fetch context for {ent}: {e}")
+                continue
+        
+        return "\n\n=====\n\n".join(full_context)
+
+    def _get_prompt(self, topic, category, context=""):
         """Generates the prompt based on the category."""
         
         base_style = "High energy, 'Did you know?' style."
@@ -120,7 +194,23 @@ class ScriptGenerator:
             base_style = "Informative, epic, data-driven."
             extra_instructions = "Use impressive numbers. Highlight the scale of the event. Connect history to modern day."
         
+        factual_grounding = ""
+        if context:
+            factual_grounding = f"""
+            GROUND TRUTH CONTEXT (Use this as your ONLY source for facts/numbers/dates):
+            \"\"\"{context}\"\"\"
+            
+            STRICT FACTUAL RULES:
+            1. Use the PROVIDED CONTEXT for all statistics, trophies, and dates.
+            2. If you mention a formation (e.g. 4-4-2), ensure the math makes sense: 10 outfielders + 1 Goalkeeper = 11 players TOTAL on the pitch.
+            3. DO NOT HALLUCINATE. If context says Messi has 4 UCL titles, DO NOT say 7. 
+            4. If a specific number is not in the context, use descriptive terms (e.g., 'multiple titles', 'many records') instead of guessing.
+            5. Accuracy is more important than drama.
+            """
+
         return f"""
+        {factual_grounding}
+
         create a viral YouTube Short script about: "{topic}".
         Category: {category}
         Style: {base_style}
@@ -139,12 +229,12 @@ class ScriptGenerator:
             "outro": "Call to action text"
         }}
 
-        1. "hook": Must be shocking/intriguing but FACTUAL.
+        1. "hook": Must be shocking/intriguing but FACTUALLY ACCURATE.
         2. "primary_entity": EXTRACT the exact name of the main subject.
         3. "segments": 
            - CRITICAL: Split segments whenever the VISUAL SUBJECT changes. 
            - CRITICAL: NO FICTION. Do not invent matches, dates, or events.
-           - If category is "Mysteries", use REAL unexplained events (e.g. Ronaldo 1998 final, R9's seizure). DO NOT MAKE UP STORIES.
+           - If category is "Mysteries", use REAL unexplained events. DO NOT MAKE UP STORIES.
         4. "visual_keyword": A specific search term. ALWAYS include "soccer" or "football player".
            - BAD: "football" (ambiguous)
            - GOOD: "Lionel Messi face", "Old Trafford stadium", "Champions League trophy soccer"
