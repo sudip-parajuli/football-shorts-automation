@@ -92,13 +92,15 @@ def main():
             
             # Fetch 2-3 clips/images per segment
             logger.info(f"Searching for visual: {visual_kw}")
+            # Fetch 2-3 clips/images per segment
+            logger.info(f"Searching for visual: {visual_kw}")
             paths = media_sourcer.get_media(visual_kw, count=2)
-            segment_media.extend(paths)
+            segment_media.append(paths) # Append list of paths for this segment
             
         visual_assets = {
             "title_card": title_card_path,
             "profile_image": profile_image_path,
-            "segment_media": segment_media
+            "segment_media": segment_media # Now a list of lists [[p1, p2], [p3, p4]...]
         }
         
         logger.info(f"Assets gathered. Title: {bool(title_card_path)}, Profile: {bool(profile_image_path)}, Media: {len(segment_media)}")

@@ -302,26 +302,31 @@ class VideoCreator:
                 t_accum += dur
 
             # Build visual track matching audio chunks
-            seg_media_idx = 0
+            # Build visual track matching audio chunks
+            # Remove global seg_media_idx as we now use per-segment logic
             
             for c_time in chunk_times:
                 duration = c_time["end"] - c_time["start"]
                 
                 if c_time["is_title"]:
                      # Show Title Card
-                     img_path = title_img if title_img and os.path.exists(title_img) else segment_media_pool[0]
+                     first_media = "placeholder.jpg"
+                     if segment_media_pool:
+                         if isinstance(segment_media_pool[0], list):
+                             if segment_media_pool[0]: first_media = segment_media_pool[0][0]
+                         else:
+                             first_media = segment_media_pool[0]
+
+                     img_path = title_img if title_img and os.path.exists(title_img) else first_media
                      logger.info(f"DEBUG: Title Card: {img_path}, Duration: {duration}")
                      
                      if img_path.endswith(('.mp4', '.mov')):
                          clip = VideoFileClip(img_path).without_audio()
                          all_video_clips.append(clip)
                          if clip.duration < duration: 
-                             # Loop video to fill time
                              clip = vfx.loop(clip, duration=duration)
                          else: 
                              clip = clip.subclip(0, duration)
-                         clip = self._resize_to_vertical(clip)
-                         visual_clips.append(self._ensure_rgb(clip))
                          clip = self._resize_to_vertical(clip)
                          visual_clips.append(self._ensure_rgb(clip))
                      else:
@@ -334,29 +339,56 @@ class VideoCreator:
                          elif effect_choice == "glitch":
                              clip = self._apply_glitch_effect(clip)
                          else:
-                             # Slow Zoom
                              clip = clip.resize(lambda t: 1 + 0.05 * t/duration)
                              
                          clip = self._resize_to_vertical(clip)
                          visual_clips.append(self._ensure_rgb(clip))
                          
-                     # Title SFX (Dong Only - Bounce handled later)
-                     pass # Removed riser_shake as per user request
-                     # Removed riser_shake logic.
-                     pass
+                     # Title SFX (Riser Shake)
+                     sfx = self.sfx_man.get_sfx("riser_shake", duration=min(4.0, duration))
+                     if sfx:
+                         # Wrap in CompositeAudioClip to match video duration (pads with silence)
+                         # This prevents AudioFileClip from being queried out of bounds
+                         comp_sfx = CompositeAudioClip([sfx.set_start(0)]).set_duration(visual_clips[-1].duration)
+                         visual_clips[-1] = visual_clips[-1].set_audio(comp_sfx)
                 else:
-                    # Segment/Outro - use multiple cuts if long
+                    # Segment/Outro logic
+                    seg_index = c_time.get("index", 0)
+                    chunk_type = c_time.get("type", "")
+                    
+                    # Determine pool for this segment
+                    current_pool = []
+                    
+                    # Check structure
+                    is_nested = segment_media_pool and isinstance(segment_media_pool[0], list)
+                    
+                    if is_nested:
+                        if chunk_type == "outro":
+                             # Use last segment's media for outro
+                             current_pool = segment_media_pool[-1] if segment_media_pool else []
+                        elif seg_index < len(segment_media_pool):
+                             current_pool = segment_media_pool[seg_index]
+                    else:
+                        # Fallback for flat list
+                        current_pool = segment_media_pool
+                    
+                    # Fallback if empty
+                    if not current_pool:
+                         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                         current_pool = [os.path.join(base_dir, "media", "images", "placeholder.jpg")]
+
                     remaining_chunk = duration
                     chunk_visuals = []
+                    inner_idx = 0 # Cycle through THIS segment's media only
                     
                     while remaining_chunk > 0.1: # Threshold to avoid tiny frames
                         cut_dur = min(3.0, remaining_chunk)
                         
-                        # Decide media: Pick from pool.
-                        media_path = segment_media_pool[seg_media_idx % len(segment_media_pool)]
-                        seg_media_idx += 1
+                        # Decide media: Pick from CURRENT pool.
+                        media_path = current_pool[inner_idx % len(current_pool)]
+                        inner_idx += 1
                         
-                        logger.info(f"DEBUG: Segment Clip: {media_path}, Cut Duration: {cut_dur}")
+                        logger.info(f"DEBUG: Segment {seg_index} Clip: {media_path}, Cut Duration: {cut_dur}")
                         
                         if media_path.endswith(('.mp4', '.mov')):
                             v = VideoFileClip(media_path).without_audio()
@@ -371,52 +403,30 @@ class VideoCreator:
                         else:
                             img = ImageClip(media_path).set_duration(cut_dur)
                             
-                            # E) Effects Logic
-                            is_title = chunk.get('is_title', False)
-                            
-                            if is_title:
-                                # User Request: "use dong SFX and bounce effect to the title"
-                                eff = "bounce"
-                                sfx_to_use = "dong"
-                            else:
-                                # Random Effect for normal chunks
-                                # REMOVED: alien_invert, sniper (maybe keep visual?), glitch (keep visual?)
-                                # User said "No need to use other sfx than that (dong/whoosh)"
-                                # Visual effects are fine, but NO SFX strictly.
-                                eff = random.choice(["sniper", "glitch", "slow_zoom", "slide_bounce"])
-                            
-                            if eff == "bounce":
-                                # Pulse: Scale 1.0 -> 1.1 -> 1.0
-                                img = img.resize(lambda t: 1 + 0.15 * np.sin(np.pi * t/cut_dur)) 
-                                
-                                # Add Dong SFX (Strictly Requested)
-                                if sfx_to_use == "dong":
-                                    sfx = self.sfx_man.get_sfx("dong")
-                                    if sfx:
-                                        sfx = sfx.volumex(0.5)
-                                        img = img.set_audio(sfx)
-                                        
-                            elif eff == "sniper":
+                            # Random Effect
+                            eff = random.choice(["sniper", "glitch", "slow_zoom", "slow_zoom"])
+                            if eff == "sniper":
                                 img = self._apply_sniper_zoom(img)
                             elif eff == "glitch":
                                 img = self._apply_glitch_effect(img)
-
+                            else:
+                                img = img.resize(lambda t: 1 + 0.1 * t/cut_dur)
+                                
                             chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(img)))
                             
-                            # Add transition SFX (Whoosh ONLY) for NON-Title
-                            # We use 'slide_bounce' as the trigger for whoosh.
-                            # Alien Invert is REMOVED.
-                            if not is_title and eff == "slide_bounce":
-                                sfx = self.sfx_man.get_sfx("whoosh")
+                            # Add transition SFX (Slide Bounce or Alien) randomly
+                            if random.random() > 0.7:
+                                sfx_type = random.choice(["slide_bounce", "alien_invert"])
+                                sfx = self.sfx_man.get_sfx(sfx_type)
                                 if sfx:
-                                    sfx = sfx.subclip(0, 0.5).volumex(0.3)
-                                    chunk_visuals[-1] = chunk_visuals[-1].set_audio(sfx)
-                            
-                            # Removed alien_invert SFX block entirely.
+                                    # Wrap in Composite to avoid OOB
+                                    comp_sfx = CompositeAudioClip([sfx.set_start(0)]).set_duration(cut_dur)
+                                    chunk_visuals[-1] = chunk_visuals[-1].set_audio(comp_sfx)
                             
                         remaining_chunk -= cut_dur
                         
                     visual_clips.extend(chunk_visuals)
+
 
             # Use method='compose' to avoid IndexError due to floating point duration mismatches
             final_video_track = concatenate_videoclips(visual_clips, method="compose").set_duration(total_duration)
@@ -507,7 +517,7 @@ class VideoCreator:
             output_filename = "final_short.mp4"
             output_path = os.path.join(self.output_dir, output_filename)
             final_video.write_videofile(
-                output_path, fps=30, codec='libx264', logger=None, audio_codec="aac"
+                output_path, fps=30, codec='libx264', logger=None, audio_codec="aac", threads=1
             )
             return output_path
         except Exception as e:
