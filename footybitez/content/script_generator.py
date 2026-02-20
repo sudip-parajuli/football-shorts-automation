@@ -194,18 +194,22 @@ class ScriptGenerator:
             base_style = "Informative, epic, data-driven."
             extra_instructions = "Use impressive numbers. Highlight the scale of the event. Connect history to modern day."
         
+        import datetime
+        current_year = datetime.datetime.now().year
+        
         factual_grounding = ""
         if context:
             factual_grounding = f"""
             GROUND TRUTH CONTEXT (Use this as your ONLY source for facts/numbers/dates):
             \"\"\"{context}\"\"\"
             
-            STRICT FACTUAL RULES:
+            STRICT FACTUAL RULES (Current Year: {current_year}):
             1. Use the PROVIDED CONTEXT for all statistics, trophies, and dates.
             2. If you mention a formation (e.g. 4-4-2), ensure the math makes sense: 10 outfielders + 1 Goalkeeper = 11 players TOTAL on the pitch.
             3. DO NOT HALLUCINATE. If context says Messi has 4 UCL titles, DO NOT say 7. 
             4. If a specific number is not in the context, use descriptive terms (e.g., 'multiple titles', 'many records') instead of guessing.
-            5. Accuracy is more important than drama.
+            5. ALWAYS prioritize the MOST RECENT information. Check the first few sentences of the context for a player's CURRENT club (e.g., if the context says Mbappe plays for Real Madrid, DO NOT say he plays for PSG).
+            6. Accuracy is more important than drama.
             """
 
         return f"""
