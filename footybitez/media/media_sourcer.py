@@ -2,7 +2,11 @@ import os
 import requests
 import random
 import re
+import warnings
 from dotenv import load_dotenv
+
+# Suppress the ddgs package rename warning from duckduckgo_search
+warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*duckduckgo_search.*ddgs.*")
 
 class MediaSourcer:
     def __init__(self, download_dir="footybitez/media/downloads"):
@@ -244,7 +248,7 @@ class MediaSourcer:
                 # Silence specific "Sign in" errors or generic blocking
                 err_msg = str(e).lower()
                 if "sign in" in err_msg or "bot" in err_msg or "429" in err_msg or "forbidden" in err_msg:
-                    print(f"YouTube Warning: Access blocked (Sign-in/Bot detection). Skipping to fallback.")
+                    print(f"DEBUG: YouTube Access blocked (Sign-in/Bot detection). Skipping to fallback.")
                 else:
                     print(f"YouTube Download Error: {e}")
             return None
@@ -253,8 +257,7 @@ class MediaSourcer:
             import logging
             logging.warning("yt-dlp not installed. Skipping YouTube fetch.")
         except Exception as e:
-            import logging
-            logging.warning(f"YouTube fetch error: {e}")
+            print(f"DEBUG: YouTube fetch error: {e}")
         return None
 
 
@@ -425,8 +428,13 @@ class MediaSourcer:
                         except Exception:
                             continue
         except Exception as e:
-            # Log as warning, don't crash
-            print(f"DDG Search Warning (Falling back to Pexels): {e}")
+            # Silence 403 Forbidden to declutter logs
+            err_msg = str(e).lower()
+            if "403" in err_msg or "forbidden" in err_msg:
+                print(f"DEBUG: DDG Search blocked (403). Falling back to Pexels.")
+            else:
+                # Log as warning, don't crash
+                print(f"DDG Search Warning (Falling back to Pexels): {e}")
         return None
 
     def _fetch_ddg_images(self, query, count):
@@ -454,5 +462,10 @@ class MediaSourcer:
                     except:
                         continue
         except Exception as e:
-            print(f"DDG Search Warning: {e}")
+            # Silence 403 Forbidden to declutter logs
+            err_msg = str(e).lower()
+            if "403" in err_msg or "forbidden" in err_msg:
+                print(f"DEBUG: DDG Search blocked (403). Filtering sources...")
+            else:
+                print(f"DDG Search Warning: {e}")
         return paths

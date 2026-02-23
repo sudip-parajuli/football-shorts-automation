@@ -266,6 +266,24 @@ class ScriptGenerator:
                 data["primary_entity"] = ""
             
             full_text = f"{data['hook']} {' '.join([s['text'] for s in data['segments']])} {data.get('outro', '')}"
+            
+            # Phase 5: Refusal Detection
+            # If the LLM didn't find the topic in the context, it might output a script
+            # apologizing or stating the lack of information based on the strict prompts.
+            lower_text = full_text.lower()
+            refusal_phrases = [
+                "does not mention",
+                "no mention of",
+                "context does not contain",
+                "cannot satisfy",
+                "do not have information",
+                "not provided in the context"
+            ]
+            for phrase in refusal_phrases:
+                if phrase in lower_text:
+                    logger.warning(f"AI Refusal Detected in Script: {full_text[:100]}...")
+                    return False
+            
             # Preserve asterisks for TextRenderer to use for styling (Gold/Magenta)
             data['full_text'] = full_text 
             return True

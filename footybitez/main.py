@@ -40,22 +40,25 @@ def main():
     try:
         logger.info("Starting FootyBitez Automation...")
         
-        # 1. Select Topic & Category
+        # 1-2. Select Topic & Generate Script (With Retry Logic)
         topic_gen = TopicGenerator()
-        topic, category = topic_gen.get_random_topic()
-        logger.info(f"Selected Category: {category} | Topic: {topic}")
-        
-        # 2. Generate Script
         script_gen = ScriptGenerator()
-        script = script_gen.generate_script(topic, category)
         
+        script = None
+        for attempt in range(1, 4):
+            topic, category = topic_gen.get_random_topic()
+            logger.info(f"Attempt {attempt}/3 - Selected Category: {category} | Topic: {topic}")
+            
+            script = script_gen.generate_script(topic, category)
+            if script:
+                break
+            logger.warning(f"Script generation failed or was rejected for topic '{topic}'. Retrying...")
+            
         if not script:
-            logger.error("Failed to generate script. Aborting.")
+            logger.error("Failed to generate a valid script after 3 attempts. Aborting.")
             return
 
         logger.info(f"Script Generated: {script['full_text']}")
-        
-        # 3. Get Visuals (Pexels)
         # 3. Get Visuals (Pexels)
         logger.info(f"Fetching media for topic: {topic}")
         media_sourcer = MediaSourcer()

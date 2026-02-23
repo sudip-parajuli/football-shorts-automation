@@ -1,0 +1,16 @@
+{
+  "hook": "Chelsea's *billion* squad",
+  "primary_entity": "Chelsea",
+  "segments": [
+    {
+      "text": "Did you know that *Chelsea* has spent a significant amount of money on their squad?",
+      "visual_keyword": "*Chelsea* football player"
+    },
+    {
+      "text": "As part of the *Premier League*, *Chelsea* competes against *19* other teams, playing *38* matches per season.",
+      "visual_keyword": "*Premier League* trophy soccer"
+    }
+  ],
+  "outro": "Like and subscribe for more *football* content!",
+  "full_text": "Chelsea's *billion* squad Did you know that *Chelsea* has spent a significant amount of money on their squad? As part of the *Premier League*, *Chelsea* competes against *19* other teams, playing *38* matches per season. Like and subscribe for more *football* content!"
+}

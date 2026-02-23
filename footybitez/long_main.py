@@ -60,18 +60,22 @@ def main():
     try:
         logger.info("Starting FootyBitez LONG-FORM Automation...")
         
-        # 1. Select Topic
-        # 1. Select Topic
+        # 1-2. Select Topic & Generate Script (With Retry Logic)
         topic_gen = TopicGenerator()
-        topic, category = topic_gen.get_random_topic()
-        logger.info(f"Selected Topic: {topic} | Category: {category}")
-        
-        # 2. Generate Long Script
         script_gen = LongFormScriptGenerator()
-        script = script_gen.generate_long_script(topic)
         
+        script = None
+        for attempt in range(1, 4):
+            topic, category = topic_gen.get_random_topic()
+            logger.info(f"Attempt {attempt}/3 - Selected Topic: {topic} | Category: {category}")
+            
+            script = script_gen.generate_long_script(topic)
+            if script:
+                break
+            logger.warning(f"Long script generation failed for topic '{topic}'. Retrying...")
+            
         if not script:
-            logger.error("Failed to generate long script. Aborting.")
+            logger.error("Failed to generate a valid long script after 3 attempts. Aborting.")
             return
 
         logger.info(f"Long Script Generated: {script['metadata']['title']}")
