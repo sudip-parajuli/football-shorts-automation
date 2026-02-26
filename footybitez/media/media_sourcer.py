@@ -39,20 +39,33 @@ class MediaSourcer:
                 with open(filepath, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
-            if os.path.exists(filepath) and os.path.getsize(filepath) < 100: os.remove(filepath)
+            
+            # Phase 6: URL Traceability
+            if os.path.exists(filepath):
+                if os.path.getsize(filepath) < 100: 
+                    os.remove(filepath)
+                else:
+                    print(f"DEBUG MEDIA: Downloaded {os.path.basename(filepath)} FROM {url}")
+                    
         except Exception as e:
             print(f"Download failed {url}: {e}")
 
     def get_title_card_image(self, query):
         """Fetches a high-impact cinematic image."""
+        # Phase 6: Aggressive Keyword Enforcement
+        safe_query = query.lower().replace("football", "soccer")
+        
         # Try DDG first for specific match
-        filepath = self._fetch_ddg_image(f"{query} football cinematic 4k wallpaper {self.neg_keywords}", "title")
+        filepath = self._fetch_ddg_image(f"{safe_query} soccer cinematic 4k wallpaper {self.neg_keywords}", "title")
         if filepath: return filepath
         # Fallback Pexels
-        return self._fetch_pexels_image(f"{query} stadium", "portrait")
+        return self._fetch_pexels_image(f"{safe_query} stadium", "portrait")
 
     def get_profile_image(self, query):
         """Fetches a specific person's portrait."""
+        # Phase 6: Aggressive Keyword Enforcement
+        safe_query = query.lower().replace("football", "soccer")
+        
         club_keywords = ["fc", "united", "city", "real", "inter", "ac", "bayern", "dortmund", 
                          "juventus", "liverpool", "arsenal", "chelsea", "tottenham", "barcelona", 
                          "madrid", "psg", "ajax", "benfica", "porto", "club", "team"]
@@ -67,11 +80,11 @@ class MediaSourcer:
 
         # 2. DDG
         if is_club:
-            full_query = f"{query} football club logo badge stadium wallpaper {self.neg_keywords}"
+            full_query = f"{safe_query} soccer club logo badge stadium wallpaper {self.neg_keywords}"
             print(f"DEBUG: Searching DDG for CLUB Profile: '{full_query}'")
             filepath = self._fetch_ddg_image(full_query, "profile")
         else:
-            full_query = f"{query} football player face portrait real life {self.neg_keywords} -cartoon -drawing -game"
+            full_query = f"{safe_query} soccer player face portrait real life {self.neg_keywords} -cartoon -drawing -game"
             print(f"DEBUG: Searching DDG for PLAYER Profile: '{full_query}'")
             filepath = self._fetch_ddg_image(full_query, "profile")
 
@@ -90,8 +103,9 @@ class MediaSourcer:
         4. Pexels Videos (Dynamic Fallback)
         """
         paths = []
-        # Cleanup query but FORCE specific context
-        clean_query = query.replace(" football", "").replace(" soccer", "").strip()
+        # Phase 6: Aggressive Keyword Enforcement - "football" is ambiguous for APIs
+        # Strip out explicit "football" or "soccer" mentions and replace with just "soccer"
+        clean_query = query.lower().replace("football", "").replace("soccer", "").strip()
         
         # Determine strict query for searches
         # Strategy: Use clean_query for specific checks,        # FIX: Strict negative keywords (User Provided List + Common Terms)
@@ -243,6 +257,8 @@ class MediaSourcer:
                             if f.endswith(".mp4") and "temp_yt" in f:
                                 final_path = os.path.join(self.download_dir, f"yt_{hash(query)}.mp4")
                                 os.rename(os.path.join(self.download_dir, f), final_path)
+                                # Phase 6: URL Traceability
+                                print(f"DEBUG MEDIA: Downloaded {os.path.basename(final_path)} FROM {video_url}")
                                 return final_path
             except Exception as e:
                 # Silence specific "Sign in" errors or generic blocking
