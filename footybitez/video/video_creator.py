@@ -391,29 +391,37 @@ class VideoCreator:
                         logger.info(f"DEBUG: Segment {seg_index} Clip: {media_path}, Cut Duration: {cut_dur}")
                         
                         if media_path.endswith(('.mp4', '.mov')):
-                            v = VideoFileClip(media_path).without_audio()
-                            all_video_clips.append(v)
-                            if v.duration < cut_dur:
-                                v = vfx.loop(v, duration=cut_dur)
+                            if not os.path.exists(media_path):
+                                v = ColorClip(size=(1080, 1920), color=(0,0,0)).set_duration(cut_dur)
+                                chunk_visuals.append(v)
                             else:
-                                max_s = v.duration - cut_dur
-                                s = 0 if max_s <= 0 else random.uniform(0, max_s)
-                                v = v.subclip(s, s+cut_dur)
-                            chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(v)))
+                                v = VideoFileClip(media_path).without_audio()
+                                all_video_clips.append(v)
+                                if v.duration < cut_dur:
+                                    v = vfx.loop(v, duration=cut_dur)
+                                else:
+                                    max_s = v.duration - cut_dur
+                                    s = 0 if max_s <= 0 else random.uniform(0, max_s)
+                                    v = v.subclip(s, s+cut_dur)
+                                chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(v)))
                         else:
-                            img = ImageClip(media_path).set_duration(cut_dur)
-                            
-                            # Random Effect
-                            eff = random.choice(["sniper", "glitch", "slow_zoom", "slow_zoom"])
-                            if eff == "sniper":
-                                img = self._apply_sniper_zoom(img)
-                            elif eff == "glitch":
-                                img = self._apply_glitch_effect(img)
+                            if "placeholder.jpg" in media_path or not os.path.exists(media_path):
+                                img = ColorClip(size=(1080, 1920), color=(0,0,0)).set_duration(cut_dur)
+                                chunk_visuals.append(img)
                             else:
-                                img = img.resize(lambda t: 1 + 0.1 * t/cut_dur)
+                                img = ImageClip(media_path).set_duration(cut_dur)
                                 
-                            chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(img)))
-                            
+                                # Random Effect
+                                eff = random.choice(["sniper", "glitch", "slow_zoom", "slow_zoom"])
+                                if eff == "sniper":
+                                    img = self._apply_sniper_zoom(img)
+                                elif eff == "glitch":
+                                    img = self._apply_glitch_effect(img)
+                                else:
+                                    img = img.resize(lambda t: 1 + 0.1 * t/cut_dur)
+                                    
+                                chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(img)))
+                                
                             # Add transition SFX (Slide Bounce or Alien) randomly
                             if random.random() > 0.7:
                                 sfx_type = random.choice(["slide_bounce", "alien_invert"])

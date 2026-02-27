@@ -123,10 +123,8 @@ class ScriptGenerator:
                 if not ent or len(ent) < 2: continue
                 
                 # Bias towards Association Football (Soccer) to avoid NFL/Rugby/Flag results
-                search_query = ent
-                if "soccer" not in ent.lower() and "football" not in ent.lower():
-                    search_query += " association football"
-                elif "football" in ent.lower() and "soccer" not in ent.lower() and "association" not in ent.lower():
+                search_query = ent.lower().replace("football", "soccer")
+                if "soccer" not in search_query and "association" not in search_query:
                     search_query += " soccer"
 
                 search_res = wikipedia.search(search_query, results=1)
@@ -215,7 +213,8 @@ class ScriptGenerator:
         return f"""
         {factual_grounding}
 
-        create a viral YouTube Short script about: "{topic}".
+        create a viral YouTube Short script about: "{topic.replace('football', 'soccer')}".
+        STRICT DEFINITION: This video is STRICTLY about Association Football (Soccer). Ignore all American Football, Music, or Rugby associations.
         Category: {category}
         Style: {base_style}
         {extra_instructions}
