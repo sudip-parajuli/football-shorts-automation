@@ -55,9 +55,12 @@ class VoiceGenerator:
         """
         import asyncio
         import json
+        import re
         
-        # 1. Create clean text for TTS (remove *)
-        clean_text = text.replace('*', '') 
+        # 1. Create clean text for TTS (remove * and [emotion] tags)
+        # We don't want the TTS literally speaking "bracket dramatic bracket"
+        clean_text = text.replace('*', '')
+        clean_text = re.sub(r'\[.*?\]', '', clean_text).strip()
         
         output_path = os.path.join(self.output_dir, filename)
         vtt_path = output_path.replace('.mp3', '.vtt')

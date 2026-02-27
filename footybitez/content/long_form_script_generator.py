@@ -31,60 +31,72 @@ class LongFormScriptGenerator:
 
     def _generate_compilation_script(self, topic):
         """
-        Method 1: Combine 25-40 individual football facts grouped by theme.
+        Method 1: Combine documentary narration into 3-5 distinct chapters.
         """
         prompt = f"""
-        Create a detailed LONG-FORM YouTube documentary script about: "{topic}".
+        Create a detailed LONG-FORM cinematic YouTube documentary script about: "{topic}".
         Format: Horizontal (16:9).
-        Style: Documentary, Clean, Minimal, Engaging.
-        
-        STRUCTURE:
-        1. COLD HOOK: A 4-6 second mystery hook. 
-           - MUST NOT mention Player Name or Club Name. 
-           - Must imply curiosity or mystery. 
-           - 1 sentence only. Max 8-10 words.
-        2. INTRO: A strong 8-12 second explanation.
-        3. BODY: 25 to 30 individual football facts related to "{topic}".
-           - Group them into 3-5 distinct THEMES (e.g., Records, Early Life, Controversies, etc.).
-           - Each fact should be a punchy sentence or two.
-           - Provide a "chapter_title" for each theme.
-        4. OUTRO: A 10-15 second soft call to action. 
-           - Focus on "More untold stories" or similar soft continuation.
+        Style: Emotional, Conversational, Documentary/Netflix-style. Avoid robotic facts.
 
-        CRITICAL OUTPUT FORMAT (JSON ONLY):
+        STRUCTURE & WRITING RULES (CRITICAL):
+        1. COLD HOOK (4-6s): A mystery hook. NEVER mention the exact player/club name. Build curiosity.
+           e.g., "[dramatic] A football record... no one can touch."
+        2. INTRO: A strong 8-12 second explanation matching the hook.
+        3. CHAPTERS (3-5 max): Group the story logically.
+           - Every chapter MUST have a "chapter_title" (e.g., "The Impossible Tournament").
+           - Tell a mini-story with 4-7 facts.
+           - MUST provide a "transition" sentence at the end linking to the next chapter.
+        4. OUTRO: A 10-15 second soft, somber or dramatic conclusion.
+
+        EMOTION TAGS & TEXT:
+        - "narration": The EXACT spoken text. MUST include emotion tags inside brackets at the start of sentences.
+          Allowable tags: [dramatic], [curious], [serious], [excited], [somber].
+          Use short dramatic pauses using commas and ellipses (...).
+          AVOID: "This video will discuss...", "In this documentary...".
+        - "screen_text": A SHORT, punchy phrase for the screen (e.g., "WORLD RECORD", "1958", "13 GOALS"). NEVER repeat the full narration.
+        - "visual_keyword": A generic, highly descriptive search term (e.g., "dark football stadium").
+
+        REQUIRED JSON FORMAT STRICTLY:
         {{
             "metadata": {{
-                "title": "Long-form SEO Title here",
-                "description": "500-800 character description here containing keywords.",
-                "tags": ["tag1", "tag2", "tag3"]
+                "title": "SEO Title",
+                "description": "Emotional description",
+                "tags": ["tag1", "tag2"]
             }},
             "hook": {{
-                "text": "Hook text here (mystery building)",
-                "visual_keyword": "mysterious football visual"
+                "narration": "[dramatic] This record... refuses to die.",
+                "screen_text": "UNBREAKABLE",
+                "visual_keyword": "dark football stadium"
             }},
             "intro": {{
-                "text": "Intro text here",
-                "visual_keyword": "cinematic football stadium"
+                "narration": "[curious] In 1958, one man shocked the World Cup...",
+                "screen_text": "THE GREATEST SECERT",
+                "visual_keyword": "vintage world cup footage"
             }},
             "chapters": [
                 {{
-                    "chapter_title": "Theme Title",
+                    "chapter_title": "A Tournament of Fire",
                     "facts": [
-                        {{ "text": "Fact 1 content...", "visual_keyword": "specific search term" }},
-                        {{ "text": "Fact 2 content...", "visual_keyword": "specific search term" }}
-                    ]
+                        {{
+                            "narration": "[excited] In just six matches... he scored *13 goals*.",
+                            "screen_text": "13 GOALS",
+                            "visual_keyword": "1958 world cup match"
+                        }}
+                    ],
+                    "transition": "But this miracle... had a dark ending."
                 }}
             ],
             "outro": {{
-                "text": "Outro text here",
-                "visual_keyword": "football closing shot"
+                "narration": "[somber] Some records fall... but this one became immortal.",
+                "screen_text": "IMMORTAL",
+                "visual_keyword": "empty stadium sunset"
             }}
         }}
 
         RULES:
-        - Total duration must feel like 5-10 minutes (Narration speed: ~150 words per minute).
-        - HIGHLIGHTING: Enclose *Key Entities* in asterisks. Example: "*Messi* won *8* Ballon d'Ors."
-        - Avoid copyrighted references to specific broadcasters.
+        - Total narration length should feel like 5-10 minutes.
+        - HIGHLIGHTING: Enclose *Key Entities* in asterisks in the narration. Example: "*Messi* won *8* Ballon d'Ors."
+        - Avoid copyrighted references. Avoid Wikipedia tone. Tell a dynamic story.
         """
 
         if self.groq_api_key:

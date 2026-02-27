@@ -37,156 +37,139 @@ class LongFormVideoCreator:
             self.media_deck = list(segment_media) # Copy
             self.used_media_indices = []
 
-            # --- PHASE 1: MAIN TITLE CARD (HERO MOMENT) ---
-            # Visuals: Blurred + Zoomed Background
-            # Overlays: Text + Sheen Effect (Glowing line runs through words)
-            # Audio: Riser Shake SFX
-            
-            title_text_path = self._create_chapter_overlay("FOOTYBITEZ PRESENTS", script_data['metadata']['title'])
-            
-            # --- PHASE 1: MAIN TITLE CARD (EXACT-TIME VISUAL TYPEWRITER) ---
-            # 1. Background
+            # --- PHASE 1: COLD HOOK ---
+            # Hook has no text overlay to build mystery, just voice and fast visuals
+            if 'hook' in script_data:
+                hook_data = script_data['hook']
+                hook_audio_path = self.voice_gen.generate(hook_data['narration'], "hook.mp3")
+                hook_audio = AudioFileClip(hook_audio_path)
+                
+                # Fetch paced visuals (cut every ~4s)
+                hook_visual = self._get_paced_visuals(hook_data['visual_keyword'], visual_assets, hook_audio.duration)
+                hook_visual = self._ensure_rgb(hook_visual).set_audio(hook_audio)
+                
+                # Add cinematic screen text (centered, large)
+                if hook_data.get('screen_text'):
+                    hook_text_path = self._create_chapter_overlay("", hook_data['screen_text'].upper())
+                    hook_text_clip = ImageClip(hook_text_path).set_duration(hook_audio.duration).set_position('center')
+                    # Optional: slight fade in/out for the text
+                    hook_text_clip = hook_text_clip.fadein(0.5).fadeout(0.5)
+                    hook_combined = CompositeVideoClip([hook_visual, hook_text_clip], size=(self.width, self.height)).set_duration(hook_audio.duration)
+                else:
+                    hook_combined = hook_visual
+                
+                clips.append(hook_combined.fadeout(0.5))
+
+            # --- PHASE 2: MAIN TITLE CARD (HERO MOMENT) ---
+            # Silent title card with sound effect
             title_bg_keyword = script_data.get('intro', {}).get('visual_keyword', 'football stadium')
             title_visual = self._get_visual(title_bg_keyword, visual_assets, 4.0)
             title_visual = self._add_blur_effect(title_visual, radius=20)
             if not hasattr(title_visual, 'fl'):
                  title_visual = self._add_zoom_effect(title_visual, 0.05)
             
-            # 2. Render Animated Text (Typewriter + Gold Colors)
-            from footybitez.video.text_renderer import TextRenderer
-            renderer = TextRenderer()
-            
-            # Create a fake "phrase" to feed the renderer
-            # We want to display: "TOPIC NAME"
-            # Split into words for animation
-            title_words = script_data['metadata']['title'].split()
-            
-            # Create timing data (distribute 2.0s duration across words)
-            # Start at 0.5s
-            start_offset = 0.5
-            phrase_duration = 2.5
-            step = phrase_duration / max(1, len(title_words))
-            
-            phrase_data = []
-            for i, word in enumerate(title_words):
-                phrase_data.append({
-                    "word": f"*{word}*", # Force GOLD via asterisk
-                    "start": start_offset + (i * step),
-                    "duration": step
-                })
-                
-            # Render the animated title clip
-            # Render the animated title clip
-            # Using shorts=False (1920x1080)
-            # Width = 1920
-            # Force GOLD for Title
-            title_anim_clip = renderer.render_phrase(
-                phrase_data, 
-                duration=4.0, 
-                video_width=self.width, 
-                is_shorts=False,
-                override_color="gold" 
-            ).set_position('center')
-            
-            # "FOOTYBITEZ PRESENTS" (Small, static above)
-            # Kept simple to not distract from main typewriter
             presents_path = self._create_chapter_overlay("", "FOOTYBITEZ PRESENTS") 
             presents_clip = ImageClip(presents_path).set_duration(4.0).set_position(('center', 200)) # Top offset
 
-            # 3. Sheen Effect (Kept but simplified to overlay)
-            # Create base RGB clip (discard alpha for color source)
-            # We'll re-use the function but just make it a simple overlay that moves across
-            # Not masking by text anymore because text is animated/complex.
-            # Just a subtle "Light Sweep" across the screen?
-            # User asked for "Glowing effect". The renderer already does Gold/Stroke.
-            # Let's add a "Flash" or "Bloom" if possible?
-            # Or just keep the Sheen logic but apply it to the *whole* title duration?
-            # Simpler: Make the typewriter text contain the glow? 
-            # The renderer is returning a VideoClip. 
-            # Converting it to a Glow is expensive (blurring every frame).
+            from footybitez.video.text_renderer import TextRenderer
+            renderer = TextRenderer()
             
-            # Let's stick to the Typewriter as the main effect. 
-            # Maybe add a "God Ray" or "Spotlight" background?
-            # We already have Blur + Zoom background.
+            title_words = script_data['metadata']['title'].split()
+            step = 2.5 / max(1, len(title_words))
+            phrase_data = [{"word": f"*{word}*", "start": 0.5 + (i * step), "duration": step} for i, word in enumerate(title_words)]
             
-            # 4. SFX (Dong - Title Reveal)
+            title_anim_clip = renderer.render_phrase(phrase_data, duration=4.0, video_width=self.width, is_shorts=False, override_color="gold").set_position('center')
+            
             sfx_title = self.sfx_man.get_sfx("dong")
-            
-            title_card = CompositeVideoClip([
-                title_visual, 
-                title_anim_clip
-            ], size=(self.width, self.height)).set_duration(4.0)
+            title_card = CompositeVideoClip([title_visual, title_anim_clip], size=(self.width, self.height)).set_duration(4.0)
             
             if sfx_title:
-                sfx_title = sfx_title.volumex(0.5) # Dong can be a bit louder than kick
+                sfx_title = sfx_title.volumex(0.5)
                 title_card = title_card.set_audio(sfx_title)
             
-            clips.append(title_card.crossfadein(1.0).fadeout(0.5))
+            clips.append(title_card.crossfadein(0.5).fadeout(0.5))
 
-            # --- PHASE 2: SPOKEN INTRO ---
-            intro_audio_path = self.voice_gen.generate(script_data['intro']['text'], "intro.mp3")
-            intro_audio = AudioFileClip(intro_audio_path)
-            intro_visual = self._get_visual(script_data['intro']['visual_keyword'], visual_assets, intro_audio.duration)
-            intro_visual = self._ensure_rgb(intro_visual).set_audio(intro_audio)
+            # --- PHASE 3: SPOKEN INTRO ---
+            if 'intro' in script_data:
+                intro_data = script_data['intro']
+                intro_audio_path = self.voice_gen.generate(intro_data['narration'], "intro.mp3")
+                intro_audio = AudioFileClip(intro_audio_path)
+                intro_visual = self._get_paced_visuals(intro_data['visual_keyword'], visual_assets, intro_audio.duration)
+                intro_visual = self._ensure_rgb(intro_visual).set_audio(intro_audio)
+                
+                if intro_data.get('screen_text'):
+                    intro_text_path = self._create_chapter_overlay("", intro_data['screen_text'].upper())
+                    intro_text_clip = ImageClip(intro_text_path).set_duration(intro_audio.duration).set_position('center').crossfadein(1.0).crossfadeout(1.0)
+                    intro_combined = CompositeVideoClip([intro_visual, intro_text_clip], size=(self.width, self.height)).set_duration(intro_audio.duration)
+                else:
+                    intro_combined = intro_visual
+                
+                clips.append(intro_combined.crossfadein(0.5))
             
-            intro_captions = self._get_karaoke_clips("intro.mp3", intro_audio.duration, 0, font_scale=1.0)
-            intro_combined = CompositeVideoClip([intro_visual] + intro_captions, size=(self.width, self.height)).set_duration(intro_audio.duration)
-            clips.append(intro_combined.crossfadein(0.5))
-            
-            # --- PHASE 3: CHAPTER FLOW ---
+            # --- PHASE 4: CHAPTER FLOW ---
             for i, chapter in enumerate(script_data['chapters']):
                 chapter_title = chapter['chapter_title']
                 
-                # A) CHAPTER TITLE CARD (KICK EFFECT)
+                # A) SILENT CHAPTER TITLE CARD (KICK EFFECT)
                 chap_text_path = self._create_chapter_overlay(f"CHAPTER {i+1}", chapter_title)
+                first_fact_visual = self._get_visual(chapter['facts'][0]['visual_keyword'], visual_assets, 2.5)
+                first_fact_visual = self._add_blur_effect(first_fact_visual, radius=15)
                 
-                # Visual background
-                first_fact_visual = self._get_visual(chapter['facts'][0]['visual_keyword'], visual_assets, 2.0)
-                
-                # SFX: Whoosh (Slide Effect)
                 sfx_chap = self.sfx_man.get_sfx("whoosh")
+                chap_slide = CompositeVideoClip([first_fact_visual, ImageClip(chap_text_path).set_duration(2.5).set_position('center')], size=(self.width, self.height)).set_duration(2.5)
                 
-                chap_slide = CompositeVideoClip([
-                    first_fact_visual, 
-                    ImageClip(chap_text_path).set_duration(2.0).set_position('center')
-                ], size=(self.width, self.height)).set_duration(2.0)
-                
-                # Attach Whoosh SFX
                 if sfx_chap:
                     sfx_chap = sfx_chap.subclip(0, 0.5).volumex(0.3)
                     chap_slide = chap_slide.set_audio(sfx_chap.set_start(0))
                 
-                # TRANSITION: Fast Fade In (0.1s)
                 clips.append(chap_slide.fadein(0.1).fadeout(0.3)) 
                 
-                # B) CHAPTER NARRATION
+                # B) CHAPTER NARRATION (FACTS)
                 for j, fact in enumerate(chapter['facts']):
                     filename = f"chap_{i}_fact_{j}.mp3"
-                    audio_path = self.voice_gen.generate(fact['text'], filename)
+                    audio_path = self.voice_gen.generate(fact['narration'], filename)
                     audio = AudioFileClip(audio_path)
                     
-                    visual = self._get_visual(fact['visual_keyword'], visual_assets, audio.duration)
+                    visual = self._get_paced_visuals(fact['visual_keyword'], visual_assets, audio.duration)
                     visual = self._ensure_rgb(visual).set_audio(audio)
                     
-                    fact_captions = self._get_karaoke_clips(filename, audio.duration, 0, font_scale=1.0)
-                    fact_video = CompositeVideoClip([visual] + fact_captions, size=(self.width, self.height)).set_duration(audio.duration)
+                    if fact.get('screen_text'):
+                        fact_text_path = self._create_chapter_overlay("", fact['screen_text'].upper())
+                        fact_text_clip = ImageClip(fact_text_path).set_duration(audio.duration).set_position('center').crossfadein(0.5).crossfadeout(0.5)
+                        fact_video = CompositeVideoClip([visual, fact_text_clip], size=(self.width, self.height)).set_duration(audio.duration)
+                    else:
+                        fact_video = visual
                     
-                    clips.append(fact_video.crossfadein(0.5))
+                    clips.append(fact_video.crossfadein(0.3))
                 
-            # --- PHASE 4: OUTRO ---
-            outro_audio_path = self.voice_gen.generate(script_data['outro']['text'], "outro.mp3")
-            outro_audio = AudioFileClip(outro_audio_path)
-            outro_visual = self._get_visual(script_data['outro']['visual_keyword'], visual_assets, outro_audio.duration)
-            outro_visual = self._ensure_rgb(outro_visual).set_audio(outro_audio)
-            
-            # Outro Text Overlay (Refined Soft CTA)
-            # "More untold football stories — FootyBitez"
-            outro_captions = self._get_karaoke_clips("outro.mp3", outro_audio.duration, 0, font_scale=1.0)
-            
-            # Removed static overlay to avoid overlap with captions
-            
-            outro_combined = CompositeVideoClip([outro_visual] + outro_captions, size=(self.width, self.height)).set_duration(outro_audio.duration)
-            clips.append(outro_combined.crossfadein(0.5))
+                # C) CHAPTER TRANSITION
+                if chapter.get('transition'):
+                    trans_filename = f"chap_{i}_trans.mp3"
+                    trans_audio_path = self.voice_gen.generate(chapter['transition'], trans_filename)
+                    trans_audio = AudioFileClip(trans_audio_path)
+                    
+                    # Uses the last fact's visual background, but darkened/blurred as a bridge
+                    trans_visual = self._get_visual("dark shadow aesthetic", visual_assets, trans_audio.duration)
+                    trans_visual = self._ensure_rgb(trans_visual).set_audio(trans_audio)
+                    
+                    clips.append(trans_visual.crossfadein(0.5).fadeout(0.3))
+
+            # --- PHASE 5: OUTRO ---
+            if 'outro' in script_data:
+                outro_data = script_data['outro']
+                outro_audio_path = self.voice_gen.generate(outro_data['narration'], "outro.mp3")
+                outro_audio = AudioFileClip(outro_audio_path)
+                outro_visual = self._get_paced_visuals(outro_data['visual_keyword'], visual_assets, outro_audio.duration)
+                outro_visual = self._ensure_rgb(outro_visual).set_audio(outro_audio)
+                
+                if outro_data.get('screen_text'):
+                    outro_text_path = self._create_chapter_overlay("FOOTYBITEZ", outro_data['screen_text'].upper())
+                    outro_text_clip = ImageClip(outro_text_path).set_duration(outro_audio.duration).set_position('center').crossfadein(1.0).crossfadeout(1.0)
+                    outro_combined = CompositeVideoClip([outro_visual, outro_text_clip], size=(self.width, self.height)).set_duration(outro_audio.duration)
+                else:
+                    outro_combined = outro_visual
+                    
+                clips.append(outro_combined.crossfadein(0.5))
 
             # --- CONCATENATE & MIXING ---
             final_video = concatenate_videoclips(clips, method="compose")
@@ -269,6 +252,39 @@ class LongFormVideoCreator:
                 return self._apply_glitch_effect(clip).set_duration(duration)
             else:
                  return self._add_zoom_effect(clip).set_duration(duration)
+
+    def _get_paced_visuals(self, keyword, assets, total_duration, pace=4.5):
+        """
+        Creates a single composite clip of `total_duration` by fetching multiple visuals
+        and cutting between them every `pace` seconds. Applies random transitions.
+        """
+        if total_duration <= pace:
+            # If the audio is short enough, just return one visual
+            return self._get_visual(keyword, assets, total_duration)
+            
+        paced_clips = []
+        time_added = 0.0
+        
+        while time_added < total_duration:
+            # Calculate how much time is left. If it's a tiny sliver (e.g. < 2s), 
+            # just make the last clip longer to avoid jarring micro-cuts.
+            time_left = total_duration - time_added
+            clip_dur = pace if time_left > (pace * 1.5) else time_left
+            
+            clip = self._get_visual(keyword, assets, clip_dur)
+            
+            # Phase 7: Advanced Transitions Between Paced Clips
+            if len(paced_clips) > 0:
+                transition = random.choice(["crossfade", "none", "none"]) # Bias towards hard cuts
+                if transition == "crossfade":
+                    # Moviepy crossfadein requires the previous clip to overlap. 
+                    # For simplicity in a sequential list concatenation, we just fadein the current.
+                    clip = clip.fadein(0.3)
+                    
+            paced_clips.append(clip)
+            time_added += clip_dur
+            
+        return concatenate_videoclips(paced_clips, method="compose").set_duration(total_duration)
 
     def _add_zoom_effect(self, clip, zoom_ratio=0.04):
         """Adds a subtle Ken Burns zoom-in effect."""

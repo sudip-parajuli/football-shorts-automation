@@ -1,37 +1,202 @@
 [
   {
-    "word": "Like",
+    "word": "Some",
     "start": 0.0,
-    "duration": 0.43842857142857145
+    "duration": 0.28845000000000004
   },
   {
-    "word": "for",
-    "start": 0.48714285714285716,
-    "duration": 0.43842857142857145
+    "word": "teams",
+    "start": 0.3205,
+    "duration": 0.28845000000000004
   },
   {
-    "word": "more",
-    "start": 0.9742857142857143,
-    "duration": 0.43842857142857145
+    "word": "rise,",
+    "start": 0.641,
+    "duration": 0.28845000000000004
   },
   {
-    "word": "*Top*",
-    "start": 1.4614285714285715,
-    "duration": 0.43842857142857145
+    "word": "some",
+    "start": 0.9615,
+    "duration": 0.28845000000000004
   },
   {
-    "word": "*5*",
-    "start": 1.9485714285714286,
-    "duration": 0.43842857142857145
+    "word": "teams",
+    "start": 1.282,
+    "duration": 0.28845000000000004
   },
   {
-    "word": "football",
-    "start": 2.435714285714286,
-    "duration": 0.43842857142857145
+    "word": "fall,",
+    "start": 1.6025,
+    "duration": 0.28845000000000004
   },
   {
-    "word": "content!",
-    "start": 2.922857142857143,
-    "duration": 0.43842857142857145
+    "word": "but",
+    "start": 1.923,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "the",
+    "start": 2.2435,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "memory",
+    "start": 2.564,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "of",
+    "start": 2.8845,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "their",
+    "start": 3.205,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "triumph",
+    "start": 3.5255,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "will",
+    "start": 3.846,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "live",
+    "start": 4.1665,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "on,",
+    "start": 4.487,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "a",
+    "start": 4.8075,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "reminder",
+    "start": 5.128,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "of",
+    "start": 5.4485,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "the",
+    "start": 5.769,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "magic",
+    "start": 6.0895,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "that",
+    "start": 6.41,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "can",
+    "start": 6.7305,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "happen",
+    "start": 7.051,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "when",
+    "start": 7.3715,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "a",
+    "start": 7.692,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "group",
+    "start": 8.0125,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "of",
+    "start": 8.333,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "individuals",
+    "start": 8.653500000000001,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "come",
+    "start": 8.974,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "together,",
+    "start": 9.2945,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "with",
+    "start": 9.615,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "a",
+    "start": 9.935500000000001,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "common",
+    "start": 10.256,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "goal,",
+    "start": 10.5765,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "and",
+    "start": 10.897,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "a",
+    "start": 11.217500000000001,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "burning",
+    "start": 11.538,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "desire",
+    "start": 11.8585,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "to",
+    "start": 12.179,
+    "duration": 0.28845000000000004
+  },
+  {
+    "word": "succeed.",
+    "start": 12.499500000000001,
+    "duration": 0.28845000000000004
   }
 ]
