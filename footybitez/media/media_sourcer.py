@@ -226,7 +226,11 @@ class MediaSourcer:
         """
         try:
             import yt_dlp
-            import logging
+            
+            class QuietYTDLLogger:
+                def debug(self, msg): pass
+                def warning(self, msg): pass
+                def error(self, msg): pass
             
             # Search options
             ydl_opts = {
@@ -235,6 +239,7 @@ class MediaSourcer:
                 'noplaylist': True,
                 'quiet': True,
                 'no_warnings': True,
+                'logger': QuietYTDLLogger(),
                 'retries': 3,
             }
 
@@ -368,7 +373,8 @@ class MediaSourcer:
         try:
             url = "https://api.pexels.com/videos/search"
             # Ensure query has no "NFL" context
-            final_query = f"{query} {self.neg_keywords}"
+            # Pexels API does NOT support negative keywords (e.g. -rugby). It treats them as positive tags.
+            final_query = query
             params = {"query": final_query, "per_page": count, "orientation": orientation}
             res = requests.get(url, headers=self.headers, params=params)
             if res.status_code == 200:
