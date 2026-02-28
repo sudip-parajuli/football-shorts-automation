@@ -440,7 +440,8 @@ class MediaSourcer:
                         
                         try:
                             ext = image_url.split('.')[-1].split('?')[0]
-                            if len(ext) > 4: ext = "jpg"
+                            if len(ext) > 4 or not ext.isalpha(): ext = "jpg"
+                            if ext.lower() in ['img', 'webp']: ext = "jpg"
                             filename = f"ddg_{suffix}_{hash(query)}_{random.randint(0,1000)}.{ext}"
                             filepath = os.path.join(self.download_dir, filename)
                             
