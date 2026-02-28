@@ -95,7 +95,7 @@ class LongFormScriptGenerator:
 
         RULES:
         - Total narration length should feel like 5-10 minutes.
-        - HIGHLIGHTING: Enclose *Key Entities* in asterisks in the narration. Example: "*Messi* won *8* Ballon d'Ors."
+        - HIGHLIGHTING: Enclose *Key Entities* (names, cups, stadiums, exact numbers/records, important concepts) in asterisks in BOTH the `narration` AND the `screen_text`. Example: "*Messi* won *8* Ballon d'Ors." or "*13* GOALS".
         - Avoid copyrighted references. Avoid Wikipedia tone. Tell a dynamic story.
         """
 

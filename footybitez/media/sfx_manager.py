@@ -71,6 +71,9 @@ class SFXManager:
         elif effect_type == "riser_shake":
             dur = duration or 4.0
             return self._make_riser_shake(dur)
+        elif effect_type == "typewriter":
+            dur = duration or 2.0
+            return self._make_typewriter_tick(dur)
         else:
             return self._make_whoosh(0.6)
 
@@ -188,6 +191,21 @@ class SFXManager:
             shake = (np.sin(2 * np.pi * 15 * t_arr) + 1) / 2
             # Gated riser
             result = wave * (t_arr/duration) * shake
+            if np.isscalar(t): return np.array([result, result])
+            return self._to_stereo(result)
+        return AudioClip(make_frame, duration=duration, fps=self.sample_rate)
+
+    def _make_typewriter_tick(self, duration):
+        """Rapid ticking sound simulating a typewriter."""
+        def make_frame(t):
+            t_arr = np.atleast_1d(t)
+            # ~15 ticks per second
+            tick_rate = 15
+            phase = (t_arr * tick_rate) % 1.0
+            # Sharp click on each tick period
+            envelope = np.exp(-30 * phase)
+            noise = np.random.uniform(-0.5, 0.5, t_arr.shape)
+            result = noise * envelope * 0.3
             if np.isscalar(t): return np.array([result, result])
             return self._to_stereo(result)
         return AudioClip(make_frame, duration=duration, fps=self.sample_rate)

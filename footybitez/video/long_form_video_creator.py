@@ -49,11 +49,15 @@ class LongFormVideoCreator:
                 hook_visual = self._ensure_rgb(hook_visual).set_audio(hook_audio)
                 
                 # Add cinematic screen text (centered, large)
+                from footybitez.video.text_renderer import TextRenderer
+                renderer = TextRenderer()
+
                 if hook_data.get('screen_text'):
-                    hook_text_path = self._create_chapter_overlay("", hook_data['screen_text'].upper())
-                    hook_text_clip = ImageClip(hook_text_path).set_duration(hook_audio.duration).set_position('center')
-                    # Optional: slight fade in/out for the text
-                    hook_text_clip = hook_text_clip.fadein(0.5).fadeout(0.5)
+                    hook_text_clip, type_dur = renderer.render_typewriter_overlay(
+                        "", hook_data['screen_text'].upper(), hook_audio.duration, self.width, self.height)
+                    sfx_type = self.sfx_man.get_sfx("typewriter", type_dur).volumex(0.3)
+                    hook_text_clip = hook_text_clip.set_audio(sfx_type)
+                    
                     hook_combined = CompositeVideoClip([hook_visual, hook_text_clip], size=(self.width, self.height)).set_duration(hook_audio.duration)
                 else:
                     hook_combined = hook_visual
@@ -68,12 +72,14 @@ class LongFormVideoCreator:
             if not hasattr(title_visual, 'fl'):
                  title_visual = self._add_zoom_effect(title_visual, 0.05)
             
-            presents_path = self._create_chapter_overlay("", "FOOTYBITEZ PRESENTS") 
-            presents_clip = ImageClip(presents_path).set_duration(4.0).set_position(('center', 200)) # Top offset
-
             from footybitez.video.text_renderer import TextRenderer
             renderer = TextRenderer()
             
+            presents_clip, type_dur = renderer.render_typewriter_overlay(
+                "", "FOOTYBITEZ PRESENTS", 2.0, self.width, self.height)
+            sfx_type = self.sfx_man.get_sfx("typewriter", type_dur).volumex(0.3)
+            presents_clip = presents_clip.set_position(('center', 200)).set_audio(sfx_type)
+
             title_words = script_data['metadata']['title'].split()
             step = 2.5 / max(1, len(title_words))
             phrase_data = [{"word": f"*{word}*", "start": 0.5 + (i * step), "duration": step} for i, word in enumerate(title_words)]
@@ -81,11 +87,14 @@ class LongFormVideoCreator:
             title_anim_clip = renderer.render_phrase(phrase_data, duration=4.0, video_width=self.width, is_shorts=False, override_color="gold").set_position('center')
             
             sfx_title = self.sfx_man.get_sfx("dong")
-            title_card = CompositeVideoClip([title_visual, title_anim_clip], size=(self.width, self.height)).set_duration(4.0)
+            title_card = CompositeVideoClip([title_visual, presents_clip, title_anim_clip], size=(self.width, self.height)).set_duration(4.0)
             
-            if sfx_title:
-                sfx_title = sfx_title.volumex(0.5)
-                title_card = title_card.set_audio(sfx_title)
+            from moviepy.editor import CompositeAudioClip
+            title_audios = []
+            if title_card.audio: title_audios.append(title_card.audio)
+            if sfx_title: title_audios.append(sfx_title.volumex(0.5).set_start(0))
+            if title_audios:
+                title_card = title_card.set_audio(CompositeAudioClip(title_audios))
             
             clips.append(title_card.crossfadein(0.5).fadeout(0.5))
 
@@ -98,8 +107,11 @@ class LongFormVideoCreator:
                 intro_visual = self._ensure_rgb(intro_visual).set_audio(intro_audio)
                 
                 if intro_data.get('screen_text'):
-                    intro_text_path = self._create_chapter_overlay("", intro_data['screen_text'].upper())
-                    intro_text_clip = ImageClip(intro_text_path).set_duration(intro_audio.duration).set_position('center').crossfadein(1.0).crossfadeout(1.0)
+                    intro_text_clip, type_dur = renderer.render_typewriter_overlay(
+                        "", intro_data['screen_text'].upper(), intro_audio.duration, self.width, self.height)
+                    sfx_type = self.sfx_man.get_sfx("typewriter", type_dur).volumex(0.3)
+                    intro_text_clip = intro_text_clip.set_audio(sfx_type)
+                    
                     intro_combined = CompositeVideoClip([intro_visual, intro_text_clip], size=(self.width, self.height)).set_duration(intro_audio.duration)
                 else:
                     intro_combined = intro_visual
@@ -111,17 +123,21 @@ class LongFormVideoCreator:
                 chapter_title = chapter['chapter_title']
                 
                 # A) SILENT CHAPTER TITLE CARD (KICK EFFECT)
-                chap_text_path = self._create_chapter_overlay(f"CHAPTER {i+1}", chapter_title)
+                chap_text_clip, type_dur = renderer.render_typewriter_overlay(
+                    f"CHAPTER {i+1}", chapter_title.upper(), 2.5, self.width, self.height)
                 first_fact_visual = self._get_visual(chapter['facts'][0]['visual_keyword'], visual_assets, 2.5)
                 first_fact_visual = self._add_blur_effect(first_fact_visual, radius=15)
                 
+                chap_slide = CompositeVideoClip([first_fact_visual, chap_text_clip], size=(self.width, self.height)).set_duration(2.5)
+                
                 sfx_chap = self.sfx_man.get_sfx("whoosh")
-                chap_slide = CompositeVideoClip([first_fact_visual, ImageClip(chap_text_path).set_duration(2.5).set_position('center')], size=(self.width, self.height)).set_duration(2.5)
+                sfx_type = self.sfx_man.get_sfx("typewriter", type_dur).volumex(0.3)
                 
-                if sfx_chap:
-                    sfx_chap = sfx_chap.subclip(0, 0.5).volumex(0.3)
-                    chap_slide = chap_slide.set_audio(sfx_chap.set_start(0))
+                from moviepy.editor import CompositeAudioClip
+                audios_to_mix = [sfx_type.set_start(0)]
+                if sfx_chap: audios_to_mix.append(sfx_chap.subclip(0, 0.5).volumex(0.3).set_start(0))
                 
+                chap_slide = chap_slide.set_audio(CompositeAudioClip(audios_to_mix))
                 clips.append(chap_slide.fadein(0.1).fadeout(0.3)) 
                 
                 # B) CHAPTER NARRATION (FACTS)
@@ -134,8 +150,11 @@ class LongFormVideoCreator:
                     visual = self._ensure_rgb(visual).set_audio(audio)
                     
                     if fact.get('screen_text'):
-                        fact_text_path = self._create_chapter_overlay("", fact['screen_text'].upper())
-                        fact_text_clip = ImageClip(fact_text_path).set_duration(audio.duration).set_position('center').crossfadein(0.5).crossfadeout(0.5)
+                        fact_text_clip, type_dur = renderer.render_typewriter_overlay(
+                            "", fact['screen_text'].upper(), audio.duration, self.width, self.height)
+                        sfx_type = self.sfx_man.get_sfx("typewriter", type_dur).volumex(0.3)
+                        fact_text_clip = fact_text_clip.set_audio(sfx_type)
+                        
                         fact_video = CompositeVideoClip([visual, fact_text_clip], size=(self.width, self.height)).set_duration(audio.duration)
                     else:
                         fact_video = visual
@@ -163,8 +182,11 @@ class LongFormVideoCreator:
                 outro_visual = self._ensure_rgb(outro_visual).set_audio(outro_audio)
                 
                 if outro_data.get('screen_text'):
-                    outro_text_path = self._create_chapter_overlay("FOOTYBITEZ", outro_data['screen_text'].upper())
-                    outro_text_clip = ImageClip(outro_text_path).set_duration(outro_audio.duration).set_position('center').crossfadein(1.0).crossfadeout(1.0)
+                    outro_text_clip, type_dur = renderer.render_typewriter_overlay(
+                        "FOOTYBITEZ", outro_data['screen_text'].upper(), outro_audio.duration, self.width, self.height)
+                    sfx_type = self.sfx_man.get_sfx("typewriter", type_dur).volumex(0.3)
+                    outro_text_clip = outro_text_clip.set_audio(sfx_type)
+                    
                     outro_combined = CompositeVideoClip([outro_visual, outro_text_clip], size=(self.width, self.height)).set_duration(outro_audio.duration)
                 else:
                     outro_combined = outro_visual
@@ -176,7 +198,7 @@ class LongFormVideoCreator:
             
             # Add Background Music (Looping)
             if background_music_path and os.path.exists(background_music_path):
-                music = AudioFileClip(background_music_path).volumex(0.05) # Lower volume (5%)
+                music = AudioFileClip(background_music_path).volumex(0.03) # Lower volume to 3%
                 # Loop explicitly to avoid cutoff
                 if music.duration < final_video.duration:
                     music = afx.audio_loop(music, duration=final_video.duration)
@@ -440,79 +462,6 @@ class LongFormVideoCreator:
             clip = clip.crop(y1=h/2 - new_height/2, width=w, height=new_height)
             
         return clip.resize((self.width, self.height))
-
-    def _create_chapter_overlay(self, upper_small_text, main_large_text):
-        """
-        Creates a clean documentary-style text overlay image with strong visual hierarchy.
-        
-        Args:
-            upper_small_text (str): Top line, smaller font (e.g., "FOOTYBITEZ PRESENTS" or "CHAPTER 1").
-            main_large_text (str): Main content, larger font (e.g., Topic or Chapter Title).
-        """
-        img = Image.new('RGBA', (self.width, self.height), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(img)
-        
-        try:
-            font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-            if os.name == 'nt': font_path = "C:\\Windows\\Fonts\\arialbd.ttf"
-            
-            # HIERARCHY: Main Text = 100%, Upper Text = ~70% of Main (relative visual weight)
-            # Actually, User requested: Main 100%, Chapter 70%.
-            # Let's set baselines:
-            # Main Title Large: 120px
-            # Chapter Title: 90px
-            # Upper Label ("PRESENTS"/"CHAPTER"): 50px
-            
-            # Heuristic: Detect if this is Main Title or Chapter based on content?
-            # Better: Make the caller decide? For now, I'll infer slightly or use safe defaults.
-            
-            # Default sizes
-            size_upper = 50
-            size_main = 100 
-            
-            font_upper = ImageFont.truetype(font_path, size_upper)
-            font_main = ImageFont.truetype(font_path, size_main)
-        except:
-            font_upper = ImageFont.load_default()
-            font_main = ImageFont.load_default()
-
-        import textwrap
-        max_width_chars = 20
-        wrapped_main = textwrap.wrap(main_large_text.upper(), width=max_width_chars)
-        
-        def draw_text_centered(text_lines, start_y, font, fill, spacing=20):
-            current_y = start_y
-            for line in text_lines:
-                bbox = draw.textbbox((0, 0), line, font=font)
-                w = bbox[2] - bbox[0]
-                h = bbox[3] - bbox[1]
-                x = (self.width - w) // 2
-                
-                # Stroke
-                stroke_w = 4
-                for ox in range(-stroke_w, stroke_w+1):
-                    for oy in range(-stroke_w, stroke_w+1):
-                        draw.text((x+ox, current_y+oy), line, font=font, fill=(0,0,0,255))
-                
-                draw.text((x, current_y), line, font=font, fill=fill)
-                current_y += h + spacing
-            return current_y
-
-        # Layout
-        # Calculate total height to center vertically
-        # Rough estimation
-        total_h = 60 + (len(wrapped_main) * 120) 
-        start_y = (self.height - total_h) // 2
-        
-        # Draw Upper Small Text
-        y_cursor = draw_text_centered([upper_small_text.upper()], start_y, font_upper, (220, 220, 220, 255))
-        
-        # Draw Main Large Text
-        draw_text_centered(wrapped_main, y_cursor + 30, font_main, (255, 255, 255, 255))
-        
-        temp_path = os.path.join(self.output_dir, "temp_text", f"overlay_{hash(upper_small_text+main_large_text)}.png")
-        img.save(temp_path)
-        return temp_path
 
     def _ensure_rgb(self, clip):
         """Ensures the clip frames are in RGB (3 channels) and explicitly handles masks."""

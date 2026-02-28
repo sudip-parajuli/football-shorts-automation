@@ -366,3 +366,82 @@ class TextRenderer:
             clips.append(txt_clip)
             
         return clips
+
+    def render_typewriter_overlay(self, upper_small_text, main_large_text, duration, video_width, video_height, is_shorts=False):
+        """
+        Creates a dynamic typewriter text overlay with semantic colors.
+        Returns a CompositeVideoClip.
+        """
+        clean_upper = upper_small_text.replace("*", "").strip()
+        clean_main = main_large_text.replace("*", "").strip()
+        total_len = max(1, len(clean_upper.replace(" ", "")) + len(clean_main.replace(" ", "")))
+        
+        # Complete typing in max 1.5 seconds
+        typing_duration = min(duration, 1.5)
+        time_per_char = typing_duration / total_len
+        
+        def build_phrase(text, start_time):
+            words = text.split()
+            phrase = []
+            current_time = start_time
+            for w in words:
+                clean_w = w.replace("*", "")
+                w_len = len(clean_w)
+                w_dur = w_len * time_per_char
+                phrase.append({"word": w, "start": current_time, "duration": w_dur})
+                current_time += w_dur
+            return phrase, current_time
+            
+        upper_phrase, next_time = build_phrase(upper_small_text, 0.0)
+        main_phrase, typing_end_time = build_phrase(main_large_text, next_time)
+        
+        positioned = []
+        
+        # Determine heights for vertical centering
+        # Render them just to get their sizes
+        from moviepy.editor import CompositeVideoClip
+        
+        upper_clip = None
+        main_clip = None
+        
+        if upper_phrase and clean_upper:
+            upper_clip = self.render_phrase(upper_phrase, duration, video_width, is_shorts=is_shorts, override_color='white')
+            # Scale down upper clip
+            upper_clip = upper_clip.resize(0.6)
+            
+        if main_phrase and clean_main:
+            main_clip = self.render_phrase(main_phrase, duration, video_width, is_shorts=is_shorts)
+            # Standard size
+            
+        uw, uh = upper_clip.size if upper_clip else (0,0)
+        mw, mh = main_clip.size if main_clip else (0,0)
+        
+        spacing = 30 if not is_shorts else 50
+        total_h = uh + mh + spacing if (upper_clip and main_clip) else uh + mh
+        
+        start_y = (video_height - total_h) // 2
+        
+        if upper_clip:
+            ux = (video_width - uw) // 2
+            uy = start_y
+            positioned.append(upper_clip.set_position((ux, uy)))
+            start_y += uh + spacing
+            
+        if main_clip:
+            mx = (video_width - mw) // 2
+            my = start_y
+            # Note: main_clip starts its internal reveal at t=0 because render_phrase uses relative start.
+            # So we delay it in the timeline so it appears right after upper finishes.
+            # But remember, if we delay it by `set_start(next_time)`, its total duration will extend past the video end.
+            # So we subtract next_time from its internal duration when rendering, but to keep things simple, 
+            # we just render it with `duration` and `set_start(next_time)`. Let moviepy cut it off.
+            main_clip = main_clip.set_start(next_time)
+            positioned.append(main_clip.set_position((mx, my)))
+            
+        if not positioned:
+            # Fallback empty clip
+            from moviepy.editor import ColorClip
+            return ColorClip(size=(video_width, video_height), color=(0,0,0,0)).set_duration(duration), 0.0
+            
+        final_comp = CompositeVideoClip(positioned, size=(video_width, video_height)).set_duration(duration)
+        return final_comp, typing_end_time
