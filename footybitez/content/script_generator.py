@@ -103,6 +103,9 @@ class ScriptGenerator:
         # 1. Extract potential entities
         # Remove common filler words to improve search precision
         clean_topic = topic.replace("Most clutch", "").replace("Top 5", "").replace("Why", "").strip()
+        # Remove subtitles after colons or question marks for cleaner entity extraction
+        import re
+        clean_topic = re.split(r'[:?]', clean_topic)[0].strip()
         
         potential_entities = [clean_topic]
         for joiner in [" vs ", " and ", " versus ", " & "]:
@@ -165,7 +168,7 @@ class ScriptGenerator:
         """Generates the prompt based on the category."""
         
         base_style = "High energy, 'Did you know?' style."
-        extra_instructions = ""
+        extra_instructions = "CRITICAL GLOBAL RULE: Focus strictly on major Men's Football (e.g. English Premier League, La Liga, Champions League, World Cup, Saudi Pro League, MLS). ALWAYS use FULL UNAMBIGUOUS names (e.g. 'Cristiano Ronaldo' or 'Lionel Messi'). DO NOT use ambiguous single names.\n"
         
         if category == "Football Stories":
             base_style = "Narrative storytelling, dramatic, emotional."

@@ -39,6 +39,7 @@ class LongFormScriptGenerator:
         Style: Emotional, Conversational, Documentary/Netflix-style. Avoid robotic facts.
 
         STRUCTURE & WRITING RULES (CRITICAL):
+        0. GLOBAL RULE: Focus strictly on major Men's Football (e.g. English Premier League, La Liga, Champions League, World Cup). ALWAYS use FULL UNAMBIGUOUS names (e.g. 'Cristiano Ronaldo' or 'Lionel Messi'). DO NOT use ambiguous single names.
         1. COLD HOOK (4-6s): A mystery hook. NEVER mention the exact player/club name. Build curiosity.
            e.g., "[dramatic] A football record... no one can touch."
         2. INTRO: A strong 8-12 second explanation matching the hook.

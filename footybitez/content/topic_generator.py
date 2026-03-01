@@ -29,21 +29,22 @@ class TopicGenerator:
                 "The darker side of the Qatar World Cup"
             ],
             "Comparisons & Debates": [
-                "Messi vs Ronaldo: who really won more?",
+                "Lionel Messi vs Cristiano Ronaldo: who really won more?",
                 "Prime Neymar vs Prime Ronaldinho",
                 "Best World Cup team ever?",
-                "Top 5 most clutch players",
-                "Is Haaland better than Mbappe?",
-                "Pelé vs Maradona: The ultimate debate",
-                "Premier League vs La Liga: Which is harder?"
+                "Real Madrid vs Barcelona: The ultimate rivalry",
+                "Premier League vs La Liga: Which is better?",
+                "Erling Haaland vs Kylian Mbappe: The new era",
+                "Manchester City vs Arsenal: The modern tactical battle",
+                "Lionel Messi in MLS vs Cristiano Ronaldo in Saudi Pro League"
             ],
             "What If?": [
                 "What if Neymar never left Barcelona?",
-                "What if Messi joined Chelsea?",
+                "What if Lionel Messi joined Chelsea?",
                 "What if VAR existed in 1990?",
-                "What if Brazil didn’t lose 7–1?",
-                "What if Cristiano Ronaldo stayed at Man Utd (2009)?",
-                "What if Lewandowski joined Blackburn Rovers?"
+                "What if Brazil didn’t lose 7–1 to Germany?",
+                "What if Cristiano Ronaldo stayed at Manchester United in 2009?",
+                "What if Robert Lewandowski joined Blackburn Rovers?"
             ],
             "Tactics & IQ": [
                 "Why Pep Guardiola changed football",
@@ -87,12 +88,12 @@ class TopicGenerator:
                 "Why goalkeepers can't pick up backpasses"
             ],
             "Rankings & Lists": [
-                "Top 10 one-season wonders",
-                "Top 5 greatest comebacks",
-                "Top 7 fastest goals",
-                "Top 10 dirtiest players",
-                "Top 5 goalkeepers of all time",
-                "The most decorated players in history"
+                "Top 10 one-season wonders in Premier League history",
+                "Top 5 greatest Champions League comebacks",
+                "Top 7 fastest goals in football history",
+                "Top 10 most aggressive players in La Liga and Premier League",
+                "Top 5 goalkeepers of the modern era",
+                "The most decorated football players in history"
             ],
             "Psychology & Mental Side": [
                 "Why players choke in finals",
