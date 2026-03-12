@@ -53,10 +53,8 @@ class LongFormVideoCreator:
                 renderer = TextRenderer()
 
                 if hook_data.get('screen_text'):
-                    hook_text_clip, type_dur = renderer.render_typewriter_overlay(
-                        "", hook_data['screen_text'].upper(), hook_audio.duration, self.width, self.height)
-                    sfx_type = self.sfx_man.get_sfx("typewriter", type_dur).volumex(0.3)
-                    hook_text_clip = hook_text_clip.set_audio(sfx_type)
+                    hook_text_clip = renderer.render_dynamic_overlay(
+                        hook_data['screen_text'].upper(), hook_audio.duration, self.width, self.height)
                     
                     hook_combined = CompositeVideoClip([hook_visual, hook_text_clip], size=(self.width, self.height)).set_duration(hook_audio.duration)
                 else:
@@ -76,15 +74,16 @@ class LongFormVideoCreator:
             renderer = TextRenderer()
             
             presents_clip, type_dur = renderer.render_typewriter_overlay(
-                "", "FOOTYBITEZ PRESENTS", 2.0, self.width, self.height)
+                "", "FOOTYBITEZ PRESENTS", 2.0, self.width, self.height, y_pos=150)
             sfx_type = self.sfx_man.get_sfx("typewriter", type_dur).volumex(0.3)
-            presents_clip = presents_clip.set_position(('center', 200)).set_audio(sfx_type)
+            # Center horizontally, place at specific height
+            presents_clip = presents_clip.set_position(('center', 150)).set_audio(sfx_type)
 
             title_words = script_data['metadata']['title'].split()
             step = 2.5 / max(1, len(title_words))
             phrase_data = [{"word": f"*{word}*", "start": 0.5 + (i * step), "duration": step} for i, word in enumerate(title_words)]
             
-            title_anim_clip = renderer.render_phrase(phrase_data, duration=4.0, video_width=self.width, is_shorts=False, override_color="gold").set_position('center')
+            title_anim_clip = renderer.render_phrase(phrase_data, duration=4.0, video_width=self.width, is_shorts=False, override_color="gold").set_position(('center', 350))
             
             sfx_title = self.sfx_man.get_sfx("dong")
             title_card = CompositeVideoClip([title_visual, presents_clip, title_anim_clip], size=(self.width, self.height)).set_duration(4.0)
@@ -107,10 +106,8 @@ class LongFormVideoCreator:
                 intro_visual = self._ensure_rgb(intro_visual).set_audio(intro_audio)
                 
                 if intro_data.get('screen_text'):
-                    intro_text_clip, type_dur = renderer.render_typewriter_overlay(
-                        "", intro_data['screen_text'].upper(), intro_audio.duration, self.width, self.height)
-                    sfx_type = self.sfx_man.get_sfx("typewriter", type_dur).volumex(0.3)
-                    intro_text_clip = intro_text_clip.set_audio(sfx_type)
+                    intro_text_clip = renderer.render_dynamic_overlay(
+                        intro_data['screen_text'].upper(), intro_audio.duration, self.width, self.height)
                     
                     intro_combined = CompositeVideoClip([intro_visual, intro_text_clip], size=(self.width, self.height)).set_duration(intro_audio.duration)
                 else:
@@ -150,10 +147,8 @@ class LongFormVideoCreator:
                     visual = self._ensure_rgb(visual).set_audio(audio)
                     
                     if fact.get('screen_text'):
-                        fact_text_clip, type_dur = renderer.render_typewriter_overlay(
-                            "", fact['screen_text'].upper(), audio.duration, self.width, self.height)
-                        sfx_type = self.sfx_man.get_sfx("typewriter", type_dur).volumex(0.3)
-                        fact_text_clip = fact_text_clip.set_audio(sfx_type)
+                        fact_text_clip = renderer.render_dynamic_overlay(
+                            fact['screen_text'].upper(), audio.duration, self.width, self.height)
                         
                         fact_video = CompositeVideoClip([visual, fact_text_clip], size=(self.width, self.height)).set_duration(audio.duration)
                     else:
@@ -182,10 +177,8 @@ class LongFormVideoCreator:
                 outro_visual = self._ensure_rgb(outro_visual).set_audio(outro_audio)
                 
                 if outro_data.get('screen_text'):
-                    outro_text_clip, type_dur = renderer.render_typewriter_overlay(
-                        "FOOTYBITEZ", outro_data['screen_text'].upper(), outro_audio.duration, self.width, self.height)
-                    sfx_type = self.sfx_man.get_sfx("typewriter", type_dur).volumex(0.3)
-                    outro_text_clip = outro_text_clip.set_audio(sfx_type)
+                    outro_text_clip = renderer.render_dynamic_overlay(
+                        outro_data['screen_text'].upper(), outro_audio.duration, self.width, self.height)
                     
                     outro_combined = CompositeVideoClip([outro_visual, outro_text_clip], size=(self.width, self.height)).set_duration(outro_audio.duration)
                 else:

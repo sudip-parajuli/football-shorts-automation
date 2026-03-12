@@ -419,7 +419,10 @@ class TextRenderer:
         spacing = 30 if not is_shorts else 50
         total_h = uh + mh + spacing if (upper_clip and main_clip) else uh + mh
         
-        start_y = (video_height - total_h) // 2
+        if y_pos == "center":
+            start_y = (video_height - total_h) // 2
+        else:
+            start_y = y_pos
         
         if upper_clip:
             ux = (video_width - uw) // 2
@@ -430,18 +433,66 @@ class TextRenderer:
         if main_clip:
             mx = (video_width - mw) // 2
             my = start_y
-            # Note: main_clip starts its internal reveal at t=0 because render_phrase uses relative start.
-            # So we delay it in the timeline so it appears right after upper finishes.
-            # But remember, if we delay it by `set_start(next_time)`, its total duration will extend past the video end.
-            # So we subtract next_time from its internal duration when rendering, but to keep things simple, 
-            # we just render it with `duration` and `set_start(next_time)`. Let moviepy cut it off.
             main_clip = main_clip.set_start(next_time)
             positioned.append(main_clip.set_position((mx, my)))
             
         if not positioned:
-            # Fallback empty clip
             from moviepy.editor import ColorClip
             return ColorClip(size=(video_width, video_height), color=(0,0,0,0)).set_duration(duration), 0.0
             
         final_comp = CompositeVideoClip(positioned, size=(video_width, video_height)).set_duration(duration)
         return final_comp, typing_end_time
+
+    def render_dynamic_overlay(self, screen_text, duration, video_width, video_height, is_shorts=False, y_pos="center"):
+        """
+        Creates a dynamic text overlay with cinematic reveal effects instead of typing.
+        Used for spoken segments where typing SFX is distracting.
+        """
+        clean_text = screen_text.replace("*", "").strip()
+        if not clean_text:
+            from moviepy.editor import ColorClip
+            return ColorClip(size=(video_width, video_height), color=(0,0,0,0)).set_duration(duration)
+            
+        words = screen_text.split()
+        phrase = []
+        # Define the exact text layout (all words start at 0 to reveal instantly for the base frame)
+        for w in words:
+            phrase.append({"word": w, "start": 0.0, "duration": 0.1})
+            
+        # Render the full text block (cropped tight)
+        base_clip = self.render_phrase(phrase, duration, video_width, is_shorts=is_shorts)
+        
+        # Position it
+        cw, ch = base_clip.size
+        if cw == 0 or ch == 0:
+            from moviepy.editor import ColorClip
+            return ColorClip(size=(video_width, video_height), color=(0,0,0,0)).set_duration(duration)
+            
+        if y_pos == "center":
+            cy = (video_height - ch) // 2
+        else:
+            cy = y_pos
+            
+        cx = (video_width - cw) // 2
+        
+        import random
+        effect = random.choice(["fadein", "slide_up_fade", "flash_pop"])
+        
+        final_clip = base_clip.set_duration(duration)
+        
+        if effect == "fadein":
+            final_clip = final_clip.set_position((cx, cy)).crossfadein(0.6)
+        elif effect == "slide_up_fade":
+            def slide_func(t):
+                if t < 0.5:
+                    offset = 40 * (1 - (t / 0.5))
+                    return (cx, cy + int(offset))
+                return (cx, cy)
+            final_clip = final_clip.set_position(slide_func).crossfadein(0.4)
+        elif effect == "flash_pop":
+            # Quick pop-in, 0.1s
+            final_clip = final_clip.set_position((cx, cy)).crossfadein(0.1)
+            
+        # Return a composite that fits the screen size, matching the expected footprint
+        final_comp = CompositeVideoClip([final_clip], size=(video_width, video_height)).set_duration(duration)
+        return final_comp

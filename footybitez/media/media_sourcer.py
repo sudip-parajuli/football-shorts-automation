@@ -159,30 +159,12 @@ class MediaSourcer:
             paths.extend(ddg_imgs[:needed])
             needed -= len(ddg_imgs[:needed]) # Correctly subtract what we added
             
-        # 5. Pexels Videos (Generic Fallback)
-        # ONLY fetch if we still have space and the query is broad enough, 
-        # OR if we have absolutely nothing. 
-        # User prefers specific images over generic video unless generic video is truly relevant.
-        current_count = len(paths)
-        if current_count < count:
-            remaining = count - current_count
-            print(f"Checking fallbacks. Need {remaining} more items.")
+        # 5. Fallback logic removed via Phase 11.
+        # User explicitly requested no random Pexels / Generic videos.
+        # If needed > 0 here, the segment will just loop existing assets or be static.
+        if needed > 0:
+            print(f"Skipping generic video fallbacks. Preserving specific context.")
             
-            # If the query is specific (e.g. has a player name), avoid generic "football" videos
-            # unless we have 0 assets.
-            is_specific = any(x in clean_query.lower() for x in ["ronaldo", "messi", "united", "city", "real", "barca", "liverpool", "arsenal", "chelsea", "bayern"])
-            
-            if not is_specific or current_count == 0:
-                print(f"Fetching videos from Pexels (Fallback, Need {remaining})...")
-                # Pexels: Use base_search ("messi soccer match")
-                vids = self._fetch_pexels_videos(f"{base_search} match", count=remaining + 1, orientation=orientation)
-                if not vids:
-                    # Fallback to team color or generic
-                    vids = self._fetch_pexels_videos("soccer stadium atmosphere", count=remaining, orientation=orientation)
-                paths.extend(vids[:remaining])
-            else:
-                print("Skipping generic Pexels video fallback to preserve specificity (using existing images).")
-
         return paths[:count]
 
     def _fetch_scorebat_highlight(self, query):
@@ -365,34 +347,6 @@ class MediaSourcer:
                 if os.path.exists(fpath): paths.append(fpath)
         except Exception as e:
             print(f"Wikimedia multiple error: {e}")
-        return paths
-
-    def _fetch_pexels_videos(self, query, count, orientation):
-        paths = []
-        if not self.api_key: return []
-        try:
-            url = "https://api.pexels.com/videos/search"
-            # Ensure query has no "NFL" context
-            # Pexels API does NOT support negative keywords (e.g. -rugby). It treats them as positive tags.
-            final_query = query
-            params = {"query": final_query, "per_page": count, "orientation": orientation}
-            res = requests.get(url, headers=self.headers, params=params)
-            if res.status_code == 200:
-                for vid in res.json().get('videos', []):
-                    best = None
-                    for vf in vid['video_files']:
-                         if vf['file_type'] == 'video/mp4' and vf['quality'] == 'hd':
-                             best = vf
-                             break
-                    if not best and vid['video_files']: best = vid['video_files'][0]
-                    
-                    if best:
-                        fname = f"pexels_vid_{vid['id']}.mp4"
-                        fpath = os.path.join(self.download_dir, fname)
-                        self._download_file(best['link'], fpath)
-                        if os.path.exists(fpath): paths.append(fpath)
-        except Exception as e:
-            print(f"Pexels video error: {e}")
         return paths
 
     def _fetch_pexels_image(self, query, orientation):
