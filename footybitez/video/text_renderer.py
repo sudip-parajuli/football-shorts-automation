@@ -367,7 +367,7 @@ class TextRenderer:
             
         return clips
 
-    def render_typewriter_overlay(self, upper_small_text, main_large_text, duration, video_width, video_height, is_shorts=False):
+    def render_typewriter_overlay(self, upper_small_text, main_large_text, duration, video_width, video_height, is_shorts=False, y_pos="center"):
         """
         Creates a dynamic typewriter text overlay with semantic colors.
         Returns a CompositeVideoClip.

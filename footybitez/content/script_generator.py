@@ -168,7 +168,8 @@ class ScriptGenerator:
         """Generates the prompt based on the category."""
         
         base_style = "High energy, 'Did you know?' style."
-        extra_instructions = "CRITICAL GLOBAL RULE: Focus strictly on major Men's Football (e.g. English Premier League, La Liga, Champions League, World Cup, Saudi Pro League, MLS). ALWAYS use FULL UNAMBIGUOUS names (e.g. 'Cristiano Ronaldo' or 'Lionel Messi'). DO NOT use ambiguous single names.\n"
+        extra_instructions = "CRITICAL GLOBAL RULE: Focus strictly on major Men's Football (e.g. English Premier League, La Liga, Champions League, World Cup, Saudi Pro League, MLS). \n"
+        extra_instructions += "CRITICAL SPECIFICITY RULE: NEVER use generic pronouns like 'a team', 'a player', 'this club', or 'a certain match'. You MUST explicitly name the exact club (e.g., 'Real Madrid'), the exact player (e.g., 'Lionel Messi'), and the exact score or year in EVERY sentence. Be ultra-specific.\n"
         
         if category == "Football Stories":
             base_style = "Narrative storytelling, dramatic, emotional."
@@ -190,7 +191,7 @@ class ScriptGenerator:
             extra_instructions = "Build up to the moment. Describe the exact split-second it happened."
         elif category == "Rankings & Lists":
             base_style = "Fast-paced, countdown style."
-            extra_instructions = "CRITICAL: TOPICS MUST BE ABOUT FOOTBALL (SOCCER) PLAYERS/TEAMS. DO NOT TALK ABOUT TV SHOWS OR MOVIES. IF TOPIC IS 'ONE SEASON WONDERS', TALK ABOUT MICHU, AMR ZAKIT, ETC."
+            extra_instructions = "CRITICAL: TOPICS MUST BE ABOUT FOOTBALL (SOCCER) PLAYERS/TEAMS. For EVERY item on the list, EXPLICITLY state their full name, club, and exact numbers. Do NOT say 'One player did this...' Say 'In 2012, Lionel Messi scored 91 goals...'"
         elif category == "World Cup & Stats":
             base_style = "Informative, epic, data-driven."
             extra_instructions = "Use impressive numbers. Highlight the scale of the event. Connect history to modern day."

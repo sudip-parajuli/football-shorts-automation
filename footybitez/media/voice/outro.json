@@ -1,202 +1,152 @@
 [
   {
-    "word": "Some",
+    "word": "The",
     "start": 0.0,
-    "duration": 0.28845000000000004
+    "duration": 0.3075
   },
   {
-    "word": "teams",
-    "start": 0.3205,
-    "duration": 0.28845000000000004
+    "word": "next",
+    "start": 0.3416666666666667,
+    "duration": 0.3075
   },
   {
-    "word": "rise,",
-    "start": 0.641,
-    "duration": 0.28845000000000004
+    "word": "time",
+    "start": 0.6833333333333333,
+    "duration": 0.3075
   },
   {
-    "word": "some",
-    "start": 0.9615,
-    "duration": 0.28845000000000004
+    "word": "you",
+    "start": 1.025,
+    "duration": 0.3075
   },
   {
-    "word": "teams",
-    "start": 1.282,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "fall,",
-    "start": 1.6025,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "but",
-    "start": 1.923,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "the",
-    "start": 2.2435,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "memory",
-    "start": 2.564,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "of",
-    "start": 2.8845,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "their",
-    "start": 3.205,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "triumph",
-    "start": 3.5255,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "will",
-    "start": 3.846,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "live",
-    "start": 4.1665,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "on,",
-    "start": 4.487,
-    "duration": 0.28845000000000004
+    "word": "watch",
+    "start": 1.3666666666666667,
+    "duration": 0.3075
   },
   {
     "word": "a",
-    "start": 4.8075,
-    "duration": 0.28845000000000004
+    "start": 1.7083333333333335,
+    "duration": 0.3075
   },
   {
-    "word": "reminder",
-    "start": 5.128,
-    "duration": 0.28845000000000004
+    "word": "football",
+    "start": 2.05,
+    "duration": 0.3075
   },
   {
-    "word": "of",
-    "start": 5.4485,
-    "duration": 0.28845000000000004
+    "word": "match,",
+    "start": 2.3916666666666666,
+    "duration": 0.3075
   },
   {
-    "word": "the",
-    "start": 5.769,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "magic",
-    "start": 6.0895,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "that",
-    "start": 6.41,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "can",
-    "start": 6.7305,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "happen",
-    "start": 7.051,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "when",
-    "start": 7.3715,
-    "duration": 0.28845000000000004
+    "word": "take",
+    "start": 2.7333333333333334,
+    "duration": 0.3075
   },
   {
     "word": "a",
-    "start": 7.692,
-    "duration": 0.28845000000000004
+    "start": 3.075,
+    "duration": 0.3075
   },
   {
-    "word": "group",
-    "start": 8.0125,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "of",
-    "start": 8.333,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "individuals",
-    "start": 8.653500000000001,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "come",
-    "start": 8.974,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "together,",
-    "start": 9.2945,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "with",
-    "start": 9.615,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "a",
-    "start": 9.935500000000001,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "common",
-    "start": 10.256,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "goal,",
-    "start": 10.5765,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "and",
-    "start": 10.897,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "a",
-    "start": 11.217500000000001,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "burning",
-    "start": 11.538,
-    "duration": 0.28845000000000004
-  },
-  {
-    "word": "desire",
-    "start": 11.8585,
-    "duration": 0.28845000000000004
+    "word": "moment",
+    "start": 3.416666666666667,
+    "duration": 0.3075
   },
   {
     "word": "to",
-    "start": 12.179,
-    "duration": 0.28845000000000004
+    "start": 3.7583333333333333,
+    "duration": 0.3075
   },
   {
-    "word": "succeed.",
-    "start": 12.499500000000001,
-    "duration": 0.28845000000000004
+    "word": "appreciate",
+    "start": 4.1,
+    "duration": 0.3075
+  },
+  {
+    "word": "the",
+    "start": 4.441666666666666,
+    "duration": 0.3075
+  },
+  {
+    "word": "unsung",
+    "start": 4.783333333333333,
+    "duration": 0.3075
+  },
+  {
+    "word": "heroes...",
+    "start": 5.125,
+    "duration": 0.3075
+  },
+  {
+    "word": "the",
+    "start": 5.466666666666667,
+    "duration": 0.3075
+  },
+  {
+    "word": "goalkeepers,",
+    "start": 5.808333333333334,
+    "duration": 0.3075
+  },
+  {
+    "word": "and",
+    "start": 6.15,
+    "duration": 0.3075
+  },
+  {
+    "word": "their",
+    "start": 6.491666666666667,
+    "duration": 0.3075
+  },
+  {
+    "word": "trusty",
+    "start": 6.833333333333334,
+    "duration": 0.3075
+  },
+  {
+    "word": "gloves,",
+    "start": 7.175,
+    "duration": 0.3075
+  },
+  {
+    "word": "that",
+    "start": 7.516666666666667,
+    "duration": 0.3075
+  },
+  {
+    "word": "make",
+    "start": 7.858333333333333,
+    "duration": 0.3075
+  },
+  {
+    "word": "the",
+    "start": 8.2,
+    "duration": 0.3075
+  },
+  {
+    "word": "game",
+    "start": 8.541666666666666,
+    "duration": 0.3075
+  },
+  {
+    "word": "what",
+    "start": 8.883333333333333,
+    "duration": 0.3075
+  },
+  {
+    "word": "it",
+    "start": 9.225,
+    "duration": 0.3075
+  },
+  {
+    "word": "is",
+    "start": 9.566666666666666,
+    "duration": 0.3075
+  },
+  {
+    "word": "today.",
+    "start": 9.908333333333333,
+    "duration": 0.3075
   }
 ]

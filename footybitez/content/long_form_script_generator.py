@@ -40,6 +40,7 @@ class LongFormScriptGenerator:
 
         STRUCTURE & WRITING RULES (CRITICAL):
         0. GLOBAL RULE: Focus strictly on major Men's Football (e.g. English Premier League, La Liga, Champions League, World Cup). ALWAYS use FULL UNAMBIGUOUS names (e.g. 'Cristiano Ronaldo' or 'Lionel Messi'). DO NOT use ambiguous single names.
+        0A. SPECIFICITY RULE: NEVER use generic pronouns like "a team", "a player", "this club", or "a certain match". You MUST explicitly name the exact club (e.g., "Real Madrid"), the exact player, and the exact score/year in EVERY sentence if applicable. Do not be vague.
         1. COLD HOOK (4-6s): A mystery hook. NEVER mention the exact player/club name. Build curiosity.
            e.g., "[dramatic] A football record... no one can touch."
         2. INTRO: A strong 8-12 second explanation matching the hook.
