@@ -36,6 +36,16 @@ jobs:
         pip install -r footybitez/requirements.txt
         pip install python-dotenv
 
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+
+    - name: Install Remotion dependencies
+      run: |
+        cd remotion-video
+        npm install
+
     - name: Debug Edge TTS
       run: |
         edge-tts --list-voices | grep "Christopher" || echo "Christopher voice not found!"

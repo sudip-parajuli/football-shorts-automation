@@ -1,152 +1,67 @@
 [
   {
-    "word": "The",
+    "word": "Like",
     "start": 0.0,
-    "duration": 0.3075
-  },
-  {
-    "word": "next",
-    "start": 0.3416666666666667,
-    "duration": 0.3075
-  },
-  {
-    "word": "time",
-    "start": 0.6833333333333333,
-    "duration": 0.3075
-  },
-  {
-    "word": "you",
-    "start": 1.025,
-    "duration": 0.3075
-  },
-  {
-    "word": "watch",
-    "start": 1.3666666666666667,
-    "duration": 0.3075
-  },
-  {
-    "word": "a",
-    "start": 1.7083333333333335,
-    "duration": 0.3075
-  },
-  {
-    "word": "football",
-    "start": 2.05,
-    "duration": 0.3075
-  },
-  {
-    "word": "match,",
-    "start": 2.3916666666666666,
-    "duration": 0.3075
-  },
-  {
-    "word": "take",
-    "start": 2.7333333333333334,
-    "duration": 0.3075
-  },
-  {
-    "word": "a",
-    "start": 3.075,
-    "duration": 0.3075
-  },
-  {
-    "word": "moment",
-    "start": 3.416666666666667,
-    "duration": 0.3075
-  },
-  {
-    "word": "to",
-    "start": 3.7583333333333333,
-    "duration": 0.3075
-  },
-  {
-    "word": "appreciate",
-    "start": 4.1,
-    "duration": 0.3075
-  },
-  {
-    "word": "the",
-    "start": 4.441666666666666,
-    "duration": 0.3075
-  },
-  {
-    "word": "unsung",
-    "start": 4.783333333333333,
-    "duration": 0.3075
-  },
-  {
-    "word": "heroes...",
-    "start": 5.125,
-    "duration": 0.3075
-  },
-  {
-    "word": "the",
-    "start": 5.466666666666667,
-    "duration": 0.3075
-  },
-  {
-    "word": "goalkeepers,",
-    "start": 5.808333333333334,
-    "duration": 0.3075
+    "duration": 0.37869230769230766
   },
   {
     "word": "and",
-    "start": 6.15,
-    "duration": 0.3075
+    "start": 0.42076923076923073,
+    "duration": 0.37869230769230766
   },
   {
-    "word": "their",
-    "start": 6.491666666666667,
-    "duration": 0.3075
+    "word": "subscribe",
+    "start": 0.8415384615384615,
+    "duration": 0.37869230769230766
   },
   {
-    "word": "trusty",
-    "start": 6.833333333333334,
-    "duration": 0.3075
+    "word": "for",
+    "start": 1.2623076923076921,
+    "duration": 0.37869230769230766
   },
   {
-    "word": "gloves,",
-    "start": 7.175,
-    "duration": 0.3075
+    "word": "more",
+    "start": 1.683076923076923,
+    "duration": 0.37869230769230766
   },
   {
-    "word": "that",
-    "start": 7.516666666666667,
-    "duration": 0.3075
+    "word": "*soccer*",
+    "start": 2.1038461538461535,
+    "duration": 0.37869230769230766
   },
   {
-    "word": "make",
-    "start": 7.858333333333333,
-    "duration": 0.3075
+    "word": "content",
+    "start": 2.5246153846153843,
+    "duration": 0.37869230769230766
+  },
+  {
+    "word": "and",
+    "start": 2.945384615384615,
+    "duration": 0.37869230769230766
+  },
+  {
+    "word": "*interesting*",
+    "start": 3.366153846153846,
+    "duration": 0.37869230769230766
+  },
+  {
+    "word": "facts",
+    "start": 3.7869230769230766,
+    "duration": 0.37869230769230766
+  },
+  {
+    "word": "about",
+    "start": 4.207692307692307,
+    "duration": 0.37869230769230766
   },
   {
     "word": "the",
-    "start": 8.2,
-    "duration": 0.3075
+    "start": 4.628461538461538,
+    "duration": 0.37869230769230766
   },
   {
-    "word": "game",
-    "start": 8.541666666666666,
-    "duration": 0.3075
-  },
-  {
-    "word": "what",
-    "start": 8.883333333333333,
-    "duration": 0.3075
-  },
-  {
-    "word": "it",
-    "start": 9.225,
-    "duration": 0.3075
-  },
-  {
-    "word": "is",
-    "start": 9.566666666666666,
-    "duration": 0.3075
-  },
-  {
-    "word": "today.",
-    "start": 9.908333333333333,
-    "duration": 0.3075
+    "word": "*USMNT*",
+    "start": 5.0492307692307685,
+    "duration": 0.37869230769230766
   }
 ]

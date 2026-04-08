@@ -1,66 +1,59 @@
 # FootyBitez Automation
 
-Fully automated system to create and upload YouTube Shorts about football facts.
+Fully automated system to create and upload YouTube Shorts (and Long-Form Videos) about football facts and history.
 
 ## Features
-- **Topic Generation**: Automatically selects from 50+ classic football topics.
-- **Scripting**: Uses Google Gemini AI (Free Tier) to write viral scripts (Hooks & Facts).
-- **Voiceover**: Uses `edge-tts` for high-quality, free AI narration (British English).
-- **Video**: Assembles video with `MoviePy`, syncing text overlays to audio.
-- **Upload**: Automatically uploads to YouTube Shorts via YouTube Data API v3.
-- **CI/CD**: Runs daily via GitHub Actions.
+- **Topic Generation**: Automatically selects from topics.
+- **Scripting**: Uses Google Gemini AI to write highly-retaining scripts (Chunks & Word Timings).
+- **Voiceover & Audio**: Uses `edge-tts` for high-quality voiceover generation and automatically integrates background music + SFX.
+- **Cinematic Video Engine (Remotion)**: Uses React-based `Remotion` instead of MoviePy for advanced styling, fast rendering, and infinite scale. Includes TikTok-style highlight captions, Ken Burns asset motion, audio visualizer overlays, and seamless slide/fade cinematic transitions.
+- **Multi-Format Architecture**: Native support for building `Shorts` (1080x1920) or `LongForm` (1920x1080) compositions dynamically.
+- **Upload**: Automatically uploads to YouTube via YouTube Data API v3.
+- **CI/CD**: Runs strictly via GitHub Actions.
 
 ## Prerequisites
-1. **Python 3.10+** (if running locally)
-2. **Google Cloud Project** with:
-   - YouTube Data API v3 enabled.
-   - Generative Language API (Gemini) enabled.
-3. **API Keys**:
-   - `Gemini API Key` (Get from aistudio.google.com)
-   - `client_secret.json` (OAuth 2.0 Client ID for Desktop)
+1. **Node.js**: Required to boot and compile the Remotion video engine.
+2. **Python 3.10+**: Back-end scripting, text-to-speech, and API scraping.
+3. **Google Cloud Project** with API enabled.
 
 ## Setup
 
 ### 1. Installation
 ```bash
+# Install Python backend dependencies
 pip install -r footybitez/requirements.txt
+
+# Install Remotion Engine dependencies
+cd remotion-video
+npm install
 ```
 
 ### 2. Authentication Setup
 1. Place your `client_secret.json` in the project root.
-2. Run the setup script to generate your OAuth token:
-   ```bash
-   python setup_auth.py
-   ```
-3. Copy the output JSON string. You will need this for GitHub Secrets.
-4. It also saves `token.json` locally, allowing you to run the script on your machine.
-
-### 3. Environment Variables
-Create a `.env` file in the root directory:
+2. Run `python setup_auth.py` to generate the `token.json` OAuth token for uploads.
+3. Create a `.env` in the root:
 ```
 GEMINI_API_KEY=your_gemini_key_here
-PEXELS_API_KEY=your_pexels_key_here
 ENABLE_UPLOAD=true
 ```
 
 ## Running Locally
-To generate and upload a video immediately:
+
+To manually generate the assets and JSON script instructions (`props.json`):
 ```bash
 python footybitez/main.py
 ```
-Check `footybitez/output/` for the generated `final_short.mp4`.
 
-## GitHub Actions Deployment
-1. Go to your GitHub Repository -> Settings -> Secrets and variables -> Actions.
-2. Add the following Repository Secrets:
-   - `GEMINI_API_KEY`: Your Gemini API Key.
-   - `PEXELS_API_KEY`: Your Pexels API Key.
-   - `YOUTUBE_TOKEN_JSON`: The JSON string you copied from `setup_auth.py`.
-
-The system will now run automatically every day at 12:00 UTC.
+### Previewing the Cinematic Engine (Hot Reload)
+To test the visual engine or view the output instantly without fully rendering an MP4:
+```bash
+cd remotion-video
+npm start
+```
+This opens Remotion Studio at `http://localhost:3000`. You can choose between the `Shorts` (9:16) and `LongForm` (16:9) compositions in the left sidebar!
 
 ## Folder Structure
-- `footybitez/content`: Logic for topics and scripts.
-- `footybitez/media`: Assets (Images, Voice) and logic.
-- `footybitez/video`: Video creation engine.
-- `footybitez/youtube`: Upload logic.
+- `footybitez/content`: Logic for AI script structures and parsing timings.
+- `footybitez/media`: Audio scraping, SFX, background music fetching, and TTS generation.
+- `remotion-video`: The complete React-based frontend cinematic rendering engine.
+- `footybitez/youtube`: Automatic YouTube metadata population and uploading logic.

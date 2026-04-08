@@ -19,7 +19,7 @@ if project_root not in sys.path:
 from footybitez.content.topic_generator import TopicGenerator
 from footybitez.content.script_generator import ScriptGenerator
 from footybitez.media.media_sourcer import MediaSourcer
-from footybitez.video.video_creator import VideoCreator
+from footybitez.video.remotion_video_creator import RemotionVideoCreator
 from footybitez.youtube.uploader import YouTubeUploader
 
 # Setup Logging
@@ -119,7 +119,7 @@ def main():
                 logger.info(f"Selected Background Music: {selected_music}")
 
         # 4. Create Video
-        video_creator = VideoCreator()
+        video_creator = RemotionVideoCreator()
         video_path = video_creator.create_video(script, visual_assets, background_music_path=background_music)
         logger.info(f"Video Created at: {video_path}")
         

@@ -33,11 +33,6 @@ footybitez/media/downloads/
 footybitez/output/temp_text/
 footybitez/logs/
 *.vtt
-*.png
-*.jpg
-*.mp4
-*.mp3
-*.log
 footybitez/media/voice/
 
 # Sensitive
@@ -50,3 +45,21 @@ setup_auth.py
 .idea/
 *.swp
 *.swo
+
+# Remotion assets
+remotion-video/node_modules/
+remotion-video/public/*.jpg
+remotion-video/public/*.mp3
+remotion-video/public/*.mp4
+remotion-video/props.json
+props.json
+
+# Test artifacts and media
+test_downloads/
+test_trash/
+debug_*.txt
+*.png
+*.mp4
+*.mp3
+*.jpg
+*.log
