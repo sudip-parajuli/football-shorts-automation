@@ -45,10 +45,11 @@ jobs:
         cd remotion-video
         npm install
 
-    - name: Install System Dependencies for Chromium
+    - name: Install System Dependencies (Browsers)
       run: |
-        sudo apt-get update
-        sudo apt-get install -y libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libnss3 lsb-release xdg-utils wget
+        # Use Playwright's official command to install all necessary system libs for the current OS version
+        cd remotion-video
+        npx playwright install-deps chromium
 
     - name: Install Playwright Browsers (for Remotion)
       run: |
@@ -71,7 +72,8 @@ jobs:
       if: always()
       run: |
         echo "Searching for latest log file in footybitez/logs/..."
-        LATEST_LOG=$(ls -t footybitez/logs/automation_*.log | head -1)
+        # Find latest .log file, if any
+        LATEST_LOG=$(ls -t footybitez/logs/*.log 2>/dev/null | head -1)
         if [ -n "$LATEST_LOG" ]; then
           echo "Dumping log file: $LATEST_LOG"
           cat "$LATEST_LOG"
