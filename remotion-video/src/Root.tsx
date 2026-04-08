@@ -32,7 +32,7 @@ export const RemotionRoot: React.FC = () => {
 	return (
 		<>
 			<Composition
-				id="Shorts"
+				id="Main"
 				component={Main}
 				durationInFrames={300} // Dynamic in run-time
 				fps={30}

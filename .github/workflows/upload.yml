@@ -17,19 +17,12 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-
-    - name: Install system dependencies (MoviePy)
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y imagemagick fonts-liberation fonts-dejavu-core
-        # Fix ImageMagick policy for MoviePy
-        sudo sed -i 's/none/read,write/g' /etc/ImageMagick-6/policy.xml
 
     - name: Install Python dependencies
       run: |
@@ -37,19 +30,22 @@ jobs:
         pip install python-dotenv
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: remotion-video/package-lock.json
 
     - name: Install Remotion dependencies
       run: |
         cd remotion-video
         npm install
 
-    - name: Debug Edge TTS
+    - name: Install Playwright Browsers (for Remotion)
       run: |
-        edge-tts --list-voices | grep "Christopher" || echo "Christopher voice not found!"
-        edge-tts --list-voices | head -n 5
+        # Remotion uses a browser to render. We need to install the browser and its dependencies.
+        cd remotion-video
+        npx playwright install chromium --with-deps
 
     - name: Run Automation
       env:
@@ -59,7 +55,6 @@ jobs:
         YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
         ENABLE_UPLOAD: "true"
       run: |
-        # Ensure paths work correctly relative to root
         export PYTHONPATH=$PYTHONPATH:.
         python footybitez/main.py
 
