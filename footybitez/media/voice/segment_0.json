@@ -1,17 +1,12 @@
 [
   {
-    "word": "Dynamic",
+    "word": "Verification",
     "start": 0.0,
-    "duration": 0.7350000000000001
+    "duration": 1.0035
   },
   {
-    "word": "segment",
-    "start": 0.8166666666666668,
-    "duration": 0.7350000000000001
-  },
-  {
-    "word": "test",
-    "start": 1.6333333333333335,
-    "duration": 0.7350000000000001
+    "word": "run",
+    "start": 1.115,
+    "duration": 1.0035
   }
 ]

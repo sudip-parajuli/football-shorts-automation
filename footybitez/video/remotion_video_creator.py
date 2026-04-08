@@ -126,11 +126,24 @@ class RemotionVideoCreator:
             "--props=props.json"
         ]
         
+        # On POSIX (Linux), shell=True requires the command to be a single string
+        import platform
+        if platform.system() != "Windows":
+             import shlex
+             cmd_str = shlex.join(cmd)
+             logger.info(f"Linux/Mac detected. Using shlex joined command.")
+        else:
+             # On Windows, joins with spaces
+             cmd_str = " ".join(cmd)
+
         try:
-            logger.info(f"Starting Remotion Render in {self.remotion_dir}...")
+            logger.info(f"Environment: {platform.platform()} | CWD: {os.getcwd()}")
+            logger.info(f"Target Render Directory: {os.path.abspath(self.remotion_dir)}")
+            logger.info(f"Executing Rendering Command: {cmd_str}")
+
             # Capture output for debugging in CI
             process = subprocess.run(
-                cmd, 
+                cmd_str, 
                 cwd=self.remotion_dir, 
                 check=True, 
                 shell=True,
@@ -144,9 +157,16 @@ class RemotionVideoCreator:
                 logger.warning(f"Remotion Render Warnings/Errors: {process.stderr}")
                 
             logger.info("Remotion rendering completed successfully.")
+            
+            # Post-render check
+            if os.path.exists(output_abs_path):
+                logger.info(f"Verified: Output file exists at {output_abs_path}")
+            else:
+                logger.error(f"Post-render ALERT: Output file NOT FOUND at {output_abs_path}")
+                
             return output_abs_path
         except subprocess.CalledProcessError as e:
             logger.error(f"Remotion Render Failed (Code {e.returncode})")
-            logger.error(f"STDOUT: {e.stdout}")
-            logger.error(f"STDERR: {e.stderr}")
+            logger.error(f"RENDER STDOUT: {e.stdout}")
+            logger.error(f"RENDER STDERR: {e.stderr}")
             raise Exception(f"Remotion failed to render video: {e.stderr}")
