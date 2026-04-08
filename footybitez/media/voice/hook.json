@@ -1,12 +1,12 @@
 [
   {
-    "word": "Costly",
+    "word": "Test",
     "start": 0.0,
-    "duration": 0.9630000000000001
+    "duration": 0.756
   },
   {
-    "word": "Mistake",
-    "start": 1.07,
-    "duration": 0.9630000000000001
+    "word": "Hook",
+    "start": 0.84,
+    "duration": 0.756
   }
 ]

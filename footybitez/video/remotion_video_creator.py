@@ -114,22 +114,39 @@ class RemotionVideoCreator:
         logger.info(f"Saved properties to {props_path}")
 
         # 5. Render Video via Remotion CLI
-        output_file = os.path.abspath(os.path.join(self.output_dir, "final_short.mp4"))
+        # Use relative path for output to avoid absolute path quirks in CI/containers
+        output_rel_path = os.path.join("..", self.output_dir, "final_short.mp4")
+        output_abs_path = os.path.abspath(os.path.join(self.output_dir, "final_short.mp4"))
         
         # Execute remotion process
         cmd = [
             "npx", "remotion", "render", 
             "src/index.ts", "Main", 
-            output_file, 
+            output_rel_path, 
             "--props=props.json"
         ]
         
         try:
-            # Change directory to remotion project to run the render
-            logger.info("Starting Remotion Render...")
-            subprocess.run(cmd, cwd=self.remotion_dir, check=True, shell=True)
+            logger.info(f"Starting Remotion Render in {self.remotion_dir}...")
+            # Capture output for debugging in CI
+            process = subprocess.run(
+                cmd, 
+                cwd=self.remotion_dir, 
+                check=True, 
+                shell=True,
+                capture_output=True,
+                text=True
+            )
+            
+            if process.stdout:
+                logger.info(f"Remotion Render Output: {process.stdout}")
+            if process.stderr:
+                logger.warning(f"Remotion Render Warnings/Errors: {process.stderr}")
+                
             logger.info("Remotion rendering completed successfully.")
-            return output_file
+            return output_abs_path
         except subprocess.CalledProcessError as e:
-            logger.error(f"Remotion Render Failed: {e}")
-            raise Exception("Remotion failed to render video")
+            logger.error(f"Remotion Render Failed (Code {e.returncode})")
+            logger.error(f"STDOUT: {e.stdout}")
+            logger.error(f"STDERR: {e.stderr}")
+            raise Exception(f"Remotion failed to render video: {e.stderr}")

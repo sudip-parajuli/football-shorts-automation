@@ -11,6 +11,10 @@ on:
 permissions:
   contents: write
 
+env:
+  # Opt into Node.js 24 for actions as recommended by GitHub warnings
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-and-upload:
     runs-on: ubuntu-latest
@@ -57,6 +61,19 @@ jobs:
       run: |
         export PYTHONPATH=$PYTHONPATH:.
         python footybitez/main.py
+
+    - name: Verify Video Generation
+      run: |
+        echo "Checking for generated video file..."
+        if [ -f "footybitez/output/final_short.mp4" ]; then
+          echo "Success: Video found at footybitez/output/final_short.mp4"
+          ls -lh footybitez/output/final_short.mp4
+        else
+          echo "Error: Video NOT found at footybitez/output/final_short.mp4"
+          echo "Contents of footybitez/output/:"
+          ls -R footybitez/output/ || echo "Directory footybitez/output/ does not exist."
+          exit 1
+        fi
 
     - name: Upload Logs
       uses: actions/upload-artifact@v4
