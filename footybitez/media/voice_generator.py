@@ -91,11 +91,14 @@ class VoiceGenerator:
                 }
                 payload = {
                     "utterances": [{"text": text}],
-                    "format": "mp3"
+                    "format": {"type": "mp3"}
                 }
                 
+                # Note: Voice ID support in /v0/tts/file is limited. 
+                # We'll use the voice_id as a hint in a description if available
+                # or just let Hume's default emotional engine handle it.
                 if voice_id:
-                    payload["voice"] = {"id": voice_id}
+                     payload["utterances"][0]["description"] = f"Voice ID: {voice_id}"
                 
                 response = requests.post(url, json=payload, headers=headers, timeout=60)
                 if response.status_code == 200:
