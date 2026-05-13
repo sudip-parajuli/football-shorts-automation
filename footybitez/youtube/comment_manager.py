@@ -50,9 +50,10 @@ class CommentManager:
             logger.error(f"YouTube Auth Error: {e}")
             return None
 
-    def auto_reply(self, video_id=None, max_replies=10):
+    def auto_reply(self, video_id=None, max_replies=500):
         """
         Fetches recent top-level unanswered comments and replies to them.
+        Set to a high limit to ensure we engage with all viewers.
         """
         if not self.youtube:
             logger.error("YouTube service not initialized.")
@@ -62,7 +63,7 @@ class CommentManager:
             # 1. Fetch comments
             params = {
                 "part": "snippet",
-                "maxResults": 50,
+                "maxResults": 100, # Max allowed by API per page
                 "moderationStatus": "published",
                 "order": "time"
             }
@@ -80,14 +81,19 @@ class CommentManager:
                 
                 thread_id = item["id"]
                 snippet = item["snippet"]["topLevelComment"]["snippet"]
-                comment_text = snippet["textDisplay"]
-                author = snippet["authorDisplayName"]
-                
-                # Check if we already replied (simple check: has any replies?)
-                # More robust check: check replies list for our own authorId
+                comment_text = snippet.get("textDisplay", "")
+                author = snippet.get("authorDisplayName", "Viewer")
+                author_channel_id = snippet.get("authorChannelId", {}).get("value")
+
+                # Skip if we already replied (totalReplyCount > 0)
+                # Note: This is a simple heuristic. 
                 if item["snippet"]["totalReplyCount"] > 0:
                     continue
                 
+                # Don't reply to ourselves
+                if author_channel_id == self._get_channel_id():
+                    continue
+
                 logger.info(f"Generating reply for comment from {author}: {comment_text[:50]}...")
                 
                 # 2. Generate Reply with Gemini

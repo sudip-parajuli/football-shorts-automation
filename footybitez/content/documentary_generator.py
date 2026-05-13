@@ -52,6 +52,12 @@ OUTPUT FORMAT (JSON):
     }
   ],
   "thumbnail_query": "specific high-contrast query",
+  "quiz": {
+    "question": "string",
+    "options": ["A", "B", "C"],
+    "correct_answer_index": 0,
+    "explanation": "short explanation to show after answer"
+  },
   "tags": ["tag1", "tag2"]
 }
 """

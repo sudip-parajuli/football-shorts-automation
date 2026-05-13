@@ -2,6 +2,7 @@ import React from 'react';
 import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig } from 'remotion';
 import { ChapterIntro } from './ChapterIntro';
 import { ImageSlide } from './ImageSlide';
+import { QuizSlide } from './QuizSlide';
 
 export interface Chapter {
   chapter_number: number;
@@ -16,11 +17,18 @@ export interface MainVideoProps {
   chapters: Chapter[];
   background_music: string;
   image_credits: string[];
+  quiz?: {
+    question: string;
+    options: string[];
+    correct_answer_index: number;
+    explanation: string;
+  };
 }
 
 export const MainVideo: React.FC<MainVideoProps> = ({ 
   chapters, 
-  background_music 
+  background_music,
+  quiz
 }) => {
   const { fps } = useVideoConfig();
   
@@ -105,6 +113,21 @@ export const MainVideo: React.FC<MainVideoProps> = ({
           </React.Fragment>
         );
       })}
+
+      {/* 4. Interactive Quiz at the end */}
+      {quiz && (
+        <Sequence 
+          from={currentFrame} 
+          durationInFrames={10 * fps}
+        >
+          <QuizSlide 
+            question={quiz.question}
+            options={quiz.options}
+            correct_answer_index={quiz.correct_answer_index}
+            explanation={quiz.explanation}
+          />
+        </Sequence>
+      )}
     </AbsoluteFill>
   );
 };

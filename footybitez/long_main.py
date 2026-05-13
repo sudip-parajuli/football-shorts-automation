@@ -143,7 +143,8 @@ def main():
         props = {
             "chapters": chapters_props,
             "background_music": music_file,
-            "image_credits": image_credits
+            "image_credits": image_credits,
+            "quiz": script_data.get('quiz', None)
         }
 
         with open("remotion-video/public/props.json", "w", encoding="utf-8") as f:
