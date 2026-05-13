@@ -17,6 +17,7 @@ export interface MainVideoProps {
   chapters: Chapter[];
   background_music: string;
   image_credits: string[];
+  sound_effects?: Record<string, string>; // category -> relative path
   quiz?: {
     question: string;
     options: string[];
@@ -27,22 +28,26 @@ export interface MainVideoProps {
 
 const MAX_FRAMES_PER_IMAGE = 72; // 3 seconds max per image at 24fps
 
+// Cycle through available SFX categories for variety
+const SFX_ROTATION = ['whoosh', 'transition', 'rise', 'impact', 'drum'];
+
 export const MainVideo: React.FC<MainVideoProps> = ({
   chapters,
   background_music,
-  quiz
+  quiz,
+  sound_effects = {},
 }) => {
   const { fps } = useVideoConfig();
 
   let currentFrame = 0;
   const CHAPTER_INTRO_DURATION = 4 * fps; // 4 seconds
 
-  // Global image counter for cycling through effects
   let globalImageIndex = 0;
+  let sfxIndex = 0;
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0a0a' }}>
-      {/* Background Music — quiet so narration is clear */}
+      {/* Background Music — quiet underneath narration */}
       {background_music && (
         <Audio
           src={staticFile(background_music)}
@@ -53,29 +58,45 @@ export const MainVideo: React.FC<MainVideoProps> = ({
       {chapters.map((chapter, index) => {
         const chapterStartTime = currentFrame;
 
-        // 1. Chapter Intro (4s)
+        // 1. Chapter Intro (4s) + whoosh sound
+        const chapterSfxCategory = SFX_ROTATION[sfxIndex % SFX_ROTATION.length];
+        const chapterSfxPath = sound_effects[chapterSfxCategory];
+        sfxIndex++;
+
         const introSequence = (
-          <Sequence
-            key={`intro-${index}`}
-            from={chapterStartTime}
-            durationInFrames={CHAPTER_INTRO_DURATION}
-          >
-            <ChapterIntro
-              number={chapter.chapter_number}
-              title={chapter.chapter_title}
-            />
-          </Sequence>
+          <React.Fragment key={`intro-frag-${index}`}>
+            <Sequence
+              key={`intro-${index}`}
+              from={chapterStartTime}
+              durationInFrames={CHAPTER_INTRO_DURATION}
+            >
+              <ChapterIntro
+                number={chapter.chapter_number}
+                title={chapter.chapter_title}
+              />
+            </Sequence>
+            {/* Whoosh on chapter intro */}
+            {chapterSfxPath && (
+              <Sequence
+                key={`sfx-chapter-${index}`}
+                from={chapterStartTime}
+                durationInFrames={24}
+              >
+                <Audio src={staticFile(chapterSfxPath)} volume={() => 0.45} />
+              </Sequence>
+            )}
+          </React.Fragment>
         );
 
         currentFrame += CHAPTER_INTRO_DURATION;
 
         // 2. Chapter Content — images capped at MAX_FRAMES_PER_IMAGE each
         const chapterContentDuration = chapter.duration_in_frames;
-        const imagesArr = chapter.images && chapter.images.length > 0
-          ? chapter.images
-          : ['assets/images/placeholder.jpg'];
+        const imagesArr =
+          chapter.images && chapter.images.length > 0
+            ? chapter.images
+            : ['assets/images/placeholder.jpg'];
 
-        // Calculate how many slots we need to fill chapterContentDuration
         const framesPerImage = Math.min(
           Math.floor(chapterContentDuration / imagesArr.length),
           MAX_FRAMES_PER_IMAGE
@@ -90,21 +111,31 @@ export const MainVideo: React.FC<MainVideoProps> = ({
           const img = imagesArr[imgIdx % imagesArr.length];
           const duration = Math.min(framesPerImage, remaining);
           const effectIdx = globalImageIndex % 5;
-          globalImageIndex++;
+
+          // Play transition whoosh at each image switch (except the very first)
+          const isFirstSlide = imgIdx === 0 && index === 0;
+          const sfxCat = SFX_ROTATION[sfxIndex % SFX_ROTATION.length];
+          const sfxPath = sound_effects[sfxCat];
+          sfxIndex++;
 
           slides.push(
-            <Sequence
-              key={`slide-${index}-${imgIdx}`}
-              from={slideFrame}
-              durationInFrames={duration}
-            >
-              <ImageSlide src={img} durationInFrames={duration} effectIndex={effectIdx} />
-            </Sequence>
+            <React.Fragment key={`slide-frag-${index}-${imgIdx}`}>
+              <Sequence from={slideFrame} durationInFrames={duration}>
+                <ImageSlide src={img} durationInFrames={duration} effectIndex={effectIdx} />
+              </Sequence>
+              {/* Subtle whoosh at each image transition */}
+              {sfxPath && !isFirstSlide && (
+                <Sequence from={slideFrame} durationInFrames={18}>
+                  <Audio src={staticFile(sfxPath)} volume={() => 0.25} />
+                </Sequence>
+              )}
+            </React.Fragment>
           );
 
           slideFrame += duration;
           remaining -= duration;
           imgIdx++;
+          globalImageIndex++;
         }
 
         currentFrame += chapterContentDuration;
@@ -131,10 +162,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
 
       {/* Interactive Quiz at the end */}
       {quiz && (
-        <Sequence
-          from={currentFrame}
-          durationInFrames={10 * fps}
-        >
+        <Sequence from={currentFrame} durationInFrames={10 * fps}>
           <QuizSlide
             question={quiz.question}
             options={quiz.options}

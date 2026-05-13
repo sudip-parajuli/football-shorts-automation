@@ -16,51 +16,58 @@ class ThumbnailGenerator:
 
     def generate_ai_thumbnail(self, ai_prompt, output_path="remotion-video/public/thumbnail.jpg"):
         """
-        Generates a thumbnail using Gemini Imagen API (free tier).
-        Returns the output path if successful, None otherwise.
+        Generates a thumbnail using Gemini image generation (free).
+        Tries GEMINI_API_KEY, GEMINI_API_KEY2, GEMINI_API_KEY3 in order.
         """
-        if not self.gemini_api_key:
-            logger.warning("GEMINI_API_KEY not set. Skipping AI thumbnail.")
+        gemini_keys = []
+        for suffix in ["", "2", "3"]:
+            val = os.getenv(f"GEMINI_API_KEY{suffix}")
+            if val:
+                gemini_keys.append(val)
+
+        if not gemini_keys:
+            logger.warning("No GEMINI_API_KEY found. Skipping AI thumbnail.")
             return None
 
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=self.gemini_api_key)
+        for i, key in enumerate(gemini_keys):
+            try:
+                import google.generativeai as genai
+                import io as _io
+                genai.configure(api_key=key)
+                model = genai.GenerativeModel("gemini-2.0-flash-exp-image-generation")
 
-            # Use Gemini 2.0 Flash image generation (free)
-            model = genai.GenerativeModel("gemini-2.0-flash-exp-image-generation")
-            
-            full_prompt = (
-                f"{ai_prompt}\n\n"
-                "Style: cinematic YouTube thumbnail, 16:9 aspect ratio, "
-                "dramatic lighting, bold text space on left side, "
-                "photorealistic professional sports photography, vivid colors, "
-                "no watermarks, no text in image."
-            )
-            
-            response = model.generate_content(
-                full_prompt,
-                generation_config=genai.types.GenerationConfig(
-                    response_modalities=["IMAGE"]
+                full_prompt = (
+                    f"{ai_prompt}\n\n"
+                    "Style: cinematic YouTube thumbnail, 16:9 aspect ratio, "
+                    "dramatic lighting, bold text space on left side, "
+                    "photorealistic professional sports photography, vivid colors, "
+                    "no watermarks, no text in image."
                 )
-            )
 
-            for part in response.candidates[0].content.parts:
-                if part.inline_data and part.inline_data.mime_type.startswith("image/"):
-                    img_data = part.inline_data.data
-                    img = Image.open(io.BytesIO(img_data)).convert("RGB")
-                    img = img.resize((1280, 720), Image.Resampling.LANCZOS)
-                    os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
-                    img.save(output_path, "JPEG", quality=95)
-                    logger.info(f"AI thumbnail saved to {output_path}")
-                    return output_path
+                response = model.generate_content(
+                    full_prompt,
+                    generation_config=genai.types.GenerationConfig(
+                        response_modalities=["IMAGE"]
+                    )
+                )
 
-            logger.warning("Gemini returned no image in response.")
-            return None
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data and part.inline_data.mime_type.startswith("image/"):
+                        img_data = part.inline_data.data
+                        img = Image.open(_io.BytesIO(img_data)).convert("RGB")
+                        img = img.resize((1280, 720), Image.Resampling.LANCZOS)
+                        os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
+                        img.save(output_path, "JPEG", quality=95)
+                        logger.info(f"AI thumbnail saved to {output_path} (key #{i+1})")
+                        return output_path
 
-        except Exception as e:
-            logger.warning(f"AI thumbnail generation failed: {e}. Will use PIL fallback.")
-            return None
+                logger.warning(f"Gemini key #{i+1} returned no image.")
+            except Exception as e:
+                logger.warning(f"Gemini key #{i+1} failed for thumbnail: {e}")
+
+        logger.warning("All Gemini keys failed for AI thumbnail. Will use PIL fallback.")
+        return None
+
 
     def generate_thumbnail(self, background_path, text, output_path="remotion-video/public/thumbnail.jpg", is_list=False):
         """

@@ -19,6 +19,7 @@ from footybitez.content.documentary_generator import DocumentaryGenerator
 from footybitez.media.media_sourcer import MediaSourcer
 from footybitez.media.voice_generator import VoiceGenerator
 from footybitez.media.thumbnail_generator import ThumbnailGenerator
+from footybitez.media.sound_downloader import download_sound_effects
 
 # Setup Logging
 os.makedirs("footybitez/logs", exist_ok=True)
@@ -161,11 +162,16 @@ def main():
             with open(credits_file, "r", encoding="utf-8") as f:
                 image_credits = [line.strip() for line in f if line.strip()]
 
+        # Download sound effects (cached after first run)
+        logger.info("Downloading sound effects...")
+        sound_effects = download_sound_effects()
+
         props = {
             "chapters": chapters_props,
             "background_music": music_file,
             "image_credits": image_credits,
-            "quiz": script_data.get('quiz', None)
+            "quiz": script_data.get('quiz', None),
+            "sound_effects": sound_effects
         }
 
         with open("remotion-video/public/props.json", "w", encoding="utf-8") as f:
