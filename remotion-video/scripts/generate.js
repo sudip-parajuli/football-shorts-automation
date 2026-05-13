@@ -54,6 +54,9 @@ async function main() {
   // Note: long_main.py is expected to write public/props.json
   runStep("Remotion Render", "npx", ["remotion", "render", "src/index.ts", "MainVideo", "output/video.mp4"], path.join(__dirname, '..'));
 
+  // Step 3: YouTube Upload
+  runStep("YouTube Upload", "python", ["footybitez/long_upload.py"], path.join(__dirname, '../..'));
+
   log("--- PIPELINE COMPLETED SUCCESSFULLY ---");
 }
 

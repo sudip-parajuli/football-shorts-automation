@@ -148,8 +148,17 @@ def main():
 
         with open("remotion-video/public/props.json", "w", encoding="utf-8") as f:
             json.dump(props, f, indent=2)
+            
+        # Save Metadata for Uploader
+        metadata = {
+            "title": script_data['title'],
+            "tags": script_data.get('tags', ["football", "documentary"]),
+            "topic": topic
+        }
+        with open("remotion-video/public/metadata.json", "w", encoding="utf-8") as f:
+            json.dump(metadata, f, indent=2)
         
-        logger.info("Props generated for Remotion. Content phase COMPLETE.")
+        logger.info("Props and Metadata generated for Remotion. Content phase COMPLETE.")
         topic_gen.mark_topic_as_used(topic)
 
     except Exception as e:
