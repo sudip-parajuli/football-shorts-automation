@@ -20,7 +20,7 @@ class DocumentaryGenerator:
         if self.gemini_key:
             genai.configure(api_key=self.gemini_key)
             self.gemini_model = genai.GenerativeModel(
-                model_name="gemini-1.5-flash",
+                model_name="gemini-1.5-flash-latest",
                 generation_config={"response_mime_type": "application/json", "temperature": 0.7}
             )
             

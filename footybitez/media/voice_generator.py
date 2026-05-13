@@ -83,19 +83,21 @@ class VoiceGenerator:
                 # Placeholder for Hume TTS API call
                 # Hume's TTS is often part of their EVI or a specific endpoint
                 # Assuming typical REST pattern if using their newer TTS engine
-                url = "https://api.hume.ai/v0/tti/tts" 
+                # Updated Hume TTS API endpoint (Octave models)
+                url = "https://api.hume.ai/v0/tts/file"
                 headers = {
                     "X-Hume-Api-Key": api_key,
                     "Content-Type": "application/json"
                 }
                 payload = {
-                    "text": text,
-                    "voice_id": voice_id,
+                    "utterances": [{"text": text}],
                     "format": "mp3"
                 }
                 
-                # Since exact Hume TTS endpoint might vary, let's ensure we handle errors
-                response = requests.post(url, json=payload, headers=headers, timeout=30)
+                if voice_id:
+                    payload["voice"] = {"id": voice_id}
+                
+                response = requests.post(url, json=payload, headers=headers, timeout=60)
                 if response.status_code == 200:
                     with open(output_path, "wb") as f:
                         f.write(response.content)

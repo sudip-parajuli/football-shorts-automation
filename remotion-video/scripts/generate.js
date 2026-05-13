@@ -52,7 +52,7 @@ async function main() {
 
   // Step 2: Remotion Rendering
   // Note: long_main.py is expected to write public/props.json
-  runStep("Remotion Render", "npx", ["remotion", "render", "src/Root.tsx", "MainVideo", "output/video.mp4"], path.join(__dirname, '..'));
+  runStep("Remotion Render", "npx", ["remotion", "render", "src/index.ts", "MainVideo", "output/video.mp4"], path.join(__dirname, '..'));
 
   log("--- PIPELINE COMPLETED SUCCESSFULLY ---");
 }
