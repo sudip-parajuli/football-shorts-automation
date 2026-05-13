@@ -1,6 +1,6 @@
 @font-face {
   font-family: 'Barlow Condensed';
-  src: url('/assets/fonts/BarlowCondensed-Bold.ttf') format('truetype');
+  src: url('../public/assets/fonts/BarlowCondensed-Bold.ttf') format('truetype');
   font-weight: 700;
   font-style: normal;
 }
