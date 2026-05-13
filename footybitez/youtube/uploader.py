@@ -27,7 +27,13 @@ class YouTubeUploader:
             
             # Check if token is in environment variable (GitHub Actions)
             elif os.getenv("YOUTUBE_TOKEN_JSON"):
-                token_info = json.loads(os.getenv("YOUTUBE_TOKEN_JSON"))
+                import base64
+                raw = os.getenv("YOUTUBE_TOKEN_JSON").strip()
+                # Support both raw JSON and Base64-encoded JSON
+                try:
+                    token_info = json.loads(raw)
+                except json.JSONDecodeError:
+                    token_info = json.loads(base64.b64decode(raw).decode("utf-8"))
                 creds = Credentials.from_authorized_user_info(token_info, self.scopes)
 
             # If no valid credentials available, let the user log in (interactive, local only)
