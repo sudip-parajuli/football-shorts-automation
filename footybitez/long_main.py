@@ -1,11 +1,9 @@
 import os
 import sys
-from PIL import Image
-
-# Monkeypatch for MoviePy 1.0.3 compatibility with Pillow 10+
-if not hasattr(Image, 'ANTIALIAS'):
-    Image.ANTIALIAS = Image.LANCZOS
+import json
 import logging
+import argparse
+import subprocess
 import random
 from datetime import datetime
 from dotenv import load_dotenv
@@ -17,10 +15,10 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from footybitez.content.topic_generator import TopicGenerator
-from footybitez.content.long_form_script_generator import LongFormScriptGenerator
+from footybitez.content.documentary_generator import DocumentaryGenerator
 from footybitez.media.media_sourcer import MediaSourcer
-from footybitez.video.long_form_video_creator import LongFormVideoCreator
-from footybitez.youtube.uploader import YouTubeUploader
+from footybitez.media.voice_generator import VoiceGenerator
+from footybitez.media.thumbnail_generator import ThumbnailGenerator
 
 # Setup Logging
 os.makedirs("footybitez/logs", exist_ok=True)
@@ -28,122 +26,134 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(f"footybitez/logs/long_form_{datetime.now().strftime('%Y%m%d')}.log"),
+        logging.FileHandler(f"footybitez/logs/documentary_{datetime.now().strftime('%Y%m%d')}.log"),
         logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger(__name__)
 
-def create_chapters_text(script_data):
-    """Generates YouTube chapters string."""
-    chapters = []
-    current_offset = 0
-    
-    # Intro
-    chapters.append(f"00:00 - Intro")
-    # Intro duration is roughly word_count / 2.5 (estimate)
-    # This is a very rough estimate, in a perfect world we'd get actual audio durations
-    current_offset += 10 # Intro is usually ~10s
-    
-    for i, chapter in enumerate(script_data['chapters']):
-        minutes = int(current_offset // 60)
-        seconds = int(current_offset % 60)
-        chapters.append(f"{minutes:02d}:{seconds:02d} - {chapter['chapter_title']}")
-        # Estimate chapter duration: 6 facts * 10s = 60s?
-        current_offset += len(chapter['facts']) * 12 
-        
-    return "\n".join(chapters)
+def get_audio_duration(file_path):
+    """Gets audio duration using ffprobe."""
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", file_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True
+        )
+        return float(result.stdout.strip())
+    except Exception as e:
+        logger.error(f"Error getting duration for {file_path}: {e}")
+        return 0
 
 def main():
     load_dotenv()
-    
+    parser = argparse.ArgumentParser(description="FootyBitez Documentary Pipeline")
+    parser.add_argument("--topic", help="Topic for the documentary")
+    args = parser.parse_args()
+
     try:
-        logger.info("Starting FootyBitez LONG-FORM Automation...")
+        logger.info("Starting FootyBitez Documentary Production Pipeline...")
         
-        # 1-2. Select Topic & Generate Script (With Retry Logic)
+        # 1. Select Topic
         topic_gen = TopicGenerator()
-        script_gen = LongFormScriptGenerator()
-        
-        script = None
-        for attempt in range(1, 4):
+        if args.topic:
+            topic = args.topic
+            category = "Manual"
+        else:
             topic, category = topic_gen.get_random_topic()
-            logger.info(f"Attempt {attempt}/3 - Selected Topic: {topic} | Category: {category}")
-            
-            script = script_gen.generate_long_script(topic)
-            if script:
-                break
-            logger.warning(f"Long script generation failed for topic '{topic}'. Retrying...")
-            
-        if not script:
-            logger.error("Failed to generate a valid long script after 3 attempts. Aborting.")
-            return
+        
+        logger.info(f"Selected Topic: {topic} ({category})")
 
-        logger.info(f"Long Script Generated: {script['metadata']['title']}")
+        # 2. Generate Documentary Script (Gemini with Groq Fallback)
+        doc_gen = DocumentaryGenerator()
+        script_data = doc_gen.generate_script(topic)
+        if not script_data:
+            logger.error("Failed to generate script. Aborting.")
+            sys.exit(1)
         
-        # 3. Gather Visual Assets
-        media_sourcer = MediaSourcer()
-        logger.info(f"Fetching media for topic: {topic}")
-        
-        # For long-form, we need MORE media.
-        segment_media = []
-        # Pull 5 media items for the topic generally
-        segment_media.extend(media_sourcer.get_media(topic, count=10, orientation='landscape'))
-        
-        # Pull 2 items for each chapter visual keyword
-        for chapter in script['chapters'][:3]: # Limit to first few to save API
-            for fact in chapter['facts'][:2]:
-                 segment_media.extend(media_sourcer.get_media(fact['visual_keyword'], count=1, orientation='landscape'))
+        logger.info(f"Script Generated: {script_data['title']}")
 
-        visual_assets = {
-            "segment_media": segment_media
-        }
+        # 3. Setup Sourcing
+        media_dir = "remotion-video/public/assets/images"
+        os.makedirs(media_dir, exist_ok=True)
+        media_sourcer = MediaSourcer(download_dir=media_dir)
         
-        # 4. Music
+        # 4. Generate Content per Chapter
+        voice_gen = VoiceGenerator(output_dir="remotion-video/public/assets/audio")
+        voice_index = script_data.get('suggested_voice_index', 0)
+        chapters_props = []
+        
+        for i, chapter in enumerate(script_data['chapters']):
+            logger.info(f"Processing Chapter {i+1}: {chapter['chapter_title']}...")
+            
+            # A. Audio
+            audio_filename = f"chapter_{i+1}_{hash(topic)}.mp3"
+            audio_path = voice_gen.generate(chapter['script'], audio_filename, voice_index=voice_index)
+            duration_sec = get_audio_duration(audio_path)
+            duration_frames = int(duration_sec * 24)
+            
+            # B. Strictly Linked Images
+            chapter_images = []
+            queries = chapter.get('image_queries', [])
+            if not queries:
+                # Fallback to chapter title if no queries provided
+                queries = [f"{topic} {chapter['chapter_title']} soccer"]
+            
+            for j, query in enumerate(queries):
+                logger.info(f"  Sourcing chapter-linked image: {query}")
+                img_assets = media_sourcer.get_media_for_script([query])
+                img_path = img_assets.get("image_0")
+                if img_path:
+                    rel_path = os.path.relpath(img_path, "remotion-video/public")
+                    chapter_images.append(rel_path.replace("\\", "/"))
+
+            chapters_props.append({
+                "chapter_number": i + 1,
+                "chapter_title": chapter['chapter_title'],
+                "script": chapter['script'],
+                "duration_in_frames": duration_frames,
+                "audio_path": f"assets/audio/{audio_filename}",
+                "images": chapter_images
+            })
+
+        # 5. Generate Thumbnail
+        thumb_gen = ThumbnailGenerator()
+        bg_query = script_data.get('thumbnail_query', f"{topic} soccer cinematic")
+        thumb_assets = media_sourcer.get_media_for_script([], thumbnail_query=bg_query)
+        bg_path = thumb_assets.get('thumbnail')
+        if bg_path:
+            logger.info("Generating professional thumbnail...")
+            thumb_gen.generate_thumbnail(bg_path, script_data['title'], "remotion-video/public/thumbnail.jpg")
+
+        # 6. Prepare Props for Remotion
+        music_file = None
         music_dir = "footybitez/music"
-        background_music = None
         if os.path.exists(music_dir):
-            music_files = [f for f in os.listdir(music_dir) if f.endswith('.mp3')]
-            if music_files:
-                background_music = os.path.join(music_dir, random.choice(music_files))
+            files = [f for f in os.listdir(music_dir) if f.endswith('.mp3')]
+            if files:
+                music_file = f"music/{random.choice(files)}"
 
-        # 5. Create Video
-        video_creator = LongFormVideoCreator()
-        video_path = video_creator.create_long_video(script, visual_assets, background_music_path=background_music)
-        logger.info(f"Long Video Created at: {video_path}")
+        image_credits = []
+        credits_file = os.path.join(media_sourcer.download_dir, "image_credits.txt")
+        if os.path.exists(credits_file):
+            with open(credits_file, "r", encoding="utf-8") as f:
+                image_credits = [line.strip() for line in f if line.strip()]
+
+        props = {
+            "chapters": chapters_props,
+            "background_music": music_file,
+            "image_credits": image_credits
+        }
+
+        with open("remotion-video/public/props.json", "w", encoding="utf-8") as f:
+            json.dump(props, f, indent=2)
         
-        # 6. Metadata
-        metadata = script['metadata']
-        chapters_text = create_chapters_text(script)
-        
-        title = metadata['title']
-        description = (
-            f"{metadata['description']}\n\n"
-            f"Chapters:\n{chapters_text}\n\n"
-            f"#football #soccer #footybitez #documentary"
-        )
-        tags = metadata.get('tags', []) + ["football", "soccer", "documentary"]
-        
-        # 7. Upload
-        should_upload = os.getenv("ENABLE_UPLOAD_LONG", "false").lower() == "true"
-        if should_upload:
-            logger.info("Attempting upload to YouTube...")
-            uploader = YouTubeUploader()
-            video_id = uploader.upload_video(video_path, title, description, tags)
-            if video_id:
-                logger.info(f"Successfully uploaded long-form video: {video_id}")
-                # Mark topic as used to prevent repetition
-                topic_gen.mark_topic_as_used(topic)
-                logger.info(f"Topic '{topic}' marked as used.")
-            else:
-                logger.error("Upload failed.")
-        
-        # 8. Cleanup
-        media_sourcer.cleanup()
-        
-        logger.info("Long-form Workflow completed.")
-        
+        logger.info("Props generated for Remotion. Content phase COMPLETE.")
+        topic_gen.mark_topic_as_used(topic)
+
     except Exception as e:
-        logger.error(f"Critical long-form error: {e}", exc_info=True)
+        logger.error(f"Critical error in documentary pipeline: {e}", exc_info=True)
         sys.exit(1)
 
 if __name__ == "__main__":

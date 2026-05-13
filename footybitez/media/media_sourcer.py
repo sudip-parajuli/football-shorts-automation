@@ -3,6 +3,7 @@ import requests
 import random
 import re
 import warnings
+import json
 from dotenv import load_dotenv
 
 # Suppress the ddgs package rename warning from duckduckgo_search
@@ -11,11 +12,17 @@ warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*duckduckgo
 class MediaSourcer:
     def __init__(self, download_dir="footybitez/media/downloads"):
         load_dotenv()
-        self.api_key = os.getenv("PEXELS_API_KEY")
+        self.pexels_api_key = os.getenv("PEXELS_API_KEY")
+        self.unsplash_api_key = os.getenv("UNSPLASH_ACCESS_KEY")
+        self.pixabay_api_key = os.getenv("PIXABAY_API_KEY")
         self.download_dir = download_dir
+        self.credits_file = os.path.join(download_dir, "image_credits.txt")
         os.makedirs(download_dir, exist_ok=True)
-        self.headers = {'Authorization': self.api_key} if self.api_key else {}
         self.neg_keywords = "-nfl -american -rugby -superbowl -touchdown -helmet -cfl -afl -handball"
+        
+        # Initialize credits file
+        if os.path.exists(self.credits_file):
+            os.remove(self.credits_file)
 
     def cleanup(self):
         """Deletes all downloaded media files to save space."""
@@ -27,6 +34,11 @@ class MediaSourcer:
                 print(f"Cleaned up {self.download_dir}")
             except Exception as e:
                 print(f"Cleanup warning: {e}")
+
+    def _add_credit(self, text):
+        """Appends a credit line to the credits file."""
+        with open(self.credits_file, "a", encoding="utf-8") as f:
+            f.write(text + "\n")
 
     def _download_file(self, url, filepath):
         """Downloads a file using requests with headers."""
@@ -40,7 +52,6 @@ class MediaSourcer:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
             
-            # Phase 6: URL Traceability
             if os.path.exists(filepath):
                 if os.path.getsize(filepath) < 100: 
                     os.remove(filepath)
@@ -50,219 +61,57 @@ class MediaSourcer:
         except Exception as e:
             print(f"Download failed {url}: {e}")
 
-    def get_title_card_image(self, query):
-        """Fetches a high-impact cinematic image."""
-        # Phase 6: Aggressive Keyword Enforcement
-        safe_query = query.lower().replace("football", "soccer")
+    def get_thumbnail_image(self, query):
+        """Fetches a high-contrast image for the thumbnail."""
+        print(f"Sourcing thumbnail for: {query}")
+        # Try Unsplash first for "high contrast" thumbnail look
+        path = self._fetch_unsplash_image(f"{query} high contrast documentary", count=1)
+        if path: return path[0]
         
-        # Try DDG first for specific match
-        filepath = self._fetch_ddg_image(f"{safe_query} soccer cinematic 4k wallpaper {self.neg_keywords}", "title")
-        if filepath: return filepath
-        # Fallback Pexels
-        return self._fetch_pexels_image(f"{safe_query} stadium", "portrait")
+        # Fallback Pixabay
+        path = self._fetch_pixabay_image(f"{query} cinematic", count=1)
+        if path: return path[0]
+        
+        # Fallback DDG
+        return self._fetch_ddg_image(f"{query} soccer wallpaper 4k", "thumb")
 
-    def get_profile_image(self, query):
-        """Fetches a specific person's portrait."""
-        # Phase 6: Aggressive Keyword Enforcement
-        safe_query = query.lower().replace("football", "soccer")
-        
-        club_keywords = ["fc", "united", "city", "real", "inter", "ac", "bayern", "dortmund", 
-                         "juventus", "liverpool", "arsenal", "chelsea", "tottenham", "barcelona", 
-                         "madrid", "psg", "ajax", "benfica", "porto", "club", "team"]
-        
-        is_club = any(k in query.lower() for k in club_keywords)
-        
-        # 1. Wikimedia (High Priority)
-        print(f"DEBUG: Searching Wikimedia for Profile: '{query}'")
-        wiki_query = f"{query} logo" if is_club else f"{query}"
-        wiki_path = self._fetch_wikimedia_image(wiki_query)
-        if wiki_path: return wiki_path
-
-        # 2. DDG
-        if is_club:
-            full_query = f"{safe_query} soccer club logo badge stadium wallpaper {self.neg_keywords}"
-            print(f"DEBUG: Searching DDG for CLUB Profile: '{full_query}'")
-            filepath = self._fetch_ddg_image(full_query, "profile")
-        else:
-            full_query = f"{safe_query} soccer player face portrait real life {self.neg_keywords} -cartoon -drawing -game"
-            print(f"DEBUG: Searching DDG for PLAYER Profile: '{full_query}'")
-            filepath = self._fetch_ddg_image(full_query, "profile")
-
-        if filepath: return filepath
-        
-        # 3. Pexels (Fallback)
-        print(f"DEBUG: Fallback to Pexels for Profile: '{query}'")
-        return self._fetch_pexels_image(f"{query} face", "square")
-
-    def get_media(self, query, count=5, orientation="portrait"):
+    def get_media_for_script(self, image_queries, thumbnail_query=None):
         """
-        Fetches media with prioritization:
-        1. ScoreBat Video Highlights (if match related)
-        2. Wikimedia Images (Accuracy)
-        3. DDG Images (Variety)
-        4. Pexels Videos (Dynamic Fallback)
+        Main pipeline for documentary image sourcing.
+        Prioritizes Wikimedia -> Unsplash -> Pixabay.
         """
-        paths = []
-        # Phase 6: Aggressive Keyword Enforcement - "football" is ambiguous for APIs
-        # Strip out explicit "football" or "soccer" mentions and replace with just "soccer"
-        clean_query = query.lower().replace("football", "").replace("soccer", "").strip()
+        assets = {}
         
-        # Determine strict query for searches
-        # Strategy: Use clean_query for specific checks,        # FIX: Strict negative keywords (User Provided List + Common Terms)
-        # We must exclude ALL rugby code names, variations, and related terms.
-        rugby_terms = "-rugby -union -league -rugger -sevens -scrum -ruck -maul -try -touchdown"
-        american_terms = "-nfl -american -gridiron -superbowl -quarterback -helmet -canadian -gaelic"
-        misc_terms = "-wheelchair -beach -touch -tag -mini -drawing -cartoon -sketch"
+        # 1. Source Thumbnail
+        if thumbnail_query:
+            assets['thumbnail'] = self.get_thumbnail_image(thumbnail_query)
         
-        neg_keywords = f"{rugby_terms} {american_terms} {misc_terms}"
-        
-        # Base query for Pexels (safer without negative keywords if API doesn't support)
-        base_search = f"{clean_query} soccer"
-        
-        # Strict query for DDG/Google (supports negative keywords)
-        strict_search = f"{clean_query} soccer {neg_keywords}" 
-        
-        print(f"Sourcing media for: {clean_query} (Base: {base_search}) (Strict: {strict_search}) (Need {count})")
-        needed = count
-        
-        # 1. ScoreBat Highlights (Experimental - Metadata/Limited)
-        print(f"Fetching ScoreBat highlights for: {clean_query}")
-        sb_video = self._fetch_scorebat_highlight(clean_query)
-        if sb_video:
-            paths.append(sb_video)
-            needed -= 1
-
-        # 2. YouTube Clips (High Specificity)
-        # Attempt to find a short clip for specific entities
-        if needed > 0:
-            print(f"Fetching YouTube clip for: {strict_search}")
-            yt_clip = self._fetch_youtube_clip(strict_search)
-            if yt_clip:
-                paths.append(yt_clip)
-                needed -= 1
-
-        # 3. Wikimedia (High Accuracy Images)
-        if needed > 0:
-            print(f"Fetching specific images from Wikimedia (Target: {needed})...")
-            # If we found a video, we might only need images to fill gaps.
-            # If we didn't find video, we rely heavily on images for specificity.
-            wiki_imgs = self._fetch_wikimedia_images(base_search, count=needed)
-            paths.extend(wiki_imgs)
-            needed -= len(wiki_imgs)
+        # 2. Source Script Images
+        for i, query in enumerate(image_queries):
+            print(f"Sourcing image {i+1}/{len(image_queries)}: {query}")
             
-        # 4. DDG Images (Variety/Specific Action)
-        if needed > 0:
-            print(f"Fetching specific images from DDG (Target: {needed})...")
-            # DDG supports negation perfectly
-            ddg_query = f"{strict_search} match action real life -drawing -cartoon"
-            ddg_imgs = self._fetch_ddg_images(ddg_query, count=needed + 2)
-            paths.extend(ddg_imgs[:needed])
-            needed -= len(ddg_imgs[:needed]) # Correctly subtract what we added
-            
-        # 5. Fallback logic removed via Phase 11.
-        # User explicitly requested no random Pexels / Generic videos.
-        # If needed > 0 here, the segment will just loop existing assets or be static.
-        if needed > 0:
-            print(f"Skipping generic video fallbacks. Preserving specific context.")
-            
-        return paths[:count]
-
-    def _fetch_scorebat_highlight(self, query):
-        """
-        Fetches video highlight from ScoreBat Free API.
-        Meta-data only or thumbnail as fallback.
-        """
-        try:
-            # url = "https://www.scorebat.com/video-api/v3/feed/?token=..." # Token needed for some endpoints, but feed is free
-            resp = requests.get("https://www.scorebat.com/video-api/v3/feed/")
-            if resp.status_code != 200: return None
-            
-            data = resp.json().get('response', [])
-            
-            # Simple fuzzy match
-            query_parts = set(query.lower().split())
-            best_match = None
-            
-            for match in data:
-                title = match['title'].lower()
-                competition = match['competition'].lower()
-                if any(part in title for part in query_parts):
-                    best_match = match
-                    break
-            
-            if best_match:
-                thumb = best_match['thumbnail']
-                fname = f"scorebat_{hash(thumb)}.jpg"
-                fpath = os.path.join(self.download_dir, fname)
-                self._download_file(thumb, fpath)
-                return fpath
+            # Step 1: Wikimedia
+            path = self._fetch_wikimedia_image(query)
+            if path:
+                assets[f"image_{i}"] = path
+                continue
                 
-        except Exception as e:
-            print(f"ScoreBat error: {e}")
-        return None
-
-    def _fetch_youtube_clip(self, query):
-        """
-        Fetches a short YouTube clip (max 15s) using yt-dlp.
-        Searches for 'shorts' or short videos to avoid downloading full matches.
-        """
-        try:
-            import yt_dlp
+            # Step 2: Unsplash
+            paths = self._fetch_unsplash_image(query, count=1)
+            if paths:
+                assets[f"image_{i}"] = paths[0]
+                continue
+                
+            # Step 3: Pixabay
+            paths = self._fetch_pixabay_image(query, count=1)
+            if paths:
+                assets[f"image_{i}"] = paths[0]
+                continue
+                
+            # Fallback: Solid color (Handled by Remotion if path is None, but let's provide a fallback query)
+            assets[f"image_{i}"] = self._fetch_ddg_image(f"{query} soccer", f"fallback_{i}")
             
-            class QuietYTDLLogger:
-                def debug(self, msg): pass
-                def warning(self, msg): pass
-                def error(self, msg): pass
-            
-            # Search options
-            ydl_opts = {
-                'format': 'bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-                'outtmpl': os.path.join(self.download_dir, 'temp_yt_%(id)s.%(ext)s'),
-                'noplaylist': True,
-                'quiet': True,
-                'no_warnings': True,
-                'logger': QuietYTDLLogger(),
-                'retries': 3,
-            }
-
-            try:
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    # 1. Search
-                    search_query = f"ytsearch1:{query}"
-                    info = ydl.extract_info(search_query, download=False)
-                    
-                    if 'entries' in info and len(info['entries']) > 0:
-                        video_url = info['entries'][0]['webpage_url']
-                        print(f"YouTube Match: {video_url}")
-                        
-                        # 2. Download
-                        ydl.download([video_url])
-                        
-                        # 3. Rename/Verify
-                        # Find the downloaded file
-                        for f in os.listdir(self.download_dir):
-                            if f.endswith(".mp4") and "temp_yt" in f:
-                                final_path = os.path.join(self.download_dir, f"yt_{hash(query)}.mp4")
-                                os.rename(os.path.join(self.download_dir, f), final_path)
-                                # Phase 6: URL Traceability
-                                print(f"DEBUG MEDIA: Downloaded {os.path.basename(final_path)} FROM {video_url}")
-                                return final_path
-            except Exception as e:
-                # Silence specific "Sign in" errors or generic blocking
-                err_msg = str(e).lower()
-                if "sign in" in err_msg or "bot" in err_msg or "429" in err_msg or "forbidden" in err_msg:
-                    print(f"DEBUG: YouTube Access blocked (Sign-in/Bot detection). Skipping to fallback.")
-                else:
-                    print(f"YouTube Download Error: {e}")
-            return None
-
-        except ImportError:
-            import logging
-            logging.warning("yt-dlp not installed. Skipping YouTube fetch.")
-        except Exception as e:
-            print(f"DEBUG: YouTube fetch error: {e}")
-        return None
-
+        return assets
 
     def _fetch_wikimedia_image(self, query):
         """Fetches image from Wikimedia Commons API."""
@@ -274,175 +123,104 @@ class MediaSourcer:
                 "generator": "search",
                 "gsrnamespace": 6,
                 "gsrsearch": f"{query} filetype:bitmap",
-                "gsrlimit": 3,
+                "gsrlimit": 1,
                 "prop": "imageinfo",
-                "iiprop": "url|size|mime",
+                "iiprop": "url|size|mime|extmetadata",
             }
             
             headers = {'User-Agent': 'FootyBitezBot/1.0'}
-            import time
-            time.sleep(1)
             r = requests.get(search_url, params=params, headers=headers, timeout=10)
             data = r.json()
             
             pages = data.get("query", {}).get("pages", {})
             if not pages: return None
             
-            best_url = None
             for page_id in pages:
                 page = pages[page_id]
                 imageinfo = page.get("imageinfo", [])
                 if not imageinfo: continue
                 url = imageinfo[0].get("url")
-                mime = imageinfo[0].get("mime", "")
-                if "image/jpeg" in mime or "image/png" in mime:
-                    best_url = url
-                    break
-            
-            if best_url:
-                fname = f"wiki_{hash(best_url)}.jpg"
+                
+                # Record License
+                meta = imageinfo[0].get("extmetadata", {})
+                license_name = meta.get("LicenseShortName", {}).get("value", "CC BY-SA")
+                artist = meta.get("Artist", {}).get("value", "Unknown")
+                # Clean HTML tags from artist
+                artist = re.sub('<[^<]+?>', '', artist)
+                
+                fname = f"wiki_{hash(url)}.jpg"
                 fpath = os.path.join(self.download_dir, fname)
-                self._download_file(best_url, fpath)
-                if os.path.exists(fpath): return fpath
+                self._download_file(url, fpath)
+                
+                if os.path.exists(fpath):
+                    self._add_credit(f"Image from Wikimedia Commons: {artist} ({license_name})")
+                    return fpath
         except Exception as e:
             print(f"Wikimedia error: {e}")
         return None
 
-    def _fetch_wikimedia_images(self, query, count):
+    def _fetch_unsplash_image(self, query, count=1):
+        if not self.unsplash_api_key: return []
         paths = []
         try:
-            search_url = "https://commons.wikimedia.org/w/api.php"
-            params = {
-                "action": "query",
-                "format": "json",
-                "generator": "search",
-                "gsrnamespace": 6, 
-                "gsrsearch": f"{query} filetype:bitmap",
-                "gsrlimit": count + 2,
-                "prop": "imageinfo",
-                "iiprop": "url|size|mime",
-            }
-            headers = {'User-Agent': 'FootyBitezBot/1.0'}
-            r = requests.get(search_url, params=params, headers=headers, timeout=10)
-            data = r.json()
-            pages = data.get("query", {}).get("pages", {})
-            if not pages: return []
-            
-            urls = []
-            for page_id in pages:
-                page = pages[page_id]
-                info = page.get("imageinfo", [])
-                if info:
-                    url = info[0].get("url")
-                    mime = info[0].get("mime", "")
-                    if "image/jpeg" in mime or "image/png" in mime:
-                        urls.append(url)
-            
-            import time
-            for url in urls[:count]:
-                time.sleep(1)
-                fname = f"wiki_bg_{hash(url)}.jpg"
-                fpath = os.path.join(self.download_dir, fname)
-                self._download_file(url, fpath)
-                if os.path.exists(fpath): paths.append(fpath)
+            url = "https://api.unsplash.com/search/photos"
+            params = {"query": query, "per_page": count, "client_id": self.unsplash_api_key}
+            res = requests.get(url, params=params, timeout=10)
+            if res.status_code == 200:
+                data = res.json()
+                for photo in data.get('results', []):
+                    src = photo['urls']['regular']
+                    user = photo['user']['name']
+                    fpath = os.path.join(self.download_dir, f"unsplash_{photo['id']}.jpg")
+                    self._download_file(src, fpath)
+                    if os.path.exists(fpath):
+                        paths.append(fpath)
+                        self._add_credit(f"Photo by {user} on Unsplash")
         except Exception as e:
-            print(f"Wikimedia multiple error: {e}")
+            print(f"Unsplash error: {e}")
         return paths
 
-    def _fetch_pexels_image(self, query, orientation):
-        if not self.api_key: return None
+    def _fetch_pixabay_image(self, query, count=1):
+        if not self.pixabay_api_key: return []
+        paths = []
         try:
-            url = "https://api.pexels.com/v1/search"
-            params = {"query": query, "per_page": 1, "orientation": orientation}
-            res = requests.get(url, headers=self.headers, params=params)
+            url = "https://pixabay.com/api/"
+            params = {"key": self.pixabay_api_key, "q": query, "image_type": "photo", "per_page": count}
+            res = requests.get(url, params=params, timeout=10)
             if res.status_code == 200:
-                photos = res.json().get('photos', [])
-                if photos:
-                    src = photos[0]['src']['large']
-                    fpath = os.path.join(self.download_dir, f"pexels_{photos[0]['id']}.jpg")
+                data = res.json()
+                for hit in data.get('hits', []):
+                    src = hit['largeImageURL']
+                    user = hit['user']
+                    fpath = os.path.join(self.download_dir, f"pixabay_{hit['id']}.jpg")
                     self._download_file(src, fpath)
-                    return fpath
+                    if os.path.exists(fpath):
+                        paths.append(fpath)
+                        self._add_credit(f"Image by {user} from Pixabay")
         except Exception as e:
-            print(f"Pexels image error: {e}")
-        return None
+            print(f"Pixabay error: {e}")
+        return paths
 
     def _fetch_ddg_image(self, query, suffix):
-        """Fetches an image using the new 'duckduckgo_search' (ddgs) library."""
+        """Fetches an image using DDG as final fallback."""
         try:
-            # Try new package name first, then old
-            try:
-                from ddgs import DDGS
-            except ImportError:
-                from duckduckgo_search import DDGS
-                
-            import time
-            time.sleep(2) # Increased delay to be safer
-            
+            from duckduckgo_search import DDGS
             with DDGS() as ddgs:
-                # Use 'images' method
-                results = list(ddgs.images(
-                    query, 
-                    region="wt-wt", 
-                    safesearch="off", 
-                    max_results=3
-                ))
-                
+                results = list(ddgs.images(query, max_results=1))
                 if results:
-                    for res in results:
-                        image_url = res.get('image')
-                        if not image_url: continue
-                        
-                        try:
-                            ext = image_url.split('.')[-1].split('?')[0]
-                            if len(ext) > 4 or not ext.isalpha(): ext = "jpg"
-                            if ext.lower() in ['img', 'webp']: ext = "jpg"
-                            filename = f"ddg_{suffix}_{hash(query)}_{random.randint(0,1000)}.{ext}"
-                            filepath = os.path.join(self.download_dir, filename)
-                            
-                            self._download_file(image_url, filepath)
-                            if os.path.exists(filepath):
-                                return filepath
-                        except Exception:
-                            continue
+                    image_url = results[0].get('image')
+                    if image_url:
+                        filename = f"ddg_{suffix}_{hash(query)}.{image_url.split('.')[-1].split('?')[0][:3]}"
+                        if len(filename.split('.')[-1]) > 3: filename += ".jpg"
+                        filepath = os.path.join(self.download_dir, filename)
+                        self._download_file(image_url, filepath)
+                        if os.path.exists(filepath):
+                            return filepath
         except Exception as e:
-            # Silence 403 Forbidden to declutter logs
-            err_msg = str(e).lower()
-            if "403" in err_msg or "forbidden" in err_msg:
-                print(f"DEBUG: DDG Search blocked (403). Falling back to Pexels.")
-            else:
-                # Log as warning, don't crash
-                print(f"DDG Search Warning (Falling back to Pexels): {e}")
+            print(f"DDG Fallback error: {e}")
         return None
 
-    def _fetch_ddg_images(self, query, count):
-        paths = []
-        try:
-            try:
-                from ddgs import DDGS
-            except ImportError:
-                from duckduckgo_search import DDGS
-                
-            import time
-            time.sleep(2)
-            
-            with DDGS() as ddgs:
-                results = list(ddgs.images(query, max_results=count + 2))
-                for res in results:
-                    if len(paths) >= count: break
-                    url = res.get('image')
-                    if not url: continue
-                    
-                    try:
-                        fpath = os.path.join(self.download_dir, f"ddg_{hash(url)}.jpg")
-                        self._download_file(url, fpath)
-                        if os.path.exists(fpath): paths.append(fpath)
-                    except:
-                        continue
-        except Exception as e:
-            # Silence 403 Forbidden to declutter logs
-            err_msg = str(e).lower()
-            if "403" in err_msg or "forbidden" in err_msg:
-                print(f"DEBUG: DDG Search blocked (403). Filtering sources...")
-            else:
-                print(f"DDG Search Warning: {e}")
-        return paths
+if __name__ == "__main__":
+    sourcer = MediaSourcer()
+    # Test
+    # sourcer.get_media_for_script(["Lionel Messi lifting world cup"], "Lionel Messi face focus")
