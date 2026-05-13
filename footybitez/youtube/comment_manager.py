@@ -15,7 +15,10 @@ logger = logging.getLogger(__name__)
 
 class CommentManager:
     def __init__(self, client_secrets_file="client_secret.json", token_file="token.json"):
-        self.scopes = ["https://www.googleapis.com/auth/youtube.force-ssl"]
+        self.scopes = [
+            "https://www.googleapis.com/auth/youtube.upload",
+            "https://www.googleapis.com/auth/youtube.force-ssl"
+        ]
         self.youtube = self._authenticate(client_secrets_file, token_file)
         
         # Configure Gemini for reply generation

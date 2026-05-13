@@ -15,6 +15,10 @@ export const RemotionRoot: React.FC = () => {
     });
   }
 
+  if (inputProps.quiz) {
+    totalDuration += 10 * 24; // 10 seconds at 24fps
+  }
+
   return (
     <>
       <Composition
