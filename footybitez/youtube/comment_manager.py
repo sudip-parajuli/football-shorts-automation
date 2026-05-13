@@ -141,6 +141,37 @@ class CommentManager:
         except Exception as e:
             logger.error(f"Failed to post reply: {e}")
 
+    def pin_comment(self, video_id, text):
+        """Posts a top-level comment and pins it to the top."""
+        if not self.youtube:
+            logger.error("YouTube service not initialized.")
+            return False
+
+        try:
+            # 1. Post the comment thread
+            body = {
+                "snippet": {
+                    "videoId": video_id,
+                    "topLevelComment": {
+                        "snippet": {
+                            "textOriginal": text
+                        }
+                    }
+                }
+            }
+            response = self.youtube.commentThreads().insert(part="snippet", body=body).execute()
+            comment_id = response["snippet"]["topLevelComment"]["id"]
+            logger.info(f"Comment posted. ID: {comment_id}")
+
+            # 2. Pin the comment (setAtTop)
+            self.youtube.comments().setAtTop(id=comment_id).execute()
+            logger.info(f"Comment pinned to video {video_id}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Failed to pin comment: {e}")
+            return False
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     manager = CommentManager()
