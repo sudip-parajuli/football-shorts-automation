@@ -36,22 +36,32 @@ class DocumentaryGenerator:
 You are a professional YouTube scriptwriter specializing in football documentary content. 
 STRICT RULES:
 1. No generic intros/outros. Start with the hook.
-2. Specific image queries per chapter that strictly follow the script narrative.
-3. Sentence rhythm: 2-3 long followed by 1 short punchy sentence.
+2. image_queries MUST be VERY specific — always include the player's full name, the team, and the action (e.g. "Neymar Jr Barcelona skills 2015", "Ronaldinho dribbling Brazil 2006"). Never use generic queries.
+3. Each chapter MUST have 4-6 image_queries — enough to fill the narration with changing visuals. Think like a video editor.
+4. If a chapter is about comparing two players, alternate queries between them (2-3 images per player).
+5. Sentence rhythm: 2-3 long followed by 1 short punchy sentence.
 
 OUTPUT FORMAT (JSON):
 {
   "title": "video title",
-  "suggested_voice_index": 0, (Select 0 for deep/serious, 1 for energetic/storyteller, 2 for analytical)
+  "suggested_voice_index": 0,
   "chapters": [
     {
       "chapter_number": 1,
       "chapter_title": "string",
       "script": "narration text",
-      "image_queries": ["specific search query 1 based on this chapter", "specific search query 2"]
+      "image_queries": [
+        "SPECIFIC query 1 with player name + team + action",
+        "SPECIFIC query 2 with player name + team + action",
+        "SPECIFIC query 3 with player name + team + action",
+        "SPECIFIC query 4 with player name + team + action",
+        "SPECIFIC query 5 with player name + team + action",
+        "SPECIFIC query 6 with player name + team + action"
+      ]
     }
   ],
-  "thumbnail_query": "specific high-contrast query",
+  "thumbnail_prompt": "ultra detailed AI image prompt: cinematic YouTube thumbnail for a football documentary, [SPECIFIC DESCRIPTION OF PLAYERS/SCENE], dramatic stadium background, photorealistic, 4K, professional sports broadcast quality, volumetric lighting",
+  "thumbnail_query": "specific high-contrast query (fallback for non-AI)",
   "quiz": {
     "question": "string",
     "options": ["A", "B", "C"],

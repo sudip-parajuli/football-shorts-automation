@@ -6,7 +6,7 @@ export const RemotionRoot: React.FC = () => {
   const inputProps = (getInputProps() as unknown) as MainVideoProps;
   
   // Calculate total duration
-  const CHAPTER_INTRO_DURATION = 48; // 2 seconds at 24fps
+  const CHAPTER_INTRO_DURATION = 96; // 4 seconds at 24fps
   let totalDuration = 0;
   
   if (inputProps.chapters) {

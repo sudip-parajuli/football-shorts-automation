@@ -117,14 +117,27 @@ def main():
                 "images": chapter_images
             })
 
-        # 5. Generate Thumbnail
+        # 5. Generate Thumbnail (AI first, PIL fallback)
         thumb_gen = ThumbnailGenerator()
-        bg_query = script_data.get('thumbnail_query', f"{topic} soccer cinematic")
-        thumb_assets = media_sourcer.get_media_for_script([], thumbnail_query=bg_query)
-        bg_path = thumb_assets.get('thumbnail')
-        if bg_path:
-            logger.info("Generating professional thumbnail...")
-            thumb_gen.generate_thumbnail(bg_path, script_data['title'], "remotion-video/public/thumbnail.jpg")
+        thumb_out = "remotion-video/public/thumbnail.jpg"
+        ai_prompt = script_data.get('thumbnail_prompt')
+        thumb_generated = False
+
+        if ai_prompt:
+            logger.info("Attempting AI thumbnail generation with Gemini...")
+            result = thumb_gen.generate_ai_thumbnail(ai_prompt, thumb_out)
+            if result:
+                logger.info(f"AI Thumbnail saved to {thumb_out}")
+                thumb_generated = True
+
+        if not thumb_generated:
+            logger.info("Falling back to PIL thumbnail generation...")
+            bg_query = script_data.get('thumbnail_query', f"{topic} soccer cinematic")
+            thumb_assets = media_sourcer.get_media_for_script([], thumbnail_query=bg_query)
+            bg_path = thumb_assets.get('thumbnail')
+            if bg_path:
+                thumb_gen.generate_thumbnail(bg_path, script_data['title'], thumb_out)
+
 
         # 6. Prepare Props for Remotion
         music_file = None

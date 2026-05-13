@@ -25,102 +25,117 @@ export interface MainVideoProps {
   };
 }
 
-export const MainVideo: React.FC<MainVideoProps> = ({ 
-  chapters, 
+const MAX_FRAMES_PER_IMAGE = 72; // 3 seconds max per image at 24fps
+
+export const MainVideo: React.FC<MainVideoProps> = ({
+  chapters,
   background_music,
   quiz
 }) => {
   const { fps } = useVideoConfig();
-  
+
   let currentFrame = 0;
-  const CHAPTER_INTRO_DURATION = 2 * fps; // 2 seconds
+  const CHAPTER_INTRO_DURATION = 4 * fps; // 4 seconds
+
+  // Global image counter for cycling through effects
+  let globalImageIndex = 0;
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#0a0a0a' }}>
-      {/* Background Music */}
+      {/* Background Music — quiet so narration is clear */}
       {background_music && (
-        <Audio 
-          src={staticFile(background_music)} 
-          volume={(f) => {
-            // Audio ducking logic: -18dB base
-            return 0.12; 
-          }}
+        <Audio
+          src={staticFile(background_music)}
+          volume={() => 0.06}
         />
       )}
 
       {chapters.map((chapter, index) => {
         const chapterStartTime = currentFrame;
-        
-        // 1. Chapter Intro
+
+        // 1. Chapter Intro (4s)
         const introSequence = (
-          <Sequence 
-            key={`intro-${index}`} 
-            from={chapterStartTime} 
+          <Sequence
+            key={`intro-${index}`}
+            from={chapterStartTime}
             durationInFrames={CHAPTER_INTRO_DURATION}
           >
-            <ChapterIntro 
-              number={chapter.chapter_number} 
-              title={chapter.chapter_title} 
+            <ChapterIntro
+              number={chapter.chapter_number}
+              title={chapter.chapter_title}
             />
           </Sequence>
         );
-        
+
         currentFrame += CHAPTER_INTRO_DURATION;
-        
-        // 2. Chapter Content (Slides)
-        // For simplicity in this example, we assume one image per chapter or split logic
-        // The real implementation would split script by cues.
-        // For now, let's render the chapter's images sequentially.
+
+        // 2. Chapter Content — images capped at MAX_FRAMES_PER_IMAGE each
         const chapterContentDuration = chapter.duration_in_frames;
-        const imagesCount = chapter.images.length;
-        const framesPerImage = Math.floor(chapterContentDuration / imagesCount);
-        
-        const slides = chapter.images.map((img, imgIndex) => {
-          const slideStart = currentFrame;
-          const duration = imgIndex === imagesCount - 1 
-            ? chapterContentDuration - (imgIndex * framesPerImage) 
-            : framesPerImage;
-          
-          currentFrame += duration;
-          
-          return (
-            <Sequence 
-              key={`slide-${index}-${imgIndex}`} 
-              from={slideStart} 
+        const imagesArr = chapter.images && chapter.images.length > 0
+          ? chapter.images
+          : ['assets/images/placeholder.jpg'];
+
+        // Calculate how many slots we need to fill chapterContentDuration
+        const framesPerImage = Math.min(
+          Math.floor(chapterContentDuration / imagesArr.length),
+          MAX_FRAMES_PER_IMAGE
+        );
+
+        const slides: React.ReactNode[] = [];
+        let slideFrame = currentFrame;
+        let remaining = chapterContentDuration;
+        let imgIdx = 0;
+
+        while (remaining > 0) {
+          const img = imagesArr[imgIdx % imagesArr.length];
+          const duration = Math.min(framesPerImage, remaining);
+          const effectIdx = globalImageIndex % 5;
+          globalImageIndex++;
+
+          slides.push(
+            <Sequence
+              key={`slide-${index}-${imgIdx}`}
+              from={slideFrame}
               durationInFrames={duration}
             >
-              <ImageSlide src={img} durationInFrames={duration} />
+              <ImageSlide src={img} durationInFrames={duration} effectIndex={effectIdx} />
             </Sequence>
           );
-        });
+
+          slideFrame += duration;
+          remaining -= duration;
+          imgIdx++;
+        }
+
+        currentFrame += chapterContentDuration;
 
         // 3. Chapter Narration
         const narration = (
-          <Audio 
+          <Sequence
             key={`audio-${index}`}
-            src={staticFile(chapter.audio_path)}
-            startFrom={0}
-          />
+            from={chapterStartTime + CHAPTER_INTRO_DURATION}
+            durationInFrames={chapterContentDuration}
+          >
+            <Audio src={staticFile(chapter.audio_path)} startFrom={0} />
+          </Sequence>
         );
 
         return (
           <React.Fragment key={`chapter-${index}`}>
             {introSequence}
             {slides}
-            <Sequence from={chapterStartTime + CHAPTER_INTRO_DURATION} durationInFrames={chapterContentDuration}>
-               {narration}
-            </Sequence>
+            {narration}
           </React.Fragment>
         );
       })}
 
-      {/* 4. Interactive Quiz at the end */}
+      {/* Interactive Quiz at the end */}
       {quiz && (
-        <Sequence 
-          from={currentFrame} 
+        <Sequence
+          from={currentFrame}
           durationInFrames={10 * fps}
         >
-          <QuizSlide 
+          <QuizSlide
             question={quiz.question}
             options={quiz.options}
             correct_answer_index={quiz.correct_answer_index}

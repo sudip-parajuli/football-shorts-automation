@@ -10,8 +10,14 @@ export const ChapterIntro: React.FC<ChapterIntroProps> = ({ number, title }) => 
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const opacity = interpolate(frame, [0, 10, 40, 48], [0, 1, 1, 0]);
-  const translateY = interpolate(frame, [0, 10], [20, 0], {
+  const totalFrames = 4 * fps; // 4 seconds
+
+  const opacity = interpolate(frame, [0, 12, totalFrames - 18, totalFrames], [0, 1, 1, 0]);
+  const translateY = interpolate(frame, [0, 18], [40, 0], {
+    extrapolateRight: 'clamp',
+  });
+  const lineScale = interpolate(frame, [14, 28], [0, 1], {
+    extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });
 
@@ -24,15 +30,15 @@ export const ChapterIntro: React.FC<ChapterIntroProps> = ({ number, title }) => 
         opacity,
       }}
     >
-      <div style={{ textAlign: 'center', transform: `translateY(${translateY}px)` }}>
+      <div style={{ textAlign: 'center', transform: `translateY(${translateY}px)`, padding: '0 80px' }}>
         <div
           style={{
             fontFamily: 'Barlow Condensed',
-            fontSize: 24,
+            fontSize: 48,
             color: '#F5A623',
             textTransform: 'uppercase',
-            letterSpacing: 4,
-            marginBottom: 10,
+            letterSpacing: 8,
+            marginBottom: 16,
             fontWeight: 700,
           }}
         >
@@ -41,20 +47,20 @@ export const ChapterIntro: React.FC<ChapterIntroProps> = ({ number, title }) => 
         <div
           style={{
             fontFamily: 'Barlow Condensed',
-            fontSize: 80,
+            fontSize: 140,
             color: 'white',
             fontWeight: 700,
             textTransform: 'uppercase',
-            maxWidth: 800,
-            lineHeight: 1.1,
+            maxWidth: 1600,
+            lineHeight: 1.05,
           }}
         >
           {title}
         </div>
         <div
           style={{
-            width: 100,
-            height: 4,
+            width: `${lineScale * 120}px`,
+            height: 5,
             backgroundColor: '#F5A623',
             margin: '40px auto 0',
           }}
