@@ -11,7 +11,7 @@ class YouTubeUploader:
         self.client_secrets_file = client_secrets_file
         self.token_file = token_file
         self.scopes = [
-            "https://www.googleapis.com/auth/youtube.upload",
+            "https://www.googleapis.com/auth/youtube",
             "https://www.googleapis.com/auth/youtube.force-ssl"
         ]
         self.youtube = self._authenticate()

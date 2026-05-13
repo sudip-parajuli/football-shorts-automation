@@ -129,10 +129,18 @@ def main():
         # 6. Prepare Props for Remotion
         music_file = None
         music_dir = "footybitez/music"
+        public_music_dir = "remotion-video/public/music"
+        os.makedirs(public_music_dir, exist_ok=True)
         if os.path.exists(music_dir):
             files = [f for f in os.listdir(music_dir) if f.endswith('.mp3')]
             if files:
-                music_file = f"music/{random.choice(files)}"
+                import shutil, re
+                chosen = random.choice(files)
+                # Sanitize: replace spaces, parentheses, and special chars with underscores
+                safe_name = re.sub(r'[^a-zA-Z0-9._-]', '_', chosen)
+                safe_dest = os.path.join(public_music_dir, safe_name)
+                shutil.copy2(os.path.join(music_dir, chosen), safe_dest)
+                music_file = f"music/{safe_name}"
 
         image_credits = []
         credits_file = os.path.join(media_sourcer.download_dir, "image_credits.txt")
