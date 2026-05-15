@@ -25,7 +25,7 @@ class CommentManager:
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         if self.gemini_api_key:
             genai.configure(api_key=self.gemini_api_key)
-            self.model = genai.GenerativeModel("gemini-1.5-flash")
+            self.model = genai.GenerativeModel("gemini-2.5-flash")
 
     def _authenticate(self, client_secrets_file, token_file):
         """Authenticates and returns the YouTube service."""

@@ -381,15 +381,25 @@ class VideoCreator:
                     chunk_visuals = []
                     inner_idx = 0 # Cycle through THIS segment's media only
                     
+                    # Detect list-style scripts (Rankings & Lists category)
+                    is_list_style = len(segments) >= 8  # Top 10 heuristic
+                    halfway_idx = len(segments) // 2
+
                     while remaining_chunk > 0.1: # Threshold to avoid tiny frames
                         cut_dur = min(3.0, remaining_chunk)
-                        
+
+                        # FLASH CUT at halfway point of list-style scripts
+                        if is_list_style and seg_index == halfway_idx and inner_idx == 0:
+                            flash = self._create_flash_cut()
+                            if flash:
+                                chunk_visuals.append(flash)
+
                         # Decide media: Pick from CURRENT pool.
                         media_path = current_pool[inner_idx % len(current_pool)]
                         inner_idx += 1
-                        
+
                         logger.info(f"DEBUG: Segment {seg_index} Clip: {media_path}, Cut Duration: {cut_dur}")
-                        
+
                         if media_path.endswith(('.mp4', '.mov')):
                             if not os.path.exists(media_path):
                                 v = ColorClip(size=(1080, 1920), color=(0,0,0)).set_duration(cut_dur)
@@ -410,29 +420,34 @@ class VideoCreator:
                                 chunk_visuals.append(img)
                             else:
                                 img = ImageClip(media_path).set_duration(cut_dur)
-                                
-                                # Random Effect
-                                eff = random.choice(["sniper", "glitch", "slow_zoom", "slow_zoom"])
-                                if eff == "sniper":
-                                    img = self._apply_sniper_zoom(img)
-                                elif eff == "glitch":
+
+                                # ZOOM PUNCH: start at 105% scale, zooms to 100% over 8 frames
+                                img = self._apply_zoom_punch(img)
+
+                                # Additional random effect on top of zoom-punch
+                                eff = random.choice(["none", "none", "glitch"])
+                                if eff == "glitch":
                                     img = self._apply_glitch_effect(img)
-                                else:
-                                    img = img.resize(lambda t: 1 + 0.1 * t/cut_dur)
-                                    
-                                chunk_visuals.append(self._ensure_rgb(self._resize_to_vertical(img)))
-                                
-                            # Add transition SFX (Slide Bounce or Alien) randomly
+
+                                img = self._ensure_rgb(self._resize_to_vertical(img))
+
+                                # RANKING NUMBER OVERLAY for list-style videos
+                                if is_list_style and (seg_index + 1) <= len(segments):
+                                    rank_num = len(segments) - seg_index  # Count down
+                                    img = self._add_ranking_overlay(img, rank_num, cut_dur)
+
+                                chunk_visuals.append(img)
+
+                            # Add transition SFX randomly
                             if random.random() > 0.7:
                                 sfx_type = random.choice(["slide_bounce", "alien_invert"])
                                 sfx = self.sfx_man.get_sfx(sfx_type)
                                 if sfx:
-                                    # Wrap in Composite to avoid OOB
                                     comp_sfx = CompositeAudioClip([sfx.set_start(0)]).set_duration(cut_dur)
                                     chunk_visuals[-1] = chunk_visuals[-1].set_audio(comp_sfx)
-                            
+
                         remaining_chunk -= cut_dur
-                        
+
                     visual_clips.extend(chunk_visuals)
 
 
@@ -652,6 +667,128 @@ class VideoCreator:
             img = img.crop((left, top, left + w, top + h))
             return np.array(img)
         return clip.fl(effect)
+
+    # ─────────────────────────────────────────────────────────
+    # NEW VISUAL EFFECTS — Zoom-Punch, Flash-Cut, Ranking Overlay
+    # ─────────────────────────────────────────────────────────
+
+    def _apply_zoom_punch(self, clip):
+        """
+        Zoom-punch effect: starts at 105% scale, zooms to 100% over first 8 frames.
+        Creates an 'impact' feel when cutting between list items.
+        """
+        fps = 30
+        punch_frames = 8
+        punch_duration = punch_frames / fps  # ~0.267s
+
+        def effect(get_frame, t):
+            frame = get_frame(t)
+            if frame.dtype != np.uint8:
+                frame = frame.astype(np.uint8)
+            h, w = frame.shape[:2]
+
+            if t < punch_duration:
+                # Interpolate 1.05 → 1.0
+                zoom = 1.05 - (0.05 * (t / punch_duration))
+            else:
+                zoom = 1.0
+                return frame  # No-op after punch
+
+            new_h, new_w = int(h * zoom), int(w * zoom)
+            img = Image.fromarray(frame)
+            img = img.resize((new_w, new_h), Image.LANCZOS)
+            # Center crop back to original size
+            left = (new_w - w) // 2
+            top = (new_h - h) // 2
+            img = img.crop((left, top, left + w, top + h))
+            return np.array(img)
+
+        return clip.fl(effect)
+
+    def _create_flash_cut(self, duration_frames: int = 4, fps: int = 30):
+        """
+        Creates a brief white flash clip (4 frames = ~0.13s at 30fps).
+        Inserted at the halfway point of Top-10 list videos for energy.
+        """
+        try:
+            duration = duration_frames / fps
+            flash = ColorClip(size=(1080, 1920), color=(255, 255, 255)).set_duration(duration)
+            return self._ensure_rgb(flash)
+        except Exception as e:
+            logger.warning(f"[FlashCut] Failed to create flash clip: {e}")
+            return None
+
+    def _add_ranking_overlay(self, clip, rank_number: int, duration: float):
+        """
+        Overlays a large ranking number (e.g. #1, #2) in the bottom-left corner.
+        Font: Barlow Condensed Bold (or Impact fallback), size 140, amber #F5A623.
+        Fades in over first 6 frames.
+        """
+        try:
+            from PIL import Image as PILImage, ImageDraw, ImageFont
+
+            # Canvas matching Shorts size
+            w, h = 1080, 1920
+            num_img = PILImage.new('RGBA', (w, h), (0, 0, 0, 0))
+            draw = ImageDraw.Draw(num_img)
+
+            # Load font
+            font = None
+            font_candidates = [
+                "remotion-video/public/assets/fonts/BarlowCondensed-Bold.ttf",
+                "C:\\Windows\\Fonts\\impact.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            ]
+            for fp in font_candidates:
+                if os.path.exists(fp):
+                    try:
+                        font = ImageFont.truetype(fp, 140)
+                        break
+                    except Exception:
+                        continue
+            if not font:
+                font = ImageFont.load_default()
+
+            label = f"#{rank_number}"
+            AMBER = (245, 166, 35, 255)
+            SHADOW = (0, 0, 0, 153)  # 60% opacity
+
+            # Position: bottom-left
+            x, y = 50, h - 220
+
+            # Drop shadow (4px offset)
+            for ox in range(-4, 5):
+                for oy in range(-4, 5):
+                    draw.text((x + ox + 4, y + oy + 4), label, font=font, fill=SHADOW)
+
+            # Main text in amber
+            draw.text((x, y), label, font=font, fill=AMBER)
+
+            # Save overlay image
+            overlay_path = os.path.join(self.output_dir, "temp_text", f"rank_{rank_number}.png")
+            num_img.save(overlay_path)
+
+            # Build overlay clip with 6-frame fade-in
+            fps = 30
+            fade_frames = 6
+            fade_dur = fade_frames / fps
+
+            overlay_clip = ImageClip(overlay_path).set_duration(duration)
+
+            # Apply fade-in via opacity
+            def fade_opacity(t):
+                if t < fade_dur:
+                    return t / fade_dur
+                return 1.0
+
+            overlay_clip = overlay_clip.set_opacity(fade_opacity)
+            result = CompositeVideoClip([clip, overlay_clip], size=(w, h))
+            return self._ensure_rgb(result)
+
+        except Exception as e:
+            logger.warning(f"[RankingOverlay] Failed: {e}")
+            return clip  # Return unchanged clip on failure
 
     def _apply_glitch_effect(self, clip):
         """RGB Channel split glitch."""

@@ -2,43 +2,88 @@ import os
 import time
 import json
 import logging
-import google.generativeai as genai
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 logger = logging.getLogger(__name__)
 
+
+def _get_keys(prefix: str) -> list:
+    """Collect all non-empty env vars named PREFIX, PREFIX2, PREFIX3 …"""
+    keys = []
+    for suffix in ["", "2", "3"]:
+        val = os.getenv(f"{prefix}{suffix}")
+        if val:
+            keys.append(val)
+    return keys
+
+
 class ScriptGenerator:
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
+        self.gemini_keys = _get_keys("GEMINI_API_KEY")
         self.groq_api_key = os.getenv("GROQ_API_KEY")
-        if not self.api_key:
-            logger.warning("GEMINI_API_KEY not found. AI generation might fail if Groq also missing.")
-        else:
-            genai.configure(api_key=self.api_key)
-            
-        self.models = ["models/gemini-1.5-flash", "models/gemini-1.5-pro", "models/gemini-1.0-pro"]
+        if not self.gemini_keys:
+            logger.warning("No GEMINI_API_KEY found. Will rely on Groq or Wikipedia fallback.")
+
+    def _try_gemini(self, prompt: str) -> dict | None:
+        """Try all Gemini keys in order using new google-genai SDK."""
+        try:
+            from google import genai
+            from google.genai import types
+        except ImportError:
+            logger.error("google-genai not installed. Run: pip install google-genai>=1.0.0")
+            return None
+
+        for i, key in enumerate(self.gemini_keys):
+            for model_name in ["gemini-2.5-flash", "gemini-1.5-pro"]:
+                try:
+                    logger.info(f"Trying Gemini key #{i+1} model={model_name}...")
+                    client = genai.Client(api_key=key)
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            temperature=0.7,
+                            thinking_config=types.ThinkingConfig(thinking_budget=0)
+                        )
+                    )
+                    text = response.text.strip()
+                    # Strip markdown code fences if present
+                    if text.startswith("```"):
+                        text = text.split("\n", 1)[-1]
+                    if text.endswith("```"):
+                        text = text.rsplit("```", 1)[0]
+                    data = json.loads(text.strip())
+                    if self._validate_script_data(data):
+                        logger.info(f"Gemini key #{i+1} ({model_name}) succeeded.")
+                        return data
+                except Exception as e:
+                    logger.warning(f"Gemini key #{i+1} model={model_name} failed: {e}")
+        return None
 
     def generate_script(self, topic, category="General"):
         """
-        Generates a short video script using Groq (Priority), Gemini, or Wikipedia (Fallback).
+        Generates a short video script using Groq (priority), Gemini, or Wikipedia fallback.
         """
-        # 0. Fetch Context for Factual Grounding (Skip for 'What If?')
+        # 0. Fetch Context for Factual Grounding (skip for What If?)
         context = ""
         if category != "What If?":
             context = self._fetch_context(topic)
-            if context:
+            if context and context != "__NO_CONTEXT__":
                 logger.info(f"Fetched factual context for grounding ({len(context)} chars).")
+            elif context == "__NO_CONTEXT__":
+                logger.warning("Context fetch failed after retries — proceeding in conservative mode.")
 
-        # 1. Try Groq (User preferred for facts)
+        prompt = self._get_prompt(topic, category, context=context)
+
+        # 1. Try Groq (preferred for factual accuracy)
         if self.groq_api_key:
             try:
                 from groq import Groq
                 client = Groq(api_key=self.groq_api_key)
                 logger.info(f"Generating script with Groq (Llama3) for category: {category}...")
-                
-                prompt = self._get_prompt(topic, category, context=context)
                 completion = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[{"role": "user", "content": prompt}],
@@ -54,123 +99,114 @@ class ScriptGenerator:
             except Exception as e:
                 logger.error(f"Groq generation failed: {e}")
 
-        if self.api_key:
+        # 2. Try Gemini (new SDK)
+        if self.gemini_keys:
             logger.info(f"Generating script with Gemini for category: {category}...")
-            prompt = self._get_prompt(topic, category, context=context)
-            
-            # Try configured models
-            for attempt, model_name in enumerate(self.models):
-                try:
-                    logger.info(f"Trying Gemini model: {model_name}")
-                    model = genai.GenerativeModel(model_name)
-                    response = model.generate_content(prompt)
-                    text = response.text.strip()
-                    if text.startswith('```json'): text = text[7:]
-                    if text.endswith('```'): text = text[:-3]
-                    
-                    try:
-                        data = json.loads(text.strip())
-                        if self._validate_script_data(data):
-                            logger.info(f"Gemini generation successful ({model_name}).")
-                            return data
-                    except: continue
-                except Exception as e:
-                    logger.error(f"Gemini model {model_name} failed: {e}")
-            
-            # Final attempt: List and try the first available text model
-            try:
-                logger.info("Attempting to find ANY available Gemini model...")
-                for m in genai.list_models():
-                    if 'generateContent' in m.supported_generation_methods and 'gemini' in m.name:
-                        try:
-                            logger.info(f"Auto-selected fallback model: {m.name}")
-                            model = genai.GenerativeModel(m.name)
-                            response = model.generate_content(prompt)
-                            data = json.loads(response.text.strip().replace('```json', '').replace('```', ''))
-                            if self._validate_script_data(data):
-                                return data
-                        except: continue
-            except: pass
+            result = self._try_gemini(prompt)
+            if result:
+                return result
 
         # 3. Fallback: Wikipedia
         logger.warning("All AI models failed. Converting to Wikipedia Mode.")
         return self._get_wikipedia_script(topic)
 
     def _fetch_context(self, topic):
-        """Fetches background info from Wikipedia to ground the LLM in facts."""
+        """
+        Fetches background info from Wikipedia to ground the LLM in facts.
+        Retries once with a simplified query if the first attempt fails.
+        Returns '__NO_CONTEXT__' sentinel if both attempts fail.
+        """
         import wikipedia
-        
-        # 1. Extract potential entities
-        # Remove common filler words to improve search precision
-        clean_topic = topic.replace("Most clutch", "").replace("Top 5", "").replace("Why", "").strip()
-        # Remove subtitles after colons or question marks for cleaner entity extraction
         import re
-        clean_topic = re.split(r'[:?]', clean_topic)[0].strip()
-        
-        potential_entities = [clean_topic]
-        for joiner in [" vs ", " and ", " versus ", " & "]:
-            if joiner in clean_topic.lower():
-                potential_entities = clean_topic.lower().split(joiner)
-                break
-        
-        # Fallback to the original topic if cleaning was too aggressive
-        if len(potential_entities) == 0:
-             potential_entities = [topic]
-        
-        full_context = []
-        seen_pages = set()
-        
-        for ent in potential_entities[:2]: # Limit to first 2 main entities
-            try:
-                ent = ent.strip()
-                if not ent or len(ent) < 2: continue
-                
-                # Bias towards Association Football (Soccer) to avoid NFL/Rugby/Flag results
-                search_query = ent.lower().replace("football", "soccer")
-                if "soccer" not in search_query and "association" not in search_query:
-                    search_query += " soccer"
 
-                search_res = wikipedia.search(search_query, results=1)
-                if not search_res: continue
-                
-                page_title = search_res[0]
-                if page_title in seen_pages: continue
-                seen_pages.add(page_title)
-                
-                page = wikipedia.page(page_title, auto_suggest=False)
-                
-                # Context snippet
-                context_parts = [f"ENTITY: {page.title}\nSUMMARY: {page.summary[:700]}"]
-                
-                # Important sections
-                sections = page.sections
-                for target in ["Honours", "Career statistics", "Club career", "International career", "Records", "Rules"]:
-                    match = next((s for s in sections if target.lower() in s.lower()), None)
-                    if match:
-                        try:
-                            sec_text = page.section(match)
-                            if sec_text:
-                                context_parts.append(f"--- {match.upper()} ---\n{sec_text[:800]}")
-                        except: continue
-                
-                full_context.append("\n".join(context_parts))
-                
-                # Stop if we have enough context (avoiding token limits)
-                if len("\n\n".join(full_context)) > 4000:
+        def _do_fetch(query):
+            clean = query.replace("Most clutch", "").replace("Top 5", "").replace("Why", "").strip()
+            clean = re.split(r'[:?]', clean)[0].strip()
+            potential_entities = [clean]
+            for joiner in [" vs ", " and ", " versus ", " & "]:
+                if joiner in clean.lower():
+                    potential_entities = clean.lower().split(joiner)
                     break
-            except Exception as e:
-                logger.warning(f"Failed to fetch context for {ent}: {e}")
-                continue
-        
-        return "\n\n=====\n\n".join(full_context)
+
+            full_context = []
+            seen_pages = set()
+
+            for ent in potential_entities[:2]:
+                try:
+                    ent = ent.strip()
+                    if not ent or len(ent) < 2:
+                        continue
+
+                    search_query = ent.lower().replace("football", "soccer")
+                    if "soccer" not in search_query and "association" not in search_query:
+                        search_query += " soccer"
+
+                    search_res = wikipedia.search(search_query, results=1)
+                    if not search_res:
+                        continue
+
+                    page_title = search_res[0]
+                    if page_title in seen_pages:
+                        continue
+                    seen_pages.add(page_title)
+
+                    page = wikipedia.page(page_title, auto_suggest=False)
+                    context_parts = [f"ENTITY: {page.title}\nSUMMARY: {page.summary[:700]}"]
+
+                    sections = page.sections
+                    for target in ["Honours", "Career statistics", "Club career",
+                                   "International career", "Records", "Rules"]:
+                        match = next((s for s in sections if target.lower() in s.lower()), None)
+                        if match:
+                            try:
+                                sec_text = page.section(match)
+                                if sec_text:
+                                    context_parts.append(f"--- {match.upper()} ---\n{sec_text[:800]}")
+                            except Exception:
+                                continue
+
+                    full_context.append("\n".join(context_parts))
+                    if len("\n\n".join(full_context)) > 4000:
+                        break
+
+                except Exception as e:
+                    logger.warning(f"Failed to fetch context for {ent}: {e}")
+                    continue
+
+            return "\n\n=====\n\n".join(full_context) if full_context else None
+
+        # First attempt
+        try:
+            result = _do_fetch(topic)
+            if result:
+                return result
+        except Exception as e:
+            logger.warning(f"Context fetch attempt 1 failed: {e}")
+
+        # Retry with simplified query (just the raw topic)
+        logger.info("Retrying context fetch with simplified query...")
+        try:
+            result = _do_fetch(topic.split(":")[0].split("?")[0])
+            if result:
+                return result
+        except Exception as e:
+            logger.warning(f"Context fetch attempt 2 failed: {e}")
+
+        return "__NO_CONTEXT__"
 
     def _get_prompt(self, topic, category, context=""):
         """Generates the prompt based on the category."""
-        
+
         base_style = "High energy, 'Did you know?' style."
-        extra_instructions = "CRITICAL GLOBAL RULE: Focus strictly on major Men's Football (e.g. English Premier League, La Liga, Champions League, World Cup, Saudi Pro League, MLS). \n"
-        extra_instructions += "CRITICAL SPECIFICITY RULE: NEVER use generic pronouns like 'a team', 'a player', 'this club', or 'a certain match'. You MUST explicitly name the exact club (e.g., 'Real Madrid'), the exact player (e.g., 'Lionel Messi'), and the exact score or year in EVERY sentence. Be ultra-specific.\n"
-        
+        extra_instructions = (
+            "CRITICAL GLOBAL RULE: Focus strictly on major Men's Football (e.g. English Premier League, "
+            "La Liga, Champions League, World Cup, Saudi Pro League, MLS).\n"
+            "CRITICAL SPECIFICITY RULE: NEVER use generic pronouns like 'a team', 'a player', "
+            "'this club', or 'a certain match'. You MUST explicitly name the exact club (e.g., 'Real Madrid'), "
+            "the exact player (e.g., 'Lionel Messi'), and the exact score or year in EVERY sentence. "
+            "Be ultra-specific.\n"
+        )
+
         if category == "Football Stories":
             base_style = "Narrative storytelling, dramatic, emotional."
             extra_instructions = "Focus on the hero's journey: rise, fall, and redemption (if applicable). Make the viewer feel the emotion."
@@ -191,41 +227,68 @@ class ScriptGenerator:
             extra_instructions = "Build up to the moment. Describe the exact split-second it happened."
         elif category == "Rankings & Lists":
             base_style = "Fast-paced, countdown style."
-            extra_instructions = "CRITICAL: TOPICS MUST BE ABOUT FOOTBALL (SOCCER) PLAYERS/TEAMS. For EVERY item on the list, EXPLICITLY state their full name, club, and exact numbers. Do NOT say 'One player did this...' Say 'In 2012, Lionel Messi scored 91 goals...'"
+            extra_instructions = (
+                "CRITICAL: TOPICS MUST BE ABOUT FOOTBALL (SOCCER) PLAYERS/TEAMS. "
+                "For EVERY item on the list, EXPLICITLY state their full name, club, and exact numbers. "
+                "Do NOT say 'One player did this...' Say 'In 2012, Lionel Messi scored 91 goals...'"
+            )
         elif category == "World Cup & Stats":
             base_style = "Informative, epic, data-driven."
             extra_instructions = "Use impressive numbers. Highlight the scale of the event. Connect history to modern day."
-        
+
         import datetime
         current_year = datetime.datetime.now().year
-        
-        factual_grounding = ""
-        if context:
+
+        # Build factual grounding section
+        no_context = (not context) or context == "__NO_CONTEXT__"
+        if no_context:
+            factual_grounding = f"""
+            NOTE: No external factual context is available for this topic.
+            Use only your training knowledge. Be CONSERVATIVE — omit any statistic, fee,
+            or figure you are not certain about. Use descriptive language instead
+            (e.g. 'multiple trophies', 'around X goals') rather than guessing exact numbers.
+            Current Year: {current_year}.
+            """
+        else:
             factual_grounding = f"""
             GROUND TRUTH CONTEXT (Use this as your ONLY source for facts/numbers/dates):
             \"\"\"{context}\"\"\"
-            
+
             STRICT FACTUAL RULES (Current Year: {current_year}):
             1. Use the PROVIDED CONTEXT for all statistics, trophies, and dates.
-            2. If you mention a formation (e.g. 4-4-2), ensure the math makes sense: 10 outfielders + 1 Goalkeeper = 11 players TOTAL on the pitch.
-            3. DO NOT HALLUCINATE. If context says Messi has 4 UCL titles, DO NOT say 7. 
+            2. If you mention a formation (e.g. 4-4-2), ensure the math makes sense: 10 outfielders + 1 Goalkeeper = 11 players TOTAL.
+            3. DO NOT HALLUCINATE. If context says Messi has 4 UCL titles, DO NOT say 7.
             4. If a specific number is not in the context, use descriptive terms (e.g., 'multiple titles', 'many records') instead of guessing.
-            5. ALWAYS prioritize the MOST RECENT information. Check the first few sentences of the context for a player's CURRENT club (e.g., if the context says Mbappe plays for Real Madrid, DO NOT say he plays for PSG).
+            5. ALWAYS prioritize the MOST RECENT information. Check the first few sentences of context for a player's CURRENT club.
             6. Accuracy is more important than drama.
             """
 
+        strict_accuracy = f"""
+        STRICT ACCURACY RULES (apply to ALL categories — non-negotiable):
+        A. Only include players/teams that GENUINELY fit the topic definition.
+           "One-season wonder" = exceptional ONE season then significant decline/departure.
+           Do NOT include players with sustained multi-season success.
+        B. NEVER invent or estimate transfer fees, contract values, or bonus amounts.
+           Only state a fee if you are certain of the figure. If uncertain, omit entirely.
+        C. Every statistic (goals, assists, points) must be real and verifiable.
+           If not certain, use "around X goals" or omit the number.
+        D. The script must stay ON TOPIC for ALL entries. Do not drift to adjacent topics.
+        E. Target word count: 130-150 words total across hook + segments + outro.
+           Count your words before returning. Do NOT exceed 160 words.
+        """
+
         return f"""
         {factual_grounding}
+        {strict_accuracy}
 
-        create a viral YouTube Short script about: "{topic.replace('football', 'soccer')}".
-        STRICT DEFINITION: This video is STRICTLY about Association Football (Soccer). Ignore all American Football, Music, or Rugby associations.
+        Create a viral YouTube Short script about: "{topic.replace('football', 'soccer')}".
+        STRICT DEFINITION: This video is STRICTLY about Association Football (Soccer).
+        Ignore all American Football, Music, or Rugby associations.
         Category: {category}
         Style: {base_style}
         {extra_instructions}
-        
-        CRITICAL OUTPUT FORMAT:
-        You MUST return valid JSON.
-        The JSON structure must be:
+
+        CRITICAL OUTPUT FORMAT — return ONLY valid JSON with this exact structure:
         {{
             "hook": "The first 3 seconds hook text (max 10 words)",
             "primary_entity": "Name of the main person or club (e.g. Lionel Messi, Real Madrid)",
@@ -236,16 +299,13 @@ class ScriptGenerator:
             "outro": "Call to action text"
         }}
 
+        Rules:
         1. "hook": Must be shocking/intriguing but FACTUALLY ACCURATE.
         2. "primary_entity": EXTRACT the exact name of the main subject.
-        3. "segments": 
-           - CRITICAL: Split segments whenever the VISUAL SUBJECT changes. 
-           - CRITICAL: NO FICTION. Do not invent matches, dates, or events.
-           - If category is "Mysteries", use REAL unexplained events. DO NOT MAKE UP STORIES.
-        4. "visual_keyword": A specific search term. ALWAYS include "soccer" or "football player".
-           - BAD: "football" (ambiguous)
-           - GOOD: "Lionel Messi face", "Old Trafford stadium", "Champions League trophy soccer"
-        5. HIGHLIGHTING (CRITICAL): You MUST enclose the following in asterisks (*):
+        3. "segments": Split whenever the VISUAL SUBJECT changes. NO FICTION.
+        4. "visual_keyword": Specific search term. ALWAYS include "soccer" or "football player".
+           BAD: "football" | GOOD: "Lionel Messi face", "Old Trafford stadium", "Champions League trophy soccer"
+        5. HIGHLIGHTING: Enclose these in asterisks (*):
            - Player Names (*Messi*, *Ronaldo*)
            - Club/Country Names (*Real Madrid*, *Brazil*)
            - Stadium/Place Names (*Camp Nou*, *London*)
@@ -255,7 +315,6 @@ class ScriptGenerator:
 
     def _validate_script_data(self, data):
         if "hook" in data and "segments" in data:
-            # Normalize list of strings to list of dicts if needed
             new_segments = []
             for s in data["segments"]:
                 if isinstance(s, str):
@@ -263,16 +322,12 @@ class ScriptGenerator:
                 else:
                     new_segments.append(s)
             data["segments"] = new_segments
-            
-            # Ensure primary_entity exists (Fallback to None or empty string will be handled by main)
+
             if "primary_entity" not in data:
                 data["primary_entity"] = ""
-            
+
             full_text = f"{data['hook']} {' '.join([s['text'] for s in data['segments']])} {data.get('outro', '')}"
-            
-            # Phase 5: Refusal Detection
-            # If the LLM didn't find the topic in the context, it might output a script
-            # apologizing or stating the lack of information based on the strict prompts.
+
             lower_text = full_text.lower()
             refusal_phrases = [
                 "does not mention",
@@ -286,9 +341,8 @@ class ScriptGenerator:
                 if phrase in lower_text:
                     logger.warning(f"AI Refusal Detected in Script: {full_text[:100]}...")
                     return False
-            
-            # Preserve asterisks for TextRenderer to use for styling (Gold/Magenta)
-            data['full_text'] = full_text 
+
+            data['full_text'] = full_text
             return True
         return False
 
@@ -296,28 +350,23 @@ class ScriptGenerator:
         """Fetches a summary from Wikipedia and structures it as a script."""
         try:
             import wikipedia
-            # wikipedia.set_lang("en") # Default
             search_res = wikipedia.search(topic, results=1)
-            if not search_res: raise Exception("No wikipedia results")
-            
+            if not search_res:
+                raise Exception("No wikipedia results")
+
             page = wikipedia.page(search_res[0], auto_suggest=False)
-            # Use 'summary' but limit sentences
             sentences = page.summary.split('. ')
-            
-            # Smart Selection: First sentence (Intro) + 2 most interesting (heuristic: contains numbers or 'first')
-            final_segments = []
-            
-            # Hook
+
             hook = f"Did you know this about *{page.title}*?"
-            
-            # Body (Max 3 sentences to keep it short as requested)
+            final_segments = []
             count = 0
             for s in sentences:
-                if len(s) < 20: continue # skip too short
+                if len(s) < 20:
+                    continue
                 clean_s = s.strip()
-                if not clean_s.endswith('.'): clean_s += '.'
-                
-                # Highlighting: Highlight the Topic or Numbers
+                if not clean_s.endswith('.'):
+                    clean_s += '.'
+
                 words = clean_s.split()
                 highlighted_s = []
                 for w in words:
@@ -325,35 +374,36 @@ class ScriptGenerator:
                         highlighted_s.append(f"*{w}*")
                     else:
                         highlighted_s.append(w)
-                
+
                 final_segments.append({
                     "text": " ".join(highlighted_s),
                     "visual_keyword": f"{page.title} football context"
                 })
                 count += 1
-                if count >= 3: break
-            
+                if count >= 3:
+                    break
+
             return {
                 "hook": hook,
                 "segments": final_segments,
                 "outro": "Subscribe for more verified facts!",
                 "full_text": f"{hook} {' '.join([s['text'] for s in final_segments])}"
             }
-            
+
         except Exception as e:
             logger.error(f"Wikipedia fallback failed: {e}")
             return {
                 "hook": f"Here is a crazy fact about *{topic}*!",
                 "segments": [
-                    { "text": f"*{topic}* is a true legend of football.", "visual_keyword": f"{topic} player" },
-                    { "text": "Their story inspires millions around the globe.", "visual_keyword": "football stadium crowd" }
+                    {"text": f"*{topic}* is a true legend of football.", "visual_keyword": f"{topic} player"},
+                    {"text": "Their story inspires millions around the globe.", "visual_keyword": "football stadium crowd"}
                 ],
                 "outro": "Comment below!",
                 "full_text": f"Here is a crazy fact about {topic}!"
             }
 
+
 if __name__ == "__main__":
-    # Test
     try:
         generator = ScriptGenerator()
         script = generator.generate_script("Lionel Messi")

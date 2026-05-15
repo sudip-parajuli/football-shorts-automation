@@ -12,12 +12,16 @@ class ThumbnailGenerator:
         if not os.path.exists(self.font_path):
             logger.warning(f"Font not found at {self.font_path}. Using default font.")
             self.font_path = None
-        self.gemini_api_key = os.getenv("GEMINI_API_KEY")
 
     def generate_ai_thumbnail(self, ai_prompt, output_path="remotion-video/public/thumbnail.jpg"):
         """
-        Generates a thumbnail using Gemini image generation (free).
+        Generates a thumbnail using Gemini image generation (free tier).
         Tries GEMINI_API_KEY, GEMINI_API_KEY2, GEMINI_API_KEY3 in order.
+
+        Uses new google-genai SDK (replaces deprecated google-generativeai).
+        Model: gemini-2.5-flash-image
+          - Free tier, supports response_modalities=["TEXT","IMAGE"]
+          - The old SDK's GenerationConfig had no response_modalities — that was the crash.
         """
         gemini_keys = []
         for suffix in ["", "2", "3"]:
@@ -31,10 +35,10 @@ class ThumbnailGenerator:
 
         for i, key in enumerate(gemini_keys):
             try:
-                import google.generativeai as genai
-                import io as _io
-                genai.configure(api_key=key)
-                model = genai.GenerativeModel("gemini-2.0-flash-exp-image-generation")
+                from google import genai
+                from google.genai import types
+
+                client = genai.Client(api_key=key)
 
                 full_prompt = (
                     f"{ai_prompt}\n\n"
@@ -44,24 +48,28 @@ class ThumbnailGenerator:
                     "no watermarks, no text in image."
                 )
 
-                response = model.generate_content(
-                    full_prompt,
-                    generation_config=genai.types.GenerationConfig(
-                        response_modalities=["IMAGE"]
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash-image",
+                    contents=full_prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["TEXT", "IMAGE"]
                     )
                 )
 
                 for part in response.candidates[0].content.parts:
                     if part.inline_data and part.inline_data.mime_type.startswith("image/"):
                         img_data = part.inline_data.data
-                        img = Image.open(_io.BytesIO(img_data)).convert("RGB")
+                        img = Image.open(io.BytesIO(img_data)).convert("RGB")
                         img = img.resize((1280, 720), Image.Resampling.LANCZOS)
-                        os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
+                        os.makedirs(
+                            os.path.dirname(output_path) if os.path.dirname(output_path) else ".",
+                            exist_ok=True
+                        )
                         img.save(output_path, "JPEG", quality=95)
                         logger.info(f"AI thumbnail saved to {output_path} (key #{i+1})")
                         return output_path
 
-                logger.warning(f"Gemini key #{i+1} returned no image.")
+                logger.warning(f"Gemini key #{i+1} returned no image parts.")
             except Exception as e:
                 logger.warning(f"Gemini key #{i+1} failed for thumbnail: {e}")
 

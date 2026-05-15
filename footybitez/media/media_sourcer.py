@@ -1,4 +1,5 @@
 import os
+import io
 import requests
 import random
 import re
@@ -9,20 +10,30 @@ from dotenv import load_dotenv
 # Suppress the ddgs package rename warning from duckduckgo_search
 warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*duckduckgo_search.*ddgs.*")
 
+
 class MediaSourcer:
     def __init__(self, download_dir="footybitez/media/downloads"):
         load_dotenv()
         self.pexels_api_key = os.getenv("PEXELS_API_KEY")
         self.unsplash_api_key = os.getenv("UNSPLASH_ACCESS_KEY")
         self.pixabay_api_key = os.getenv("PIXABAY_API_KEY")
+        self.gemini_keys = self._collect_gemini_keys()
         self.download_dir = download_dir
         self.credits_file = os.path.join(download_dir, "image_credits.txt")
         os.makedirs(download_dir, exist_ok=True)
         self.neg_keywords = "-nfl -american -rugby -superbowl -touchdown -helmet -cfl -afl -handball"
-        
+
         # Initialize credits file
         if os.path.exists(self.credits_file):
             os.remove(self.credits_file)
+
+    def _collect_gemini_keys(self):
+        keys = []
+        for suffix in ["", "2", "3"]:
+            val = os.getenv(f"GEMINI_API_KEY{suffix}")
+            if val:
+                keys.append(val)
+        return keys
 
     def cleanup(self):
         """Deletes all downloaded media files to save space."""
@@ -42,37 +53,143 @@ class MediaSourcer:
 
     def _download_file(self, url, filepath):
         """Downloads a file using requests with headers."""
-        if os.path.exists(filepath): return
+        if os.path.exists(filepath):
+            return
         try:
-            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0'}
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                              'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0'
+            }
             with requests.get(url, headers=headers, stream=True, timeout=15) as r:
                 r.raise_for_status()
-                if 'text/html' in r.headers.get('Content-Type', '').lower(): return
+                if 'text/html' in r.headers.get('Content-Type', '').lower():
+                    return
                 with open(filepath, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
-            
+
             if os.path.exists(filepath):
-                if os.path.getsize(filepath) < 100: 
+                if os.path.getsize(filepath) < 100:
                     os.remove(filepath)
                 else:
                     print(f"DEBUG MEDIA: Downloaded {os.path.basename(filepath)} FROM {url}")
-                    
+
         except Exception as e:
             print(f"Download failed {url}: {e}")
+
+    # ─────────────────────────────────────────────────────────
+    # PUBLIC API — called by main.py (Shorts pipeline)
+    # ─────────────────────────────────────────────────────────
+
+    def get_title_card_image(self, topic: str) -> str:
+        """
+        Fetches or generates a portrait (9:16) title card image for Shorts.
+        4-tier fallback chain — NEVER raises, always returns a valid path.
+        """
+        print(f"Sourcing title card image for: {topic}")
+
+        # 1. DuckDuckGo portrait search
+        path = self._fetch_ddg_image(
+            f"football {topic} stadium crowd action portrait",
+            suffix=f"title_{hash(topic)}"
+        )
+        if path:
+            return path
+
+        # 2. Unsplash
+        paths = self._fetch_unsplash_image(f"{topic} football portrait", count=1)
+        if paths:
+            return paths[0]
+
+        # 3. Pollinations.ai (no API key, no quota)
+        poll_path = os.path.join(self.download_dir, f"poll_title_{hash(topic)}.jpg")
+        if self._fetch_pollinations_image(
+            f"football {topic} stadium crowd action, portrait vertical, dramatic lighting, dark background, cinematic",
+            poll_path
+        ):
+            return poll_path
+
+        # 4. Gemini AI image generation (new SDK)
+        if self.gemini_keys:
+            ai_path = os.path.join(self.download_dir, f"ai_title_{hash(topic)}.jpg")
+            if self.generate_ai_image_for_shorts(
+                f"football {topic} stadium crowd action, sports photography, dramatic",
+                ai_path
+            ):
+                return ai_path
+
+        # 5. PIL solid dark gradient card (ultimate fallback — never crash)
+        return self._create_solid_card(topic)
+
+    def get_profile_image(self, entity_query: str) -> str | None:
+        """
+        Fetches a portrait image of the primary entity (player/club).
+        Returns None if nothing found — caller handles the fallback.
+        """
+        print(f"Sourcing profile image for: {entity_query}")
+
+        # 1. Wikimedia (best quality, free, licensed)
+        path = self._fetch_wikimedia_image(f"{entity_query} footballer portrait")
+        if path:
+            return path
+
+        # 2. Unsplash
+        paths = self._fetch_unsplash_image(f"{entity_query} soccer player portrait", count=1)
+        if paths:
+            return paths[0]
+
+        # 3. Pixabay
+        paths = self._fetch_pixabay_image(f"{entity_query} football player", count=1)
+        if paths:
+            return paths[0]
+
+        # 4. DDG fallback
+        return self._fetch_ddg_image(f"{entity_query} soccer portrait", suffix=f"profile_{hash(entity_query)}")
+
+    def get_media(self, visual_keyword: str, count: int = 2) -> list:
+        """
+        Fetches a list of image paths for a given visual keyword.
+        Used by Shorts pipeline for segment visuals.
+        Returns a list — may be empty, never raises.
+        """
+        results = []
+        # Append "portrait vertical" for better 9:16 crops
+        portrait_query = f"{visual_keyword} portrait vertical"
+
+        # 1. Wikimedia
+        path = self._fetch_wikimedia_image(visual_keyword)
+        if path:
+            results.append(path)
+
+        # 2. Unsplash
+        if len(results) < count:
+            paths = self._fetch_unsplash_image(portrait_query, count=count - len(results))
+            results.extend(paths)
+
+        # 3. Pixabay
+        if len(results) < count:
+            paths = self._fetch_pixabay_image(visual_keyword, count=count - len(results))
+            results.extend(paths)
+
+        # 4. DDG fallback
+        if not results:
+            path = self._fetch_ddg_image(f"{visual_keyword} soccer", suffix=f"seg_{hash(visual_keyword)}")
+            if path:
+                results.append(path)
+
+        return results[:count]
 
     def get_thumbnail_image(self, query):
         """Fetches a high-contrast image for the thumbnail."""
         print(f"Sourcing thumbnail for: {query}")
-        # Try Unsplash first for "high contrast" thumbnail look
         path = self._fetch_unsplash_image(f"{query} high contrast documentary", count=1)
-        if path: return path[0]
-        
-        # Fallback Pixabay
+        if path:
+            return path[0]
+
         path = self._fetch_pixabay_image(f"{query} cinematic", count=1)
-        if path: return path[0]
-        
-        # Fallback DDG
+        if path:
+            return path[0]
+
         return self._fetch_ddg_image(f"{query} soccer wallpaper 4k", "thumb")
 
     def get_media_for_script(self, image_queries, thumbnail_query=None):
@@ -81,37 +198,85 @@ class MediaSourcer:
         Prioritizes Wikimedia -> Unsplash -> Pixabay.
         """
         assets = {}
-        
-        # 1. Source Thumbnail
+
         if thumbnail_query:
             assets['thumbnail'] = self.get_thumbnail_image(thumbnail_query)
-        
-        # 2. Source Script Images
+
         for i, query in enumerate(image_queries):
             print(f"Sourcing image {i+1}/{len(image_queries)}: {query}")
-            
-            # Step 1: Wikimedia
+
             path = self._fetch_wikimedia_image(query)
             if path:
                 assets[f"image_{i}"] = path
                 continue
-                
-            # Step 2: Unsplash
+
             paths = self._fetch_unsplash_image(query, count=1)
             if paths:
                 assets[f"image_{i}"] = paths[0]
                 continue
-                
-            # Step 3: Pixabay
+
             paths = self._fetch_pixabay_image(query, count=1)
             if paths:
                 assets[f"image_{i}"] = paths[0]
                 continue
-                
-            # Fallback: Solid color (Handled by Remotion if path is None, but let's provide a fallback query)
+
             assets[f"image_{i}"] = self._fetch_ddg_image(f"{query} soccer", f"fallback_{i}")
-            
+
         return assets
+
+    # ─────────────────────────────────────────────────────────
+    # AI IMAGE GENERATION
+    # ─────────────────────────────────────────────────────────
+
+    def generate_ai_image_for_shorts(self, prompt: str, output_path: str) -> bool:
+        """
+        Generates a 9:16 portrait AI image for Shorts using Gemini (new SDK, free tier).
+        Model: gemini-2.5-flash-image
+        Returns True on success, False on any failure.
+        """
+        if not self.gemini_keys:
+            return False
+
+        try:
+            from google import genai
+            from google.genai import types
+            from PIL import Image as PILImage
+        except ImportError:
+            print("[AI Image] google-genai or Pillow not installed.")
+            return False
+
+        full_prompt = (
+            f"portrait orientation 9:16, {prompt}, "
+            f"dramatic lighting, dark background, sports photography style, "
+            f"no text overlays, cinematic quality"
+        )
+
+        for i, key in enumerate(self.gemini_keys):
+            try:
+                client = genai.Client(api_key=key)
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash-image",
+                    contents=full_prompt,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["TEXT", "IMAGE"]
+                    )
+                )
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data and part.inline_data.mime_type.startswith("image/"):
+                        img = PILImage.open(io.BytesIO(part.inline_data.data)).convert("RGB")
+                        img = img.resize((1080, 1920), PILImage.LANCZOS)
+                        os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
+                        img.save(output_path, "JPEG", quality=95)
+                        print(f"[AI Image] Generated shorts image with key #{i+1}")
+                        return True
+            except Exception as e:
+                print(f"[AI Image] Key #{i+1} failed: {e}")
+
+        return False
+
+    # ─────────────────────────────────────────────────────────
+    # PRIVATE FETCH HELPERS
+    # ─────────────────────────────────────────────────────────
 
     def _fetch_wikimedia_image(self, query):
         """Fetches image from Wikimedia Commons API."""
@@ -127,31 +292,30 @@ class MediaSourcer:
                 "prop": "imageinfo",
                 "iiprop": "url|size|mime|extmetadata",
             }
-            
             headers = {'User-Agent': 'FootyBitezBot/1.0'}
             r = requests.get(search_url, params=params, headers=headers, timeout=10)
             data = r.json()
-            
+
             pages = data.get("query", {}).get("pages", {})
-            if not pages: return None
-            
+            if not pages:
+                return None
+
             for page_id in pages:
                 page = pages[page_id]
                 imageinfo = page.get("imageinfo", [])
-                if not imageinfo: continue
+                if not imageinfo:
+                    continue
                 url = imageinfo[0].get("url")
-                
-                # Record License
+
                 meta = imageinfo[0].get("extmetadata", {})
                 license_name = meta.get("LicenseShortName", {}).get("value", "CC BY-SA")
                 artist = meta.get("Artist", {}).get("value", "Unknown")
-                # Clean HTML tags from artist
                 artist = re.sub('<[^<]+?>', '', artist)
-                
+
                 fname = f"wiki_{hash(url)}.jpg"
                 fpath = os.path.join(self.download_dir, fname)
                 self._download_file(url, fpath)
-                
+
                 if os.path.exists(fpath):
                     self._add_credit(f"Image from Wikimedia Commons: {artist} ({license_name})")
                     return fpath
@@ -160,7 +324,8 @@ class MediaSourcer:
         return None
 
     def _fetch_unsplash_image(self, query, count=1):
-        if not self.unsplash_api_key: return []
+        if not self.unsplash_api_key:
+            return []
         paths = []
         try:
             url = "https://api.unsplash.com/search/photos"
@@ -181,7 +346,8 @@ class MediaSourcer:
         return paths
 
     def _fetch_pixabay_image(self, query, count=1):
-        if not self.pixabay_api_key: return []
+        if not self.pixabay_api_key:
+            return []
         paths = []
         try:
             url = "https://pixabay.com/api/"
@@ -202,7 +368,7 @@ class MediaSourcer:
         return paths
 
     def _fetch_ddg_image(self, query, suffix):
-        """Fetches an image using DDG as final fallback."""
+        """Fetches an image using DuckDuckGo as final free fallback."""
         try:
             from duckduckgo_search import DDGS
             with DDGS() as ddgs:
@@ -210,8 +376,10 @@ class MediaSourcer:
                 if results:
                     image_url = results[0].get('image')
                     if image_url:
-                        filename = f"ddg_{suffix}_{hash(query)}.{image_url.split('.')[-1].split('?')[0][:3]}"
-                        if len(filename.split('.')[-1]) > 3: filename += ".jpg"
+                        ext = image_url.split('.')[-1].split('?')[0][:3]
+                        filename = f"ddg_{suffix}_{hash(query)}.{ext}"
+                        if len(ext) > 4 or not ext.isalpha():
+                            filename = f"ddg_{suffix}_{hash(query)}.jpg"
                         filepath = os.path.join(self.download_dir, filename)
                         self._download_file(image_url, filepath)
                         if os.path.exists(filepath):
@@ -220,7 +388,94 @@ class MediaSourcer:
             print(f"DDG Fallback error: {e}")
         return None
 
+    def _fetch_pollinations_image(self, prompt: str, output_path: str) -> bool:
+        """
+        Fetches an AI image from Pollinations.ai — no API key, no quota.
+        Returns True on success, False on failure.
+        """
+        try:
+            import urllib.parse
+            encoded = urllib.parse.quote(prompt)
+            url = f"https://image.pollinations.ai/prompt/{encoded}?width=1080&height=1920&nologo=true"
+            headers = {'User-Agent': 'FootyBitezBot/1.0'}
+            r = requests.get(url, headers=headers, timeout=30)
+            if r.status_code == 200 and 'image' in r.headers.get('Content-Type', ''):
+                os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
+                with open(output_path, 'wb') as f:
+                    f.write(r.content)
+                if os.path.getsize(output_path) > 5000:
+                    print(f"[Pollinations] Generated image: {output_path}")
+                    return True
+                os.remove(output_path)
+        except Exception as e:
+            print(f"[Pollinations] Error: {e}")
+        return False
+
+    def _create_solid_card(self, text: str) -> str:
+        """
+        Creates a solid dark gradient PIL image (1080x1920) as an ultimate fallback.
+        Adds centered text. Never crashes.
+        """
+        try:
+            from PIL import Image as PILImage, ImageDraw, ImageFont
+            import numpy as np
+
+            w, h = 1080, 1920
+            # Dark gradient: #0a0a0a top to #1a1a2e bottom
+            img = PILImage.new("RGB", (w, h))
+            draw = ImageDraw.Draw(img)
+            for y in range(h):
+                r = int(10 + (16 * y / h))
+                g = int(10 + (16 * y / h))
+                b = int(10 + (36 * y / h))
+                draw.line([(0, y), (w, y)], fill=(r, g, b))
+
+            # Try to load font
+            font = None
+            font_candidates = [
+                "remotion-video/public/assets/fonts/BarlowCondensed-Bold.ttf",
+                "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
+                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+                "C:\\Windows\\Fonts\\impact.ttf",
+            ]
+            for fp in font_candidates:
+                if os.path.exists(fp):
+                    try:
+                        font = ImageFont.truetype(fp, 80)
+                        break
+                    except Exception:
+                        continue
+            if not font:
+                font = ImageFont.load_default()
+
+            # Amber accent line at top
+            draw.rectangle([0, 0, w, 8], fill=(245, 166, 35))
+
+            # Centered text
+            label = text.upper()[:40]
+            bbox = draw.textbbox((0, 0), label, font=font)
+            tw = bbox[2] - bbox[0]
+            tx = (w - tw) // 2
+            ty = h // 2 - 60
+            for ox in range(-4, 5):
+                for oy in range(-4, 5):
+                    draw.text((tx + ox, ty + oy), label, font=font, fill=(0, 0, 0))
+            draw.text((tx, ty), label, font=font, fill=(245, 166, 35))
+
+            fname = f"card_{hash(text)}.jpg"
+            fpath = os.path.join(self.download_dir, fname)
+            os.makedirs(self.download_dir, exist_ok=True)
+            img.save(fpath, "JPEG", quality=90)
+            return fpath
+
+        except Exception as e:
+            print(f"[SolidCard] PIL card creation failed: {e}")
+            # Absolute last resort — return a blank file path that VideoCreator handles
+            return os.path.join(self.download_dir, "placeholder.jpg")
+
+
 if __name__ == "__main__":
     sourcer = MediaSourcer()
     # Test
-    # sourcer.get_media_for_script(["Lionel Messi lifting world cup"], "Lionel Messi face focus")
+    # path = sourcer.get_title_card_image("Lionel Messi")
+    # print(path)

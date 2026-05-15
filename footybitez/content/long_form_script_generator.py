@@ -16,7 +16,7 @@ class LongFormScriptGenerator:
         if self.api_key:
             genai.configure(api_key=self.api_key)
             
-        self.models = ["models/gemini-1.5-flash", "models/gemini-1.5-pro"]
+        self.models = ["models/gemini-2.5-flash", "models/gemini-1.5-pro"]
 
     def generate_long_script(self, topic, method="compilation"):
         """
