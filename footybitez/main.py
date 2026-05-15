@@ -97,7 +97,7 @@ def main():
             logger.info(f"Searching for visual: {visual_kw}")
             # Fetch 2-3 clips/images per segment
             logger.info(f"Searching for visual: {visual_kw}")
-            paths = media_sourcer.get_media(visual_kw, count=2)
+            paths = media_sourcer.get_media(visual_kw, count=3)
             segment_media.append(paths) # Append list of paths for this segment
             
         visual_assets = {

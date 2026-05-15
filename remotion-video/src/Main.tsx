@@ -1,8 +1,4 @@
 import { AbsoluteFill, Audio, Img, Sequence, useVideoConfig, spring, useCurrentFrame, interpolate, staticFile, Video } from 'remotion';
-import { TransitionSeries, linearTiming } from '@remotion/transitions';
-import { fade } from '@remotion/transitions/fade';
-import { slide } from '@remotion/transitions/slide';
-import { useWindowedAudioData, visualizeAudioWaveform, createSmoothSvgPath } from '@remotion/media-utils';
 import { z } from 'zod';
 import React, { useMemo } from 'react';
 
@@ -149,100 +145,56 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
 const KenBurnsMedia: React.FC<{ src: string | null, durationInFrames: number, index: number }> = ({ src, durationInFrames, index }) => {
   const frame = useCurrentFrame();
   
-  if (!src) return <AbsoluteFill className="bg-zinc-800" />;
+  if (!src) return <AbsoluteFill style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }} />;
 
   // Motion patterns
   const motionTypes = ['zoom-in', 'pan-right', 'zoom-out', 'pan-left'];
   const motion = motionTypes[index % motionTypes.length];
   
-  let scaleX = 1;
-  let scaleY = 1;
+  let scale = 1;
   let moveX = 0;
+  let moveY = 0;
   
-  const progress = Math.min(1, frame / durationInFrames);
+  const progress = Math.min(1, frame / Math.max(1, durationInFrames));
   
   if (motion === 'zoom-in') {
-     scaleX = interpolate(progress, [0, 1], [1, 1.15]);
-     scaleY = scaleX;
+     scale = interpolate(progress, [0, 1], [1, 1.12]);
   } else if (motion === 'zoom-out') {
-     scaleX = interpolate(progress, [0, 1], [1.15, 1]);
-     scaleY = scaleX;
+     scale = interpolate(progress, [0, 1], [1.12, 1]);
   } else if (motion === 'pan-right') {
-     scaleX = 1.15;
-     scaleY = 1.15;
-     moveX = interpolate(progress, [0, 1], [-20, 20]);
+     scale = 1.12;
+     moveX = interpolate(progress, [0, 1], [-3, 3]);
   } else if (motion === 'pan-left') {
-     scaleX = 1.15;
-     scaleY = 1.15;
-     moveX = interpolate(progress, [0, 1], [20, -20]);
+     scale = 1.12;
+     moveX = interpolate(progress, [0, 1], [3, -3]);
   }
 
   const isVideo = src.endsWith('.mp4') || src.endsWith('.mov') || src.endsWith('.webm');
 
   return (
-    <AbsoluteFill className="bg-black justify-center items-center overflow-hidden">
-      {/* Background Blur duplicate for smart cropping */}
-      <AbsoluteFill className="opacity-40 blur-2xl scale-125">
+    <AbsoluteFill style={{ background: '#000', overflow: 'hidden' }}>
+      {/* Blurred background fill for portrait letterboxing */}
+      <AbsoluteFill style={{ opacity: 0.5, filter: 'blur(20px)', transform: 'scale(1.2)' }}>
          {isVideo ? (
-            <Video src={staticFile(src)} className="w-full h-full object-cover" muted />
+            <Video src={staticFile(src)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
          ) : (
-            <Img src={staticFile(src)} className="w-full h-full object-cover" />
+            <Img src={staticFile(src)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
          )}
       </AbsoluteFill>
       
-      {/* Primary Visual */}
-      <div style={{ transform: `scale(${scaleX}, ${scaleY}) translateX(${moveX}px)`, width: '100%', height: '100%', position: 'absolute' }}>
+      {/* Primary Visual - Ken Burns motion */}
+      <AbsoluteFill style={{ transform: `scale(${scale}) translate(${moveX}%, ${moveY}%)` }}>
          {isVideo ? (
-            <Video src={staticFile(src)} className="w-full h-full object-contain" muted />
+            <Video src={staticFile(src)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
          ) : (
-            <Img src={staticFile(src)} className="w-full h-full object-cover" />
+            <Img src={staticFile(src)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
          )}
-      </div>
+      </AbsoluteFill>
 
       {/* Cinematic Overlays */}
-      <AbsoluteFill className="bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
-      <AbsoluteFill className="pointer-events-none" style={{ boxShadow: 'inset 0 0 100px rgba(0,0,0,0.5)' }} />
+      <AbsoluteFill style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 40%, rgba(0,0,0,0.3) 100%)', pointerEvents: 'none' }} />
+      <AbsoluteFill style={{ boxShadow: 'inset 0 0 80px rgba(0,0,0,0.6)', pointerEvents: 'none' }} />
     </AbsoluteFill>
-  );
-};
-
-// AUDIO VISUALIZER
-const VisualizerOverlay: React.FC<{ audioSrc: string }> = ({ audioSrc }) => {
-  const frame = useCurrentFrame();
-  const { fps, width } = useVideoConfig();
-  
-  const { audioData, dataOffsetInSeconds } = useWindowedAudioData({
-    src: staticFile(audioSrc),
-    frame,
-    fps,
-    windowInSeconds: 30,
-  });
-
-  if (!audioData) return null;
-
-  const waveform = visualizeAudioWaveform({
-    fps,
-    frame,
-    audioData,
-    numberOfSamples: 128,
-    windowInSeconds: 0.1,
-    dataOffsetInSeconds,
-  });
-
-  const HEIGHT = 100;
-  const path = createSmoothSvgPath({
-    points: waveform.map((y, i) => ({
-      x: (i / (waveform.length - 1)) * width,
-      y: HEIGHT / 2 + (y * HEIGHT) / 2,
-    })),
-  });
-
-  return (
-    <div className="absolute inset-x-0 bottom-4 opacity-50 z-10 pointers-events-none">
-      <svg width={width} height={HEIGHT} className="opacity-60 drop-shadow-lg">
-        <path d={path} fill="none" stroke="#FDE047" strokeWidth={4} />
-      </svg>
-    </div>
   );
 };
 
@@ -254,20 +206,15 @@ export const Main: React.FC<MainProps> = (props) => {
   const TRANSITION_FRAMES = 15;
 
   return (
-    <AbsoluteFill className="bg-black">
+    <AbsoluteFill style={{ background: '#000' }}>
       {props.background_music && (
-        <Audio src={staticFile(props.background_music)} volume={0.03} />
-      )}
-      
-      {/* Waveform Visualizer anchored to background music if exists */}
-      {props.background_music && (
-         <VisualizerOverlay audioSrc={props.background_music} />
+        <Audio src={staticFile(props.background_music)} volume={0.04} />
       )}
       
       {/* Custom Watermark */}
-      <div className="absolute top-8 left-8 z-50 text-white/50 text-2xl font-bold tracking-widest flex items-center gap-2" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-          <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse" />
-          FOOTYBITEZ
+      <div style={{ position: 'absolute', top: 40, left: 0, right: 0, zIndex: 50, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 10, fontFamily: 'Montserrat, sans-serif' }}>
+          <div style={{ width: 12, height: 12, background: '#FDE047', borderRadius: '50%' }} />
+          <span style={{ color: 'rgba(255,255,255,0.7)', fontSize: 36, fontWeight: 900, letterSpacing: 8 }}>FOOTYBITEZ</span>
       </div>
 
       {(() => {

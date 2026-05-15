@@ -83,15 +83,24 @@ class RemotionVideoCreator:
             # Prepare Visual Media List
             media_files = []
             if chunk["is_title"]:
-                media_files = [remotion_props["title_card"]]
+                media_files = [remotion_props["title_card"]] if remotion_props["title_card"] else []
+            elif chunk["type"] == "outro":
+                # Outro always reuses title card for clean branding finish
+                media_files = [remotion_props["title_card"]] if remotion_props["title_card"] else []
             else:
                 segment_media_pool = visual_assets.get('segment_media', [])
                 if segment_media_pool:
-                    idx = chunk.get("index", len(segment_media_pool) - 1)
+                    idx = chunk.get("index", 0)
                     if idx < len(segment_media_pool):
                         pool = segment_media_pool[idx]
                         if not isinstance(pool, list): pool = [pool]
-                        media_files = [self._copy_to_public(p) for p in pool]
+                        media_files = [self._copy_to_public(p) for p in pool if p]
+                
+                # Fallback: if no media found for this segment, reuse title card
+                if not media_files and remotion_props["title_card"]:
+                    media_files = [remotion_props["title_card"]]
+                elif not media_files and remotion_props["profile_image"]:
+                    media_files = [remotion_props["profile_image"]]
 
             # Append segment
             remotion_props["segments"].append({
