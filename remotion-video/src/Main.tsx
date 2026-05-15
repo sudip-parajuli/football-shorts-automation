@@ -88,7 +88,21 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
   if (!activePage) return null;
 
   return (
-    <div className="absolute inset-0 flex flex-wrap justify-center content-center items-center px-12 gap-x-5 gap-y-4 text-center" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+    <div style={{
+      position: 'absolute',
+      bottom: '15%',
+      left: 0,
+      right: 0,
+      display: 'flex',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      alignItems: 'center',
+      gap: '12px 20px',
+      padding: '0 60px',
+      textAlign: 'center',
+      fontFamily: 'Montserrat, Impact, sans-serif',
+      zIndex: 20,
+    }}>
       {activePage.map((t, idx) => {
         const startFrame = Math.round(t.start * fps);
         const durationFrames = Math.round(t.duration * fps);
@@ -105,18 +119,17 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
            config: { damping: 12, mass: 0.5, stiffness: 220 }
         });
 
-        // Unique bold styling for highlighted words
-        const baseSize = isHighlighted ? '6.5rem' : '5rem';
-        const popAmount = isHighlighted ? 0.25 : 0.15;
+        const baseSize = isHighlighted ? '82px' : '64px';
+        const popAmount = isHighlighted ? 0.18 : 0.1;
         
         const scale = isActive ? 1 + (pop * popAmount) : 1;
-        const rotation = isActive && isHighlighted ? pop * (idx % 2 === 0 ? 3 : -3) : 0;
+        const rotation = isActive && isHighlighted ? pop * (idx % 2 === 0 ? 2 : -2) : 0;
         
         let color = 'white';
         if (isActive) {
-           color = isHighlighted ? '#FDE047' : '#E5E7EB'; 
+           color = isHighlighted ? '#FDE047' : '#FFFFFF'; 
         } else if (isHighlighted) {
-           color = isPast ? '#FEF08A' : 'white';
+           color = isPast ? '#FEF08A' : '#FFFFFF';
         }
 
         return (
@@ -125,13 +138,17 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
             style={{
               transform: `scale(${scale}) rotate(${rotation}deg)`,
               color,
-              textShadow: '0px 10px 20px rgba(0,0,0,0.8), 0px 4px 8px rgba(0,0,0,0.6)',
-              WebkitTextStroke: isHighlighted ? '4px black' : '3px black',
+              textShadow: '0px 4px 12px rgba(0,0,0,1), 0px 0px 40px rgba(0,0,0,0.9)',
+              WebkitTextStroke: isHighlighted ? '3px #000' : '2px #000',
               fontWeight: 900,
               fontSize: baseSize,
-              display: 'inline-block'
+              display: 'inline-block',
+              lineHeight: 1.1,
+              background: isActive ? 'rgba(0,0,0,0.45)' : 'transparent',
+              borderRadius: 8,
+              padding: '2px 8px',
+              transition: 'color 0.08s linear',
             }}
-            className="transition-colors duration-100 ease-linear"
           >
             {displayWord}
           </span>
@@ -226,9 +243,7 @@ export const Main: React.FC<MainProps> = (props) => {
            let mediaList = (isHook && props.title_card) ? [props.title_card] : (seg.media && seg.media.length > 0 ? seg.media : [null]);
 
            cumulativeStart += durationFrames;
-           if (idx < props.segments.length - 1) {
-              cumulativeStart -= TRANSITION_FRAMES;
-           }
+           // NO overlap subtraction — audio tracks must not overlap
 
            // Determine custom transition
            const isFade = idx % 2 === 0;
@@ -244,8 +259,6 @@ export const Main: React.FC<MainProps> = (props) => {
                 >
                     <AbsoluteFill>
                       {seg.audio_path && <Audio src={staticFile(seg.audio_path)} />}
-                      {/* Transition SFX overlaid on start */}
-                      {idx > 0 && <Audio src="https://remotion.media/whoosh.wav" volume={0.3} />}
                       
                       {/* Visuals - Dynamic Fast Cuts */}
                       {mediaList.map((src, mIdx) => {

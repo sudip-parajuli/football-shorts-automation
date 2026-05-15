@@ -146,23 +146,21 @@ class MediaSourcer:
         # 4. DDG fallback
         return self._fetch_ddg_image(f"{entity_query} soccer portrait", suffix=f"profile_{hash(entity_query)}")
 
-    def get_media(self, visual_keyword: str, count: int = 2) -> list:
+    def get_media(self, visual_keyword: str, count: int = 3) -> list:
         """
         Fetches a list of image paths for a given visual keyword.
         Used by Shorts pipeline for segment visuals.
         Returns a list — may be empty, never raises.
         """
         results = []
-        # Append "portrait vertical" for better 9:16 crops
-        portrait_query = f"{visual_keyword} portrait vertical"
 
-        # 1. Wikimedia
-        path = self._fetch_wikimedia_image(visual_keyword)
-        if path:
-            results.append(path)
+        # 1. Wikimedia — fetch up to count images (best quality, free)
+        wiki_paths = self._fetch_wikimedia_images(visual_keyword, count=count)
+        results.extend(wiki_paths)
 
         # 2. Unsplash
         if len(results) < count:
+            portrait_query = f"{visual_keyword} football"
             paths = self._fetch_unsplash_image(portrait_query, count=count - len(results))
             results.extend(paths)
 
@@ -279,49 +277,75 @@ class MediaSourcer:
     # ─────────────────────────────────────────────────────────
 
     def _fetch_wikimedia_image(self, query):
-        """Fetches image from Wikimedia Commons API."""
-        try:
-            search_url = "https://commons.wikimedia.org/w/api.php"
-            params = {
-                "action": "query",
-                "format": "json",
-                "generator": "search",
-                "gsrnamespace": 6,
-                "gsrsearch": f"{query} filetype:bitmap",
-                "gsrlimit": 1,
-                "prop": "imageinfo",
-                "iiprop": "url|size|mime|extmetadata",
-            }
-            headers = {'User-Agent': 'FootyBitezBot/1.0'}
-            r = requests.get(search_url, params=params, headers=headers, timeout=10)
-            data = r.json()
+        """Fetches a single image from Wikimedia Commons API (used for profile images)."""
+        results = self._fetch_wikimedia_images(query, count=1)
+        return results[0] if results else None
 
-            pages = data.get("query", {}).get("pages", {})
-            if not pages:
-                return None
+    def _fetch_wikimedia_images(self, query, count=3):
+        """Fetches up to `count` images from Wikimedia Commons. Retries with broader query on failure."""
+        results = []
+        queries_to_try = [
+            query,
+            f"{query} football soccer",
+            f"football soccer sport",  # broad fallback
+        ]
 
-            for page_id in pages:
-                page = pages[page_id]
-                imageinfo = page.get("imageinfo", [])
-                if not imageinfo:
+        for attempt_query in queries_to_try:
+            if len(results) >= count:
+                break
+            try:
+                search_url = "https://commons.wikimedia.org/w/api.php"
+                params = {
+                    "action": "query",
+                    "format": "json",
+                    "generator": "search",
+                    "gsrnamespace": 6,
+                    "gsrsearch": f"{attempt_query} filetype:bitmap",
+                    "gsrlimit": min(count * 3, 9),  # fetch extras to account for failures
+                    "prop": "imageinfo",
+                    "iiprop": "url|size|mime|extmetadata",
+                }
+                headers = {'User-Agent': 'FootyBitezBot/1.0'}
+                r = requests.get(search_url, params=params, headers=headers, timeout=10)
+                data = r.json()
+
+                pages = data.get("query", {}).get("pages", {})
+                if not pages:
                     continue
-                url = imageinfo[0].get("url")
 
-                meta = imageinfo[0].get("extmetadata", {})
-                license_name = meta.get("LicenseShortName", {}).get("value", "CC BY-SA")
-                artist = meta.get("Artist", {}).get("value", "Unknown")
-                artist = re.sub('<[^<]+?>', '', artist)
+                for page_id in pages:
+                    if len(results) >= count:
+                        break
+                    page = pages[page_id]
+                    imageinfo = page.get("imageinfo", [])
+                    if not imageinfo:
+                        continue
 
-                fname = f"wiki_{hash(url)}.jpg"
-                fpath = os.path.join(self.download_dir, fname)
-                self._download_file(url, fpath)
+                    url = imageinfo[0].get("url", "")
+                    mime = imageinfo[0].get("mime", "")
 
-                if os.path.exists(fpath):
-                    self._add_credit(f"Image from Wikimedia Commons: {artist} ({license_name})")
-                    return fpath
-        except Exception as e:
-            print(f"Wikimedia error: {e}")
-        return None
+                    # Skip SVGs, audio, video
+                    if not mime.startswith("image/") or "svg" in mime.lower():
+                        continue
+
+                    meta = imageinfo[0].get("extmetadata", {})
+                    license_name = meta.get("LicenseShortName", {}).get("value", "CC BY-SA")
+                    artist = meta.get("Artist", {}).get("value", "Unknown")
+                    artist = re.sub('<[^<]+?>', '', artist)
+
+                    fname = f"wiki_{hash(url)}.jpg"
+                    fpath = os.path.join(self.download_dir, fname)
+                    self._download_file(url, fpath)
+
+                    if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
+                        self._add_credit(f"Image from Wikimedia Commons: {artist} ({license_name})")
+                        results.append(fpath)
+
+            except Exception as e:
+                print(f"Wikimedia multi-fetch error (query='{attempt_query}'): {e}")
+                continue
+
+        return results
 
     def _fetch_unsplash_image(self, query, count=1):
         if not self.unsplash_api_key:
