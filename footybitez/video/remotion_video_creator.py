@@ -121,7 +121,7 @@ class RemotionVideoCreator:
         # Execute remotion process
         cmd = [
             "npx", "remotion", "render", 
-            "src/index.ts", "Main", 
+            "src/index.ts", "MainVideo", 
             output_rel_path, 
             "--props=props.json"
         ]

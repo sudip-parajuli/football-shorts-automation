@@ -24,7 +24,9 @@ class VoiceGenerator:
         self.hume_keys = [
             os.getenv("HUME_API_KEY"),
             os.getenv("HUME_API_KEY2"),
-            os.getenv("HUME_API_KEY3")
+            os.getenv("HUME_API_KEY3"),
+            os.getenv("HUME_API_KEY4"),
+            os.getenv("HUME_API_KEY5")
         ]
         self.hume_keys = [k for k in self.hume_keys if k]
         
