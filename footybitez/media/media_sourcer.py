@@ -144,34 +144,35 @@ class MediaSourcer:
             return paths[0]
 
         # 4. DDG fallback
-        return self._fetch_ddg_image(f"{entity_query} soccer portrait", suffix=f"profile_{hash(entity_query)}")
+        return self._fetch_ddg_image(f"{entity_query} soccer portrait high quality", suffix=f"profile_{hash(entity_query)}")
 
     def get_media(self, visual_keyword: str, count: int = 3) -> list:
         """
         Fetches a list of image paths for a given visual keyword.
         Used by Shorts pipeline for segment visuals.
-        Returns a list — may be empty, never raises.
+        Returns an interleaved list of Wikimedia and Unsplash images.
         """
-        results = []
-
-        # 1. Wikimedia — fetch up to count images (best quality, free)
         wiki_paths = self._fetch_wikimedia_images(visual_keyword, count=count)
-        results.extend(wiki_paths)
+        
+        unsplash_count = max(1, count - (len(wiki_paths) // 2))
+        portrait_query = f"{visual_keyword} football soccer"
+        unsplash_paths = self._fetch_unsplash_image(portrait_query, count=unsplash_count)
 
-        # 2. Unsplash
+        # Interleave
+        results = []
+        for i in range(max(len(wiki_paths), len(unsplash_paths))):
+            if i < len(wiki_paths):
+                results.append(wiki_paths[i])
+            if i < len(unsplash_paths):
+                results.append(unsplash_paths[i])
+
+        # Pixabay fallback if still low
         if len(results) < count:
-            portrait_query = f"{visual_keyword} football"
-            paths = self._fetch_unsplash_image(portrait_query, count=count - len(results))
-            results.extend(paths)
+            results.extend(self._fetch_pixabay_image(visual_keyword, count=count - len(results)))
 
-        # 3. Pixabay
-        if len(results) < count:
-            paths = self._fetch_pixabay_image(visual_keyword, count=count - len(results))
-            results.extend(paths)
-
-        # 4. DDG fallback
+        # DDG fallback
         if not results:
-            path = self._fetch_ddg_image(f"{visual_keyword} soccer", suffix=f"seg_{hash(visual_keyword)}")
+            path = self._fetch_ddg_image(f"{visual_keyword} soccer player", suffix=f"seg_{hash(visual_keyword)}")
             if path:
                 results.append(path)
 
@@ -284,12 +285,19 @@ class MediaSourcer:
     def _fetch_wikimedia_images(self, query, count=3):
         """Fetches up to `count` images from Wikimedia Commons. Retries with broader query on failure."""
         results = []
+        
+        # Clean query: remove special chars and too many words
+        clean_query = query.replace("*", "").strip()
+        
         queries_to_try = [
-            query,
-            f"{query} football soccer",
-            f"football soccer sport",  # broad fallback
+            clean_query,
+            f"{clean_query} soccer",
+            f"{clean_query} football",
+            # If the specific subject fails, try to at least get a stadium or trophy if applicable
+            "stadium football" if "stadium" in clean_query.lower() else f"{clean_query.split()[0]} football",
         ]
 
+        seen_urls = set()
         for attempt_query in queries_to_try:
             if len(results) >= count:
                 break
@@ -301,7 +309,7 @@ class MediaSourcer:
                     "generator": "search",
                     "gsrnamespace": 6,
                     "gsrsearch": f"{attempt_query} filetype:bitmap",
-                    "gsrlimit": min(count * 3, 9),  # fetch extras to account for failures
+                    "gsrlimit": 10, # Fetch more to find high quality
                     "prop": "imageinfo",
                     "iiprop": "url|size|mime|extmetadata",
                 }

@@ -165,25 +165,31 @@ const KenBurnsMedia: React.FC<{ src: string | null, durationInFrames: number, in
   if (!src) return <AbsoluteFill style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }} />;
 
   // Motion patterns
-  const motionTypes = ['zoom-in', 'pan-right', 'zoom-out', 'pan-left'];
+  const motionTypes = ['zoom-in', 'pan-right', 'zoom-out', 'pan-left', 'tilt-up', 'tilt-down'];
   const motion = motionTypes[index % motionTypes.length];
   
-  let scale = 1;
+  let scale = 1.1; 
   let moveX = 0;
   let moveY = 0;
   
   const progress = Math.min(1, frame / Math.max(1, durationInFrames));
   
   if (motion === 'zoom-in') {
-     scale = interpolate(progress, [0, 1], [1, 1.12]);
+     scale = interpolate(progress, [0, 1], [1.1, 1.3]);
   } else if (motion === 'zoom-out') {
-     scale = interpolate(progress, [0, 1], [1.12, 1]);
+     scale = interpolate(progress, [0, 1], [1.3, 1.1]);
   } else if (motion === 'pan-right') {
-     scale = 1.12;
-     moveX = interpolate(progress, [0, 1], [-3, 3]);
+     scale = 1.25;
+     moveX = interpolate(progress, [0, 1], [-5, 5]);
   } else if (motion === 'pan-left') {
-     scale = 1.12;
-     moveX = interpolate(progress, [0, 1], [3, -3]);
+     scale = 1.25;
+     moveX = interpolate(progress, [0, 1], [5, -5]);
+  } else if (motion === 'tilt-up') {
+     scale = 1.25;
+     moveY = interpolate(progress, [0, 1], [4, -4]);
+  } else if (motion === 'tilt-down') {
+     scale = 1.25;
+     moveY = interpolate(progress, [0, 1], [-4, 4]);
   }
 
   const isVideo = src.endsWith('.mp4') || src.endsWith('.mov') || src.endsWith('.webm');
@@ -269,6 +275,14 @@ export const Main: React.FC<MainProps> = (props) => {
                           return (
                              <Sequence key={`media-${mIdx}`} from={mIdx * sliceDur} durationInFrames={actualDur}>
                                 <KenBurnsMedia src={src} durationInFrames={actualDur} index={idx + mIdx} />
+                                {mIdx > 0 && (
+                                   <AbsoluteFill style={{ 
+                                      background: 'white', 
+                                      opacity: spring({ frame: frame - (mIdx * sliceDur), fps, config: { stiffness: 200 } }) > 0.5 ? 0 : interpolate(spring({ frame: frame - (mIdx * sliceDur), fps, config: { stiffness: 200 } }), [0, 1], [0.3, 0]),
+                                      zIndex: 10,
+                                      pointerEvents: 'none'
+                                   }} />
+                                )}
                              </Sequence>
                           );
                       })}

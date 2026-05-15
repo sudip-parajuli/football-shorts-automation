@@ -303,8 +303,13 @@ class ScriptGenerator:
         1. "hook": Must be shocking/intriguing but FACTUALLY ACCURATE.
         2. "primary_entity": EXTRACT the exact name of the main subject.
         3. "segments": Split whenever the VISUAL SUBJECT changes. NO FICTION.
-        4. "visual_keyword": Specific search term. ALWAYS include "soccer" or "football player".
-           BAD: "football" | GOOD: "Lionel Messi face", "Old Trafford stadium", "Champions League trophy soccer"
+        4. "visual_keyword": Specific search term. 
+           - ALWAYS include the FULL name of the player or club. 
+           - If talking about a country, use "[Country] National Team soccer" (e.g. "Brazil National Team soccer").
+           - Be extremely specific about the action.
+           BAD: "football", "trophy", "brazil"
+           GOOD: "Lionel Messi holding world cup trophy", "Real Madrid fans celebrating", "Brazil National Team 2002 World Cup"
+           STRICT RULE: Do NOT use generic terms. If talking about Brazil's world cup win, the keyword MUST be "Brazil National Team World Cup Trophy".
         5. HIGHLIGHTING: Enclose these in asterisks (*):
            - Player Names (*Messi*, *Ronaldo*)
            - Club/Country Names (*Real Madrid*, *Brazil*)
