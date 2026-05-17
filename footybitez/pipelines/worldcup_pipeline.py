@@ -121,11 +121,6 @@ class WorldCupPipeline:
         self.wc_data = WorldCupData(fd_key, af_key) if fd_key else None
 
     def run(self, category: str, skip_upload: bool = False):
-        today = date.today()
-        if not (WC_START <= today <= WC_END):
-            logger.info(f"Outside World Cup window ({WC_START}–{WC_END}). Today={today}. Exiting cleanly.")
-            sys.exit(0)
-
         logger.info(f"WorldCupPipeline: category={category}")
         dispatch = {
             "wc_quiz": self._run_quiz,
