@@ -17,8 +17,8 @@ logger = logging.getLogger(__name__)
 FOOTBALL_DATA_BASE = "https://api.football-data.org/v4"
 WC_2026_ID = 2000  # FIFA World Cup numeric competition ID (NOT "WC")
 
-# API-Football (RapidAPI) for event-level match data
-API_FOOTBALL_BASE = "https://api-football-v1.p.rapidapi.com/v3"
+# API-Football (Direct API-Sports) for event-level match data
+API_FOOTBALL_BASE = "https://v3.football.api-sports.io"
 API_FOOTBALL_WC_LEAGUE = 1   # FIFA World Cup league ID in API-Football
 API_FOOTBALL_WC_SEASON = 2026
 
@@ -180,8 +180,7 @@ class WorldCupData:
             return []
 
         headers = {
-            "X-RapidAPI-Key": self.api_football_key,
-            "X-RapidAPI-Host": "api-football-v1.p.rapidapi.com"
+            "x-apisports-key": self.api_football_key
         }
 
         try:
