@@ -506,8 +506,37 @@ class MediaSourcer:
             return os.path.join(self.download_dir, "placeholder.jpg")
 
 
+    # ─────────────────────────────────────────────────────────
+    # AI IMAGE PROMPT BUILDER
+    # ─────────────────────────────────────────────────────────
+
+    def _build_ai_image_prompt(self, image_cue: str, is_player_topic: bool = False) -> str:
+        """
+        Builds an AI image generation prompt from an image cue.
+
+        IMPORTANT: AI image models cannot reliably generate recognisable likenesses of
+        real named people. Attempting to generate "Erling Haaland" produces a random person.
+
+        For player topics: generate atmospheric context (stadium, team colors, crowd)
+        and let the real image search chain (Wikimedia, Unsplash, Pixabay, DDG) handle
+        actual player photos.
+
+        For generic topics: return a photorealistic sports photography prompt.
+        """
+        if is_player_topic:
+            return (
+                f"football match atmosphere related to: {image_cue}, "
+                "stadium crowd cheering, team colors and scarves, "
+                "cinematic sports photography, dramatic stadium lighting, "
+                "no faces visible, aerial view or wide shot, professional photo style"
+            )
+        else:
+            return f"photorealistic, cinematic, {image_cue}, dramatic sports photography, high quality"
+
+
 if __name__ == "__main__":
     sourcer = MediaSourcer()
     # Test
     # path = sourcer.get_title_card_image("Lionel Messi")
     # print(path)
+

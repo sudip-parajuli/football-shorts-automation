@@ -198,6 +198,27 @@ class ScriptGenerator:
         """Generates the prompt based on the category."""
 
         base_style = "High energy, 'Did you know?' style."
+
+        # ── Player verification rule (injected for all player-related categories) ──────
+        PLAYER_CATEGORIES = {"Comparisons & Debates", "Football Stories", "Rankings & Lists",
+                             "World Cup & Stats", "Shocking Moments", "Money & Transfers"}
+        is_player_category = category in PLAYER_CATEGORIES
+        is_comparison = category == "Comparisons & Debates"
+
+        import datetime as _dt
+        _current_year = _dt.datetime.now().year
+
+        PLAYER_VERIFICATION_RULE = f"""
+        CRITICAL PLAYER ACCURACY RULES (current year: {_current_year}):
+        - Transfer windows happen every summer and winter. Player clubs change frequently.
+        - NEVER state a player's current club as fact unless you are 100% certain it is
+          still true RIGHT NOW in {_current_year}.
+        - If uncertain about a player's current club, say "at [club] at the time" or omit the club.
+        - For stats: ALWAYS use season-specific language ("in the 2023-24 season, X scored Y")
+          NOT present-tense claims ("X scores Y goals per season for Z club").
+        - Key verified transfers: Kylian Mbappe joined Real Madrid in summer 2024 (left PSG).
+          Do NOT describe Mbappe as playing for PSG. He is at Real Madrid.
+        """ if is_player_category else ""
         extra_instructions = (
             "CRITICAL GLOBAL RULE: Focus strictly on major Men's Football (e.g. English Premier League, "
             "La Liga, Champions League, World Cup, Saudi Pro League, MLS).\n"
@@ -214,8 +235,16 @@ class ScriptGenerator:
             base_style = "Suspenseful, investigative, slightly dark."
             extra_instructions = "Build tension. Use words like 'unexplained', 'vanished', 'shocking'. Focus on the unknown."
         elif category == "Comparisons & Debates":
+
             base_style = "Analytical but controversial, engaging."
-            extra_instructions = "Present stats for Side A, then Side B. End with a question to provoke comments."
+            extra_instructions = (
+                "Present stats for Side A, then Side B. End with a question to provoke comments.\n"
+                "COMPARISON VISUAL RULE: Each segment MUST have TWO separate visual_keywords — "
+                "one for each subject being compared. Use the format: "
+                '"visual_keyword": "[Player A full name] action"  and in the next segment '
+                '"visual_keyword": "[Player B full name] action". '
+                "Do NOT combine both subjects into one search query."
+            )
         elif category == "What If?":
             base_style = "Imaginative, hypothetical, 'alternate history'."
             extra_instructions = "Describe the scenario vividly. Use 'Imagine a world where...'. Focus on the ripple effects."
@@ -280,6 +309,7 @@ class ScriptGenerator:
         return f"""
         {factual_grounding}
         {strict_accuracy}
+        {PLAYER_VERIFICATION_RULE}
 
         Create a viral YouTube Short script about: "{topic.replace('football', 'soccer')}".
         STRICT DEFINITION: This video is STRICTLY about Association Football (Soccer).
@@ -406,6 +436,95 @@ class ScriptGenerator:
                 "outro": "Comment below!",
                 "full_text": f"Here is a crazy fact about {topic}!"
             }
+
+
+    def generate_breaking_news_script(self, topic: str, event: dict) -> dict | None:
+        """
+        Generates a 30-45 second breaking news script (max 60 words).
+        Used by the BreakingNewsPipeline for match result Shorts.
+
+        Rules:
+        - Max 60 words total
+        - Structure: [RESULT] -> [KEY MOMENT] -> [ONE STAT/REACTION] -> [CTA]
+        - Always starts with the scoreline
+        - Names goalscorers with minute of goal (if available from events)
+        - Tone: urgent, fast, news-ticker style
+        - Never speculation — facts only
+        """
+        import datetime as _dt
+        current_year = _dt.datetime.now().year
+
+        home = event.get("home", "")
+        away = event.get("away", "")
+        hs = event.get("home_score", 0)
+        as_ = event.get("away_score", 0)
+
+        # Build event context string from API-Football events
+        event_lines = []
+        for ev in event.get("api_events", [])[:10]:  # Limit to 10 events
+            ev_type = ev.get("type", "")
+            player = ev.get("player", {}).get("name", "")
+            minute = ev.get("time", {}).get("elapsed", "?")
+            detail = ev.get("detail", "")
+            if ev_type == "Goal":
+                event_lines.append(f"  GOAL {minute}': {player}")
+            elif ev_type == "Card" and detail == "Red Card":
+                event_lines.append(f"  RED CARD {minute}': {player}")
+        event_context = "\n".join(event_lines) if event_lines else "No detailed event data available."
+
+        prompt = f"""
+        You are a football news anchor. Generate a BREAKING NEWS YouTube Short script.
+
+        MATCH: {home} {hs}–{as_} {away} (World Cup 2026)
+        MATCH EVENTS:
+        {event_context}
+
+        STRICT RULES:
+        1. MAX 60 WORDS TOTAL across hook + segments + outro. Count them.
+        2. Structure: [SCORELINE first sentence] → [KEY MOMENT] → [ONE STAT] → [CTA]
+        3. Always name the scorers with the minute if known.
+        4. If red card: name the player, minute, and reason if known.
+        5. End with: "Follow for the full breakdown."
+        6. FACTS ONLY. No speculation. Tone: urgent, fast, like a live news ticker.
+        7. Current year: {current_year}
+
+        Return ONLY valid JSON:
+        {{
+            "hook": "The scoreline in max 8 words",
+            "primary_entity": "Winning team name or main story subject",
+            "segments": [
+                {{"text": "Key moment sentence", "visual_keyword": "specific search term"}},
+                {{"text": "One stat or reaction", "visual_keyword": "specific search term"}}
+            ],
+            "outro": "Follow for the full breakdown."
+        }}
+        """
+
+        if self.groq_api_key:
+            try:
+                from groq import Groq
+                client = Groq(api_key=self.groq_api_key)
+                completion = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[{"role": "user", "content": prompt}],
+                    temperature=0.3,
+                    max_tokens=512,
+                    response_format={"type": "json_object"}
+                )
+                data = json.loads(completion.choices[0].message.content)
+                if self._validate_script_data(data):
+                    logger.info("Breaking news script generated via Groq.")
+                    return data
+            except Exception as e:
+                logger.error(f"Breaking news Groq generation failed: {e}")
+
+        if self.gemini_keys:
+            result = self._try_gemini(prompt)
+            if result:
+                return result
+
+        logger.error("Breaking news script generation failed on all providers.")
+        return None
 
 
 if __name__ == "__main__":
