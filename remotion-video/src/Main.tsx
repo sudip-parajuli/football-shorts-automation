@@ -221,6 +221,22 @@ const KenBurnsMedia: React.FC<{ src: string | null, durationInFrames: number, in
   );
 };
 
+// MEDIA FLASH TRANSITION COMPONENT
+const MediaFlash: React.FC<{ fps: number }> = ({ fps }) => {
+  const frame = useCurrentFrame();
+  const spr = spring({ frame, fps, config: { stiffness: 200 } });
+  const opacity = spr > 0.5 ? 0 : interpolate(spr, [0, 1], [0.3, 0]);
+  
+  return (
+    <AbsoluteFill style={{ 
+      background: 'white', 
+      opacity,
+      zIndex: 10,
+      pointerEvents: 'none'
+    }} />
+  );
+};
+
 // MAIN COMPOSITION
 export const Main: React.FC<MainProps> = (props) => {
   const { fps } = useVideoConfig();
@@ -276,12 +292,7 @@ export const Main: React.FC<MainProps> = (props) => {
                              <Sequence key={`media-${mIdx}`} from={mIdx * sliceDur} durationInFrames={actualDur}>
                                 <KenBurnsMedia src={src} durationInFrames={actualDur} index={idx + mIdx} />
                                 {mIdx > 0 && (
-                                   <AbsoluteFill style={{ 
-                                      background: 'white', 
-                                      opacity: spring({ frame: frame - (mIdx * sliceDur), fps, config: { stiffness: 200 } }) > 0.5 ? 0 : interpolate(spring({ frame: frame - (mIdx * sliceDur), fps, config: { stiffness: 200 } }), [0, 1], [0.3, 0]),
-                                      zIndex: 10,
-                                      pointerEvents: 'none'
-                                   }} />
+                                   <MediaFlash fps={fps} />
                                 )}
                              </Sequence>
                           );
