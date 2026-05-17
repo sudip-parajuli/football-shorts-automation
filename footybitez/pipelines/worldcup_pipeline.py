@@ -45,16 +45,13 @@ def _get_font(size: int):
     return ImageFont.load_default()
 
 
-def render_quiz_slide(question_text: str, answer_text: str,
-                      question_secs: float = 5.0, answer_secs: float = 3.0,
+def render_quiz_slide(question_text: str, duration_secs: float = 6.0,
                       output_dir: str = "footybitez/output/temp_text"):
     """
-    Renders a quiz Q&A as a MoviePy VideoClip (1080x1920, 30fps).
-
-    Part 1 (question_secs): dark background + white question text
-    Part 2 (answer_secs): same background + amber answer fades in over 0.5s
+    Renders a quiz question as a MoviePy VideoClip (1080x1920, 30fps).
+    Answer is intentionally NOT revealed in the video.
     """
-    from moviepy.editor import VideoClip, concatenate_videoclips
+    from moviepy.editor import VideoClip
     from PIL import Image, ImageDraw
 
     os.makedirs(output_dir, exist_ok=True)
@@ -64,7 +61,6 @@ def render_quiz_slide(question_text: str, answer_text: str,
     AMBER = (245, 166, 35)
 
     font_q = _get_font(72)
-    font_a = _get_font(80)
     font_label = _get_font(48)
     font_hint = _get_font(36)
 
@@ -97,27 +93,13 @@ def render_quiz_slide(question_text: str, answer_text: str,
     draw.rectangle([0, 0, W, 10], fill=AMBER)
     draw.text((W // 2 - 55, 35), "QUIZ", font=font_label, fill=AMBER)
     draw_wrapped(draw, question_text, font_q, WHITE, H // 2)
-    draw.text((W // 2 - 190, H - 130), "Pause and answer!", font=font_hint, fill=(160, 160, 160))
+    draw.text((W // 2 - 270, H - 130), "Drop your answer in the comments! 👇", font=font_hint, fill=(160, 160, 160))
     q_frame = np.array(q_img)
-
-    # Build answer frame
-    a_img = q_img.copy()
-    a_draw = ImageDraw.Draw(a_img)
-    draw_wrapped(a_draw, f"✓ {answer_text}", font_a, AMBER, H // 2 + 220)
-    a_frame = np.array(a_img)
-
-    FADE = 0.5
 
     def make_q_frame(t):
         return q_frame
 
-    def make_a_frame(t):
-        alpha = min(1.0, t / FADE)
-        return (q_frame * (1 - alpha) + a_frame * alpha).astype(np.uint8)
-
-    q_clip = VideoClip(make_q_frame, duration=question_secs).set_fps(FPS)
-    a_clip = VideoClip(make_a_frame, duration=answer_secs).set_fps(FPS)
-    return concatenate_videoclips([q_clip, a_clip])
+    return VideoClip(make_q_frame, duration=duration_secs).set_fps(FPS)
 
 
 class WorldCupPipeline:
@@ -185,11 +167,10 @@ class WorldCupPipeline:
     def _run_quiz(self, skip_upload=False):
         from moviepy.editor import concatenate_videoclips
         questions = self.generate_wc_quiz()
-        clips = [render_quiz_slide(q["question"], q["answer"]) for q in questions]
+        clips = [render_quiz_slide(q["question"], duration_secs=6.0) for q in questions]
         clips.append(render_quiz_slide(
-            "How many did you get right?",
-            "Comment 1/3, 2/3, or 3/3 below! ⬇️",
-            question_secs=3.0, answer_secs=2.0
+            "Did you know them all?\nComment your answers below and we'll reply to let you know if you are right! ⬇️",
+            duration_secs=5.0
         ))
         final = concatenate_videoclips(clips, method="compose")
         out = "footybitez/output/wc_quiz.mp4"
@@ -198,8 +179,8 @@ class WorldCupPipeline:
         if not skip_upload:
             self.uploader.upload_video(
                 out,
-                "3 World Cup Questions — Can You Get All 3? 🏆 #shorts #worldcup2026",
-                "Test your World Cup knowledge!\nComment 1/3, 2/3, or 3/3!\n\n#worldcup2026 #football #shorts",
+                "3 World Cup Questions — Do You Know The Answers? 🏆 #shorts #worldcup2026",
+                "Test your World Cup knowledge!\nComment your answers and we'll reply with the results!\n\n#worldcup2026 #football #shorts",
                 ["worldcup2026", "football", "quiz", "shorts"]
             )
         return out
