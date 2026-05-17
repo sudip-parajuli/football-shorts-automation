@@ -38,25 +38,48 @@ class WorldCupData:
     # RATE LIMITER — 10 req/min free tier → 6s minimum gap
     # ─────────────────────────────────────────────────────────
 
-    def _rate_limited_get(self, url: str, params: dict = None) -> dict:
-        """Makes a GET request to football-data.org, enforcing ≥6s between calls."""
-        elapsed = time.time() - self._last_request_time
-        if elapsed < 6.0:
-            sleep_time = 6.0 - elapsed
-            logger.debug(f"Rate limiter: sleeping {sleep_time:.1f}s")
-            time.sleep(sleep_time)
+    def _rate_limited_get(self, url: str, params: dict = None, retries: int = 3) -> dict:
+        """Makes a GET request to football-data.org, examining response headers for rate limits."""
+        for attempt in range(retries):
+            try:
+                r = requests.get(url, headers=self.headers, params=params, timeout=15)
+                
+                # Check rate limiting headers
+                requests_available = r.headers.get("X-Requests-Available-Minute")
+                reset_in_seconds = r.headers.get("X-RequestCounter-Reset")
+                
+                if requests_available is not None and reset_in_seconds is not None:
+                    avail = int(requests_available)
+                    reset = int(reset_in_seconds)
+                    logger.debug(f"Rate limiter: {avail} requests left this minute, resets in {reset}s")
+                    if avail == 0:
+                        logger.warning(f"Rate limit approaching. Sleeping for {reset + 1} seconds.")
+                        time.sleep(reset + 1)
+                else:
+                    # Fallback to basic 6-second delay if headers are missing
+                    elapsed = time.time() - self._last_request_time
+                    if elapsed < 6.0:
+                        time.sleep(6.0 - elapsed)
+                    self._last_request_time = time.time()
 
-        try:
-            r = requests.get(url, headers=self.headers, params=params, timeout=15)
-            self._last_request_time = time.time()
-            r.raise_for_status()
-            return r.json()
-        except requests.HTTPError as e:
-            logger.error(f"football-data.org HTTP error {r.status_code}: {e}")
-            return {}
-        except Exception as e:
-            logger.error(f"football-data.org request failed: {e}")
-            return {}
+                if r.status_code == 429:
+                    reset = int(r.headers.get("X-RequestCounter-Reset", 60))
+                    logger.warning(f"HTTP 429 Too Many Requests. Retrying in {reset + 1} seconds.")
+                    time.sleep(reset + 1)
+                    continue
+
+                r.raise_for_status()
+                return r.json()
+            except requests.HTTPError as e:
+                status_code = e.response.status_code if e.response is not None else 'Unknown'
+                logger.error(f"football-data.org HTTP error {status_code}: {e}")
+                if attempt == retries - 1:
+                    return {}
+            except Exception as e:
+                logger.error(f"football-data.org request failed: {e}")
+                if attempt == retries - 1:
+                    return {}
+        return {}
 
     # ─────────────────────────────────────────────────────────
     # FOOTBALL-DATA.ORG — Fixture & Competition Data
