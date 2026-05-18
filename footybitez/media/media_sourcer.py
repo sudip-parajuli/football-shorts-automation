@@ -20,12 +20,30 @@ class MediaSourcer:
         self.gemini_keys = self._collect_gemini_keys()
         self.download_dir = download_dir
         self.credits_file = os.path.join(download_dir, "image_credits.txt")
+        
+        # Clean directory at startup to ensure no stale cached assets are reused
+        self.startup_cleanup()
         os.makedirs(download_dir, exist_ok=True)
         self.neg_keywords = "-nfl -american -rugby -superbowl -touchdown -helmet -cfl -afl -handball"
 
         # Initialize credits file
         if os.path.exists(self.credits_file):
             os.remove(self.credits_file)
+
+    def startup_cleanup(self):
+        """Cleans download folder of any leftover or failed cache files at startup."""
+        import shutil
+        if os.path.exists(self.download_dir):
+            try:
+                for filename in os.listdir(self.download_dir):
+                    file_path = os.path.join(self.download_dir, filename)
+                    if os.path.isfile(file_path) or os.path.islink(file_path):
+                        os.unlink(file_path)
+                    elif os.path.isdir(file_path):
+                        shutil.rmtree(file_path)
+            except Exception as e:
+                print(f"Startup cleanup warning: {e}")
+
 
     def _collect_gemini_keys(self):
         keys = []
@@ -56,10 +74,15 @@ class MediaSourcer:
         if os.path.exists(filepath):
             return
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                              'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0'
-            }
+            if "wikimedia.org" in url:
+                headers = {
+                    'User-Agent': 'FootyBitezBot/1.0 (contact: admin@footybitez.com; sudden-developer)'
+                }
+            else:
+                headers = {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                                  'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0'
+                }
             with requests.get(url, headers=headers, stream=True, timeout=15) as r:
                 r.raise_for_status()
                 if 'text/html' in r.headers.get('Content-Type', '').lower():
@@ -77,9 +100,20 @@ class MediaSourcer:
         except Exception as e:
             print(f"Download failed {url}: {e}")
 
+
     # ─────────────────────────────────────────────────────────
     # PUBLIC API — called by main.py (Shorts pipeline)
     # ─────────────────────────────────────────────────────────
+
+    def _is_player_query(self, query: str) -> bool:
+        players = {
+            "klose", "messi", "ronaldo", "haaland", "mbappe", "bellingham", "vinicius", "yamal", "neymar",
+            "pele", "maradona", "zidane", "cruyff", "ronaldinho", "henry", "beckham", "kane", "salah",
+            "lewandowski", "modric", "kroos", "benzema", "suarez", "zlatan", "ibrahimovic", "hazard",
+            "de bruyne", "saka", "foden", "palmer", "musiala", "wirtz", "griezmann", "martinez", "rashford"
+        }
+        query_lower = query.lower()
+        return any(p in query_lower for p in players)
 
     def get_title_card_image(self, topic: str) -> str:
         """
@@ -101,22 +135,36 @@ class MediaSourcer:
         if paths:
             return paths[0]
 
+        is_player = self._is_player_query(topic)
+
         # 3. Pollinations.ai (no API key, no quota)
         poll_path = os.path.join(self.download_dir, f"poll_title_{hash(topic)}.jpg")
-        if self._fetch_pollinations_image(
-            f"football {topic} stadium crowd action, portrait vertical, dramatic lighting, dark background, cinematic",
-            poll_path
-        ):
+        
+        poll_prompt = f"football {topic} stadium crowd action, portrait vertical, dramatic lighting, dark background, cinematic"
+        if is_player:
+            poll_prompt = (
+                "football match atmosphere with stadium crowd cheering, team colors, banners, "
+                "dramatic lighting, dark background, portrait vertical, no faces visible, cinematic, "
+                "sports photography style"
+            )
+
+        if self._fetch_pollinations_image(poll_prompt, poll_path):
             return poll_path
 
         # 4. Gemini AI image generation (new SDK)
         if self.gemini_keys:
             ai_path = os.path.join(self.download_dir, f"ai_title_{hash(topic)}.jpg")
-            if self.generate_ai_image_for_shorts(
-                f"football {topic} stadium crowd action, sports photography, dramatic",
-                ai_path
-            ):
+            
+            gemini_prompt = f"football {topic} stadium crowd action, sports photography, dramatic"
+            if is_player:
+                gemini_prompt = (
+                    "football match atmosphere with stadium crowd cheering, team colors, banners, "
+                    "sports photography style, dramatic, no faces visible"
+                )
+
+            if self.generate_ai_image_for_shorts(gemini_prompt, ai_path):
                 return ai_path
+
 
         # 5. PIL solid dark gradient card (ultimate fallback — never crash)
         return self._create_solid_card(topic)

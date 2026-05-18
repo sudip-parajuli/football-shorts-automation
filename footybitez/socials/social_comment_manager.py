@@ -39,6 +39,17 @@ class SocialCommentManager:
             res = requests.get(url, params=params, timeout=15)
             if res.status_code == 200:
                 return res.json().get("data", [])
+            else:
+                err_data = {}
+                try:
+                    err_data = res.json()
+                except Exception:
+                    pass
+                err_msg = err_data.get("error", {}).get("message", "")
+                if "accounts" in err_msg or err_data.get("error", {}).get("code") == 100:
+                    logger.info("META_ACCESS_TOKEN is a Page Access Token. Dynamic page list discovery skipped; using page token directly.")
+                else:
+                    logger.warning(f"Failed to fetch authorized pages: {res.text}")
         except Exception as e:
             logger.error(f"Error fetching authorized pages: {e}")
         return []
@@ -77,9 +88,27 @@ class SocialCommentManager:
             return
 
         pages = self._get_authorized_pages()
+        
+        # Fallback to single configured page ID if list discovery was skipped/failed
+        if not pages:
+            fallback_id = None
+            if self.page_ids_filter:
+                fallback_id = self.page_ids_filter.split(",")[0].strip()
+            elif os.getenv("FACEBOOK_PAGE_ID"):
+                fallback_id = os.getenv("FACEBOOK_PAGE_ID")
+            
+            if fallback_id:
+                logger.info("Using fallback FACEBOOK_PAGE_ID and default Page Token for Facebook comment checks.")
+                pages = [{
+                    "id": fallback_id,
+                    "access_token": self.access_token,
+                    "name": "Fallback Page"
+                }]
+
         filter_ids = []
         if self.page_ids_filter:
             filter_ids = [pid.strip() for pid in self.page_ids_filter.split(",") if pid.strip()]
+
 
         for page in pages:
             page_id = page["id"]

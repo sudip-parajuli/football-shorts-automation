@@ -35,10 +35,20 @@ class MetaPublisher:
                 logger.info(f"Retrieved {len(data)} authorized Facebook Pages from Meta account.")
                 return data
             else:
-                logger.warning(f"Failed to fetch authorized pages: {res.text}")
+                err_data = {}
+                try:
+                    err_data = res.json()
+                except Exception:
+                    pass
+                err_msg = err_data.get("error", {}).get("message", "")
+                if "accounts" in err_msg or err_data.get("error", {}).get("code") == 100:
+                    logger.info("META_ACCESS_TOKEN is a Page Access Token. Dynamic page list discovery skipped; using page token directly.")
+                else:
+                    logger.warning(f"Failed to fetch authorized pages: {res.text}")
         except Exception as e:
             logger.error(f"Error fetching authorized pages from Meta: {e}")
         return []
+
 
     def publish_to_facebook(self, file_path, title, description):
         """
