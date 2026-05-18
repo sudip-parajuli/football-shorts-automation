@@ -13,6 +13,8 @@ if project_root not in sys.path:
 
 from footybitez.youtube.uploader import YouTubeUploader
 from footybitez.youtube.comment_manager import CommentManager
+from footybitez.socials.social_orchestrator import SocialOrchestrator
+
 
 # Setup Logging
 logging.basicConfig(
@@ -81,6 +83,16 @@ If you enjoyed this documentary, please Like and Subscribe for more high-quality
             logger.info("Comment pinned successfully.")
     else:
         logger.error("Upload FAILED.")
+
+    # Social Publishing (Facebook, Instagram, TikTok)
+    should_publish_socials = os.getenv("ENABLE_SOCIAL_PUBLISHING", "false").lower() == "true"
+    if should_publish_socials:
+        logger.info("Attempting long-form video upload to Meta (Facebook/Instagram) and TikTok...")
+        orchestrator = SocialOrchestrator()
+        orchestrator.publish_to_all(video_path, title, description)
+    else:
+        logger.info("Social publishing skipped (ENABLE_SOCIAL_PUBLISHING not set to true).")
+
 
 if __name__ == "__main__":
     main()

@@ -21,6 +21,8 @@ from footybitez.content.script_generator import ScriptGenerator
 from footybitez.media.media_sourcer import MediaSourcer
 from footybitez.video.remotion_video_creator import RemotionVideoCreator
 from footybitez.youtube.uploader import YouTubeUploader
+from footybitez.socials.social_orchestrator import SocialOrchestrator
+
 
 # Setup Logging
 os.makedirs("footybitez/logs", exist_ok=True)
@@ -147,6 +149,16 @@ def main():
                 logger.error("Upload failed.")
         else:
             logger.info("Upload skipped (ENABLE_UPLOAD not set to true).")
+
+        # 6.1 Publish to Social Platforms (Facebook, Instagram, TikTok)
+        should_publish_socials = os.getenv("ENABLE_SOCIAL_PUBLISHING", "false").lower() == "true"
+        if should_publish_socials:
+            logger.info("Attempting upload to Meta (Facebook/Instagram) and TikTok...")
+            orchestrator = SocialOrchestrator()
+            orchestrator.publish_to_all(video_path, title, description)
+        else:
+            logger.info("Social publishing skipped (ENABLE_SOCIAL_PUBLISHING not set to true).")
+
 
         # 7. Cleanup (NEW)
         logger.info("Starting cleanup of temporary assets...")

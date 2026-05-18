@@ -72,7 +72,16 @@ jobs:
         HUME_VOICE_ID_1: ${{ secrets.HUME_VOICE_ID_1 }}
         HUME_VOICE_ID_2: ${{ secrets.HUME_VOICE_ID_2 }}
         ENABLE_UPLOAD: "true"
+        ENABLE_SOCIAL_PUBLISHING: "true"
+        META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+        FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+        INSTAGRAM_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_BUSINESS_ACCOUNT_ID }}
+        TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
+        TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+        TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
+
         export PYTHONPATH=$PYTHONPATH:.
         python footybitez/main.py
 
