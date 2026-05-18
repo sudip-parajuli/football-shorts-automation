@@ -49,26 +49,16 @@ jobs:
       run: |
         cd remotion-video
         npm install
-        npx remotion install-browser
 
-    - name: Install Chrome Dependencies
+    - name: Install system browser dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y \
-          libnss3 \
-          libatk-1.0-0 \
-          libatk-bridge2.0-0 \
-          libcups2 \
-          libdrm2 \
-          libxkbcommon0 \
-          libxcomposite1 \
-          libxdamage1 \
-          libxrandr2 \
-          libgbm1 \
-          libasound2 \
-          libpangocairo-1.0-0 \
-          libpango-1.0-0 \
-          fonts-liberation
+        cd remotion-video
+        npx playwright install-deps chromium
+
+    - name: Install Playwright browser
+      run: |
+        cd remotion-video
+        npx playwright install chromium
 
     - name: Run General Football News Pipeline
       env:
