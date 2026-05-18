@@ -47,6 +47,7 @@ jobs:
 
     - name: Install Node Dependencies
       run: |
+        cd remotion-video
         npm install
         npx remotion install-browser
 
