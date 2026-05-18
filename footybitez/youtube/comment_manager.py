@@ -73,7 +73,8 @@ class CommentManager:
             if video_id:
                 params["videoId"] = video_id
             else:
-                params["allThreadsRelatedToChannelId"] = self._get_channel_id()
+                channel_id, _ = self._get_channel_id()
+                params["allThreadsRelatedToChannelId"] = channel_id
 
             results = self.youtube.commentThreads().list(**params).execute()
             
@@ -94,7 +95,8 @@ class CommentManager:
                     continue
                 
                 # Don't reply to ourselves
-                if author_channel_id == self._get_channel_id():
+                channel_id, _ = self._get_channel_id()
+                if author_channel_id == channel_id:
                     continue
 
                 logger.info(f"Generating reply for comment from {author}: {comment_text[:50]}...")
@@ -114,9 +116,29 @@ class CommentManager:
             logger.error(f"Error in auto_reply: {e}")
 
     def _get_channel_id(self):
-        """Helper to get own channel ID."""
-        res = self.youtube.channels().list(part="id", mine=True).execute()
-        return res["items"][0]["id"]
+        """Helper to get own channel ID and uploads playlist ID."""
+        res = self.youtube.channels().list(part="id,contentDetails", mine=True).execute()
+        channel_id = res["items"][0]["id"]
+        uploads_playlist_id = res["items"][0]["contentDetails"]["relatedPlaylists"]["uploads"]
+        return channel_id, uploads_playlist_id
+
+    def get_recent_videos(self, limit=20):
+        """Fetches the latest video IDs from the channel."""
+        if not self.youtube:
+            return []
+        
+        try:
+            _, uploads_playlist_id = self._get_channel_id()
+            res = self.youtube.playlistItems().list(
+                part="snippet",
+                playlistId=uploads_playlist_id,
+                maxResults=limit
+            ).execute()
+            
+            return [item["snippet"]["resourceId"]["videoId"] for item in res.get("items", [])]
+        except Exception as e:
+            logger.error(f"Failed to get recent videos: {e}")
+            return []
 
     def _generate_reply(self, comment_text):
         """Uses Gemini to generate an engaging, fan-style reply."""

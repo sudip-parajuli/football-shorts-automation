@@ -1,0 +1,45 @@
+name: Auto Reply to Comments
+
+on:
+  schedule:
+    # Run every 2 hours
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      video_id:
+        description: 'Specific YouTube Video ID to process (optional)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  reply-comments:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+
+    - name: Install Python dependencies
+      run: |
+        pip install -r footybitez/requirements.txt
+        pip install python-dotenv
+
+    - name: Run Reply Automation
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
+      run: |
+        export PYTHONPATH=$PYTHONPATH:.
+        if [ -n "${{ github.event.inputs.video_id }}" ]; then
+          python footybitez/youtube/reply_automation.py --video-id "${{ github.event.inputs.video_id }}"
+        else
+          python footybitez/youtube/reply_automation.py --limit 20
+        fi
