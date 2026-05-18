@@ -9,51 +9,114 @@ class MetaPublisher:
     def __init__(self):
         self.access_token = os.getenv("META_ACCESS_TOKEN")
         self.page_id = os.getenv("FACEBOOK_PAGE_ID")
+        self.page_ids_filter = os.getenv("FACEBOOK_PAGE_IDS")  # Comma-separated Page IDs
         self.instagram_id = os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID")
         self.api_version = "v19.0"
         self.base_url = "https://graph.facebook.com"
         self.dry_run = os.getenv("DRY_RUN", "false").lower() == "true"
 
+    def _get_authorized_pages(self) -> list:
+        """
+        Retrieves all authorized Facebook Pages and their Page Access Tokens dynamically.
+        Returns a list of dicts: [{'id': '...', 'access_token': '...', 'name': '...'}]
+        """
+        if not self.access_token:
+            return []
+
+        url = f"{self.base_url}/{self.api_version}/me/accounts"
+        params = {
+            "access_token": self.access_token,
+            "limit": 100
+        }
+        try:
+            res = requests.get(url, params=params, timeout=15)
+            if res.status_code == 200:
+                data = res.json().get("data", [])
+                logger.info(f"Retrieved {len(data)} authorized Facebook Pages from Meta account.")
+                return data
+            else:
+                logger.warning(f"Failed to fetch authorized pages: {res.text}")
+        except Exception as e:
+            logger.error(f"Error fetching authorized pages from Meta: {e}")
+        return []
+
     def publish_to_facebook(self, file_path, title, description):
         """
-        Uploads a video to a Facebook Page.
-        Uses direct binary upload.
+        Uploads a video to all authorized or filtered Facebook Pages.
+        Uses dynamic Page Access Tokens.
         """
-        if not self.access_token or not self.page_id:
-            logger.warning("Facebook credentials (META_ACCESS_TOKEN, FACEBOOK_PAGE_ID) not configured. Skipping.")
+        if not self.access_token:
+            logger.warning("META_ACCESS_TOKEN not configured. Skipping Facebook publishing.")
             return None
 
-        if self.dry_run:
-            logger.info(f"[DRY RUN] Publishing video to Facebook Page {self.page_id}: '{title}'")
-            return "mock_facebook_video_id"
+        # 1. Fetch all authorized pages dynamically
+        pages = self._get_authorized_pages()
+        
+        # 2. Filter pages if FACEBOOK_PAGE_IDS is specified
+        filtered_pages = []
+        filter_ids = []
+        if self.page_ids_filter:
+            filter_ids = [pid.strip() for pid in self.page_ids_filter.split(",") if pid.strip()]
 
-        url = f"{self.base_url}/{self.api_version}/{self.page_id}/videos"
-        
-        logger.info(f"Uploading video {file_path} to Facebook Page {self.page_id}...")
-        
-        try:
-            with open(file_path, "rb") as video_file:
-                payload = {
-                    "title": title,
-                    "description": description,
-                    "access_token": self.access_token
-                }
-                files = {
-                    "source": video_file
-                }
-                response = requests.post(url, data=payload, files=files)
-                response_data = response.json()
-                
-                if response.status_code == 200 and "id" in response_data:
-                    video_id = response_data["id"]
-                    logger.info(f"SUCCESS: Video published to Facebook. Video ID: {video_id}")
-                    return video_id
-                else:
-                    logger.error(f"Facebook upload failed: {response.text}")
-                    return None
-        except Exception as e:
-            logger.error(f"Exception while uploading to Facebook: {e}")
+        for p in pages:
+            pid = p.get("id")
+            if filter_ids:
+                if pid in filter_ids:
+                    filtered_pages.append(p)
+            else:
+                filtered_pages.append(p)
+
+        # Fallback to default page_id if no pages were dynamically fetched but we have a single ID
+        if not filtered_pages and self.page_id:
+            logger.info("Using fallback single FACEBOOK_PAGE_ID and default User Token.")
+            filtered_pages.append({
+                "id": self.page_id,
+                "access_token": self.access_token,
+                "name": "Fallback Page"
+            })
+
+        if not filtered_pages:
+            logger.warning("No Facebook Pages available or matching filter criteria. Skipping.")
             return None
+
+        video_ids = []
+        for page in filtered_pages:
+            pid = page["id"]
+            pname = page.get("name", "Unknown Page")
+            pat = page.get("access_token", self.access_token)
+
+            if self.dry_run:
+                logger.info(f"[DRY RUN] Publishing video to Facebook Page '{pname}' ({pid}): '{title}'")
+                video_ids.append(f"mock_fb_id_{pid}")
+                continue
+
+            url = f"{self.base_url}/{self.api_version}/{pid}/videos"
+            logger.info(f"Uploading video {file_path} to Facebook Page '{pname}' ({pid})...")
+            
+            try:
+                with open(file_path, "rb") as video_file:
+                    payload = {
+                        "title": title,
+                        "description": description,
+                        "access_token": pat
+                    }
+                    files = {
+                        "source": video_file
+                    }
+                    response = requests.post(url, data=payload, files=files, timeout=120)
+                    response_data = response.json()
+                    
+                    if response.status_code == 200 and "id" in response_data:
+                        vid = response_data["id"]
+                        logger.info(f"SUCCESS: Video published to Facebook Page '{pname}'. Video ID: {vid}")
+                        video_ids.append(vid)
+                    else:
+                        logger.error(f"Facebook Page '{pname}' upload failed: {response.text}")
+            except Exception as e:
+                logger.error(f"Exception while uploading to Facebook Page '{pname}': {e}")
+
+        return video_ids[0] if video_ids else None
+
 
     def publish_to_instagram_reel(self, video_url, caption):
         """
