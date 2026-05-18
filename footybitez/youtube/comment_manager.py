@@ -33,6 +33,14 @@ class CommentManager:
             creds = None
             if os.path.exists(token_file):
                 creds = Credentials.from_authorized_user_file(token_file, self.scopes)
+            elif os.getenv("YOUTUBE_TOKEN_JSON"):
+                import base64
+                raw = os.getenv("YOUTUBE_TOKEN_JSON").strip()
+                try:
+                    token_info = json.loads(raw)
+                except json.JSONDecodeError:
+                    token_info = json.loads(base64.b64decode(raw).decode("utf-8"))
+                creds = Credentials.from_authorized_user_info(token_info, self.scopes)
             
             if not creds or not creds.valid:
                 if creds and creds.expired and creds.refresh_token:
