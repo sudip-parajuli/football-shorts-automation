@@ -36,7 +36,7 @@ jobs:
     - name: Install Python Dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r footybitez/requirements.txt
         # Ensure correct google-genai is installed
         pip install google-genai>=1.0.0
 
