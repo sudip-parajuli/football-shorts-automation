@@ -36,6 +36,7 @@ class BreakingNewsPipeline:
         from footybitez.media.media_sourcer import MediaSourcer
         from footybitez.video.remotion_video_creator import RemotionVideoCreator
         from footybitez.youtube.uploader import YouTubeUploader
+        from footybitez.socials.social_orchestrator import SocialOrchestrator
 
         fd_key = os.getenv("FOOTBALL_DATA_API_KEY", "")
         af_key = os.getenv("API_FOOTBALL_KEY", "")
@@ -49,6 +50,8 @@ class BreakingNewsPipeline:
         self.media_sourcer = MediaSourcer()
         self.video_creator = RemotionVideoCreator()
         self.uploader = YouTubeUploader()
+        self.socials = SocialOrchestrator()
+
 
     # ─────────────────────────────────────────────────────────
     # STATE FILE — persists processed match IDs across GHA runs
@@ -315,9 +318,19 @@ class BreakingNewsPipeline:
 
         try:
             self.uploader.upload_video(video_path, title, description, tags)
-            logger.info(f"Uploaded breaking news Short for {home} vs {away}")
+            logger.info(f"Uploaded breaking news Short for {home} vs {away} to YouTube.")
+            
+            # Cross-platform publishing to Facebook, Instagram Reels, and TikTok
+            should_publish_socials = os.getenv("ENABLE_SOCIAL_PUBLISHING", "false").lower() == "true"
+            if should_publish_socials:
+                logger.info("Attempting cross-platform upload to Facebook, Instagram, and TikTok...")
+                self.socials.publish_to_all(video_path, title, description)
+            else:
+                logger.info("Social publishing skipped (ENABLE_SOCIAL_PUBLISHING not true).")
+                
         except Exception as e:
             logger.error(f"Upload failed: {e}")
+
 
 
 # ─────────────────────────────────────────────────────────

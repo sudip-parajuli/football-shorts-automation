@@ -45,7 +45,7 @@ def _get_font(size: int):
     return ImageFont.load_default()
 
 
-def render_quiz_slide(question_text: str, duration_secs: float = 6.0,
+def render_quiz_slide(question_text: str, options: list = None, duration_secs: float = 6.0,
                       output_dir: str = "footybitez/output/temp_text"):
     """
     Renders a quiz question as a MoviePy VideoClip (1080x1920, 30fps).
@@ -56,15 +56,15 @@ def render_quiz_slide(question_text: str, duration_secs: float = 6.0,
 
     os.makedirs(output_dir, exist_ok=True)
     W, H, FPS = 1080, 1920, 30
-    DARK_BG = (15, 15, 25)
+    DARK_BG = (18, 18, 30)
     WHITE = (255, 255, 255)
     AMBER = (245, 166, 35)
 
-    font_q = _get_font(72)
+    font_q = _get_font(64)
     font_label = _get_font(48)
-    font_hint = _get_font(36)
+    font_hint = _get_font(38)
 
-    def draw_wrapped(draw, text, font, color, y_center, max_width=900):
+    def draw_wrapped(draw, text, font, color, y_center, max_width=920):
         words = text.split()
         lines, current = [], []
         dummy = ImageDraw.Draw(Image.new("RGB", (1, 1)))
@@ -78,7 +78,7 @@ def render_quiz_slide(question_text: str, duration_secs: float = 6.0,
                 current.append(word)
         if current:
             lines.append(" ".join(current))
-        lh = 95
+        lh = 85
         y = y_center - (len(lines) * lh) // 2
         for line in lines:
             bbox = dummy.textbbox((0, 0), line, font=font)
@@ -90,16 +90,52 @@ def render_quiz_slide(question_text: str, duration_secs: float = 6.0,
     # Build question frame
     q_img = Image.new("RGB", (W, H), DARK_BG)
     draw = ImageDraw.Draw(q_img)
-    draw.rectangle([0, 0, W, 10], fill=AMBER)
-    draw.text((W // 2 - 55, 35), "QUIZ", font=font_label, fill=AMBER)
-    draw_wrapped(draw, question_text, font_q, WHITE, H // 2)
-    draw.text((W // 2 - 270, H - 130), "Drop your answer in the comments! 👇", font=font_hint, fill=(160, 160, 160))
+    
+    # Beautiful outer top/bottom borders
+    draw.rectangle([0, 0, W, 20], fill=AMBER)
+    draw.rectangle([0, H - 20, W, H], fill=AMBER)
+    
+    # Header title
+    draw.text((W // 2 - 130, 60), "WORLD CUP QUIZ", font=font_label, fill=AMBER)
+    
+    # Render question centered in the top half
+    draw_wrapped(draw, question_text, font_q, WHITE, 450)
+    
+    # Draw Options (if provided)
+    if options:
+        font_opt = _get_font(42)
+        y_start = 800
+        box_h = 135
+        gap = 35
+        for idx, opt in enumerate(options):
+            y_box = y_start + idx * (box_h + gap)
+            # Alternate outline color for visual premium look
+            outline_color = AMBER if idx % 2 == 1 else (100, 100, 180)
+            
+            # Draw rounded box
+            draw.rounded_rectangle(
+                [100, y_box, W - 100, y_box + box_h],
+                radius=18,
+                fill=(28, 28, 48),
+                outline=outline_color,
+                width=3
+            )
+            # Draw option text left-padded & vertically centered
+            dummy = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+            bbox = dummy.textbbox((0, 0), opt, font=font_opt)
+            text_h = bbox[3] - bbox[1]
+            text_y = y_box + (box_h - text_h) // 2 - 4
+            draw.text((140, text_y), opt, font=font_opt, fill=WHITE)
+
+    # Footer Hint text
+    draw.text((W // 2 - 300, H - 150), "Drop your answer in the comments! 👇", font=font_hint, fill=(180, 180, 180))
     q_frame = np.array(q_img)
 
     def make_q_frame(t):
         return q_frame
 
     return VideoClip(make_q_frame, duration=duration_secs).set_fps(FPS)
+
 
 
 class WorldCupPipeline:
@@ -110,15 +146,20 @@ class WorldCupPipeline:
         from footybitez.video.remotion_video_creator import RemotionVideoCreator
         from footybitez.youtube.uploader import YouTubeUploader
         from footybitez.data.worldcup_data import WorldCupData
+        from footybitez.media.voice_generator import VoiceGenerator
+        from footybitez.socials.social_orchestrator import SocialOrchestrator
 
         self.script_gen = ScriptGenerator()
         self.media_sourcer = MediaSourcer()
         self.video_creator = RemotionVideoCreator()
         self.uploader = YouTubeUploader()
+        self.voice_gen = VoiceGenerator()
+        self.socials = SocialOrchestrator()
 
         fd_key = os.getenv("FOOTBALL_DATA_API_KEY", "")
         af_key = os.getenv("API_FOOTBALL_KEY", "")
         self.wc_data = WorldCupData(fd_key, af_key) if fd_key else None
+
 
     def run(self, category: str, skip_upload: bool = False):
         logger.info(f"WorldCupPipeline: category={category}")
@@ -140,45 +181,138 @@ class WorldCupPipeline:
         pool = {
             "easy": [
                 {"question": "Which country has won the most World Cups?",
+                 "options": ["A) Germany", "B) Brazil", "C) Italy", "D) Argentina"],
                  "answer": "Brazil — 5 times (1958, 62, 70, 94, 2002)"},
                 {"question": "How many teams play in the 2026 World Cup?",
+                 "options": ["A) 32 teams", "B) 40 teams", "C) 48 teams", "D) 64 teams"],
                  "answer": "48 teams — the biggest ever"},
             ],
             "medium": [
                 {"question": "Who holds the record for most World Cup goals?",
+                 "options": ["A) Pele", "B) Ronaldo (R9)", "C) Miroslav Klose", "D) Lionel Messi"],
                  "answer": "Miroslav Klose — 16 goals across 4 tournaments"},
                 {"question": "Which 3 nations co-host the 2026 World Cup?",
+                 "options": ["A) USA, Canada, Mexico", "B) Brazil, Argentina, Chile", "C) Spain, Portugal, Morocco", "D) Japan, South Korea, China"],
                  "answer": "USA, Canada, and Mexico"},
             ],
             "hard": [
                 {"question": "Who scored the fastest goal in World Cup history?",
+                 "options": ["A) Clint Dempsey", "B) Hakan Sukur", "C) Bernard Lacombe", "D) Hama Souza"],
                  "answer": "Hakan Sukur — 11 seconds vs South Korea, 2002"},
                 {"question": "What was the score in the 1954 World Cup final?",
+                 "options": ["A) West Germany 3-2 Hungary", "B) Uruguay 2-1 Brazil", "C) Italy 4-2 Hungary", "D) Brazil 5-2 Sweden"],
                  "answer": "West Germany 3–2 Hungary (Miracle of Bern)"},
             ],
         }
         return [random.choice(pool["easy"]), random.choice(pool["medium"]), random.choice(pool["hard"])]
 
+
     def _run_quiz(self, skip_upload=False):
-        from moviepy.editor import concatenate_videoclips
+        from moviepy.editor import concatenate_videoclips, AudioFileClip, CompositeAudioClip
+        logger.info("Starting professional World Cup Quiz generation with TTS and Music...")
+        
         questions = self.generate_wc_quiz()
-        clips = [render_quiz_slide(q["question"], duration_secs=6.0) for q in questions]
-        clips.append(render_quiz_slide(
+        clips = []
+        
+        for i, q in enumerate(questions):
+            # Text for TTS voiceover reading
+            speak_text = f"Question {i+1}: {q['question']}"
+            options = q.get("options", [])
+            
+            # Generate TTS audio
+            audio_path = self.voice_gen.generate(speak_text, f"wc_quiz_q{i}.mp3")
+            
+            audio_duration = 5.0
+            tts_clip = None
+            if audio_path and os.path.exists(audio_path):
+                tts_clip = AudioFileClip(audio_path)
+                audio_duration = tts_clip.duration
+            
+            # Question slide duration: length of TTS voiceover + 3 seconds thinking pause
+            slide_duration = max(audio_duration + 3.0, 6.5)
+            
+            # Visual slide with beautiful alternating option boxes
+            v_clip = render_quiz_slide(q["question"], options=options, duration_secs=slide_duration)
+            
+            # Add voiceover track to this clip
+            if tts_clip:
+                v_clip = v_clip.set_audio(tts_clip)
+                
+            clips.append(v_clip)
+            
+        # Outro slide
+        outro_text = "Did you know them all? Comment your answers below and we'll reply to let you know if you are right!"
+        audio_path = self.voice_gen.generate(outro_text, "wc_quiz_outro.mp3")
+        
+        audio_duration = 5.0
+        tts_clip = None
+        if audio_path and os.path.exists(audio_path):
+            tts_clip = AudioFileClip(audio_path)
+            audio_duration = tts_clip.duration
+            
+        slide_duration = max(audio_duration + 1.5, 5.0)
+        outro_clip = render_quiz_slide(
             "Did you know them all?\nComment your answers below and we'll reply to let you know if you are right! ⬇️",
-            duration_secs=5.0
-        ))
+            duration_secs=slide_duration
+        )
+        if tts_clip:
+            outro_clip = outro_clip.set_audio(tts_clip)
+        clips.append(outro_clip)
+        
+        # Concat slides together
         final = concatenate_videoclips(clips, method="compose")
+        
+        # Mix looping background music
+        music_dir = "footybitez/music"
+        bg_music = None
+        if os.path.exists(music_dir):
+            files = [f for f in os.listdir(music_dir) if f.endswith(".mp3")]
+            if files:
+                bg_music = os.path.join(music_dir, random.choice(files))
+                
+        if bg_music:
+            try:
+                from moviepy.editor import vfx
+                bg_audio = AudioFileClip(bg_music)
+                bg_audio = bg_audio.fx(vfx.loop, duration=final.duration)
+                bg_audio = bg_audio.volumex(0.12) # Lower background music volume so voiceover is clear
+                
+                if final.audio:
+                    final.audio = CompositeAudioClip([final.audio, bg_audio])
+                else:
+                    final.audio = bg_audio
+                logger.info("Successfully mixed background music into quiz video.")
+            except Exception as e:
+                logger.warning(f"Failed to add background music to quiz: {e}")
+
+
+                
         out = "footybitez/output/wc_quiz.mp4"
         os.makedirs("footybitez/output", exist_ok=True)
         final.write_videofile(out, fps=30, codec="libx264", audio_codec="aac", logger=None)
+        
+        title = "3 World Cup Questions — Do You Know The Answers? 🏆 #shorts #worldcup2026"
+        description = (
+            "Test your World Cup knowledge!\n"
+            "Comment your answers and we'll reply with the results!\n\n"
+            "#worldcup2026 #football #shorts #quiz"
+        )
+        tags = ["worldcup2026", "football", "quiz", "shorts"]
+        
         if not skip_upload:
-            self.uploader.upload_video(
-                out,
-                "3 World Cup Questions — Do You Know The Answers? 🏆 #shorts #worldcup2026",
-                "Test your World Cup knowledge!\nComment your answers and we'll reply with the results!\n\n#worldcup2026 #football #shorts",
-                ["worldcup2026", "football", "quiz", "shorts"]
-            )
+            logger.info("Attempting upload to YouTube...")
+            self.uploader.upload_video(out, title, description, tags)
+            
+            # Cross-platform publishing to Facebook, Instagram Reels, and TikTok
+            should_publish_socials = os.getenv("ENABLE_SOCIAL_PUBLISHING", "false").lower() == "true"
+            if should_publish_socials:
+                logger.info("Attempting cross-platform upload to Facebook, Instagram, and TikTok...")
+                self.socials.publish_to_all(out, title, description)
+            else:
+                logger.info("Social publishing skipped (ENABLE_SOCIAL_PUBLISHING not true).")
+                
         return out
+
 
     def _run_fact(self, skip_upload=False):
         facts = [
@@ -254,17 +388,26 @@ class WorldCupPipeline:
 
         video_path = self.video_creator.create_video(script, visual_assets, background_music_path=bg_music)
         logger.info(f"Video created: {video_path}")
-
+ 
         if not skip_upload:
-            self.uploader.upload_video(
-                video_path,
-                f"{topic} 🏆 #worldcup2026 #shorts",
-                f"{script.get('full_text', '')}\n\n#worldcup2026 #football #shorts #footybitez",
-                ["worldcup2026", "football", "soccer", "shorts", "footybitez", category]
-            )
-
+            title = f"{topic} 🏆 #worldcup2026 #shorts"
+            description = f"{script.get('full_text', '')}\n\n#worldcup2026 #football #soccer #shorts #footybitez"
+            tags = ["worldcup2026", "football", "soccer", "shorts", "footybitez", category]
+            
+            logger.info("Attempting upload to YouTube...")
+            self.uploader.upload_video(video_path, title, description, tags)
+            
+            # Cross-platform publishing to Facebook, Instagram Reels, and TikTok
+            should_publish_socials = os.getenv("ENABLE_SOCIAL_PUBLISHING", "false").lower() == "true"
+            if should_publish_socials:
+                logger.info("Attempting cross-platform upload to Facebook, Instagram, and TikTok...")
+                self.socials.publish_to_all(video_path, title, description)
+            else:
+                logger.info("Social publishing skipped (ENABLE_SOCIAL_PUBLISHING not true).")
+ 
         self.media_sourcer.cleanup()
         return video_path
+
 
 
 if __name__ == "__main__":
