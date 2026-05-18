@@ -95,8 +95,18 @@ def render_quiz_slide(question_text: str, options: list = None, duration_secs: f
     draw.rectangle([0, 0, W, 20], fill=AMBER)
     draw.rectangle([0, H - 20, W, H], fill=AMBER)
     
-    # Header title
-    draw.text((W // 2 - 130, 60), "WORLD CUP QUIZ", font=font_label, fill=AMBER)
+    # Header title (dynamically centered)
+    header_text = "WORLD CUP QUIZ"
+    dummy = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+    bbox_header = dummy.textbbox((0, 0), header_text, font=font_label)
+    header_x = (W - (bbox_header[2] - bbox_header[0])) // 2
+    draw.text((header_x, 60), header_text, font=font_label, fill=AMBER)
+    
+    # Hint text centered just below the header
+    hint_text = "Drop your answer in the comments! 👇"
+    bbox_hint = dummy.textbbox((0, 0), hint_text, font=font_hint)
+    hint_x = (W - (bbox_hint[2] - bbox_hint[0])) // 2
+    draw.text((hint_x, 140), hint_text, font=font_hint, fill=(180, 180, 180))
     
     # Render question centered in the top half
     draw_wrapped(draw, question_text, font_q, WHITE, 450)
@@ -121,15 +131,14 @@ def render_quiz_slide(question_text: str, options: list = None, duration_secs: f
                 width=3
             )
             # Draw option text left-padded & vertically centered
-            dummy = ImageDraw.Draw(Image.new("RGB", (1, 1)))
-            bbox = dummy.textbbox((0, 0), opt, font=font_opt)
+            dummy_opt = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+            bbox = dummy_opt.textbbox((0, 0), opt, font=font_opt)
             text_h = bbox[3] - bbox[1]
             text_y = y_box + (box_h - text_h) // 2 - 4
             draw.text((140, text_y), opt, font=font_opt, fill=WHITE)
 
-    # Footer Hint text
-    draw.text((W // 2 - 300, H - 150), "Drop your answer in the comments! 👇", font=font_hint, fill=(180, 180, 180))
     q_frame = np.array(q_img)
+
 
     def make_q_frame(t):
         return q_frame
