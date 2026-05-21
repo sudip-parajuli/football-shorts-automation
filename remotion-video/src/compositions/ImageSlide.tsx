@@ -41,10 +41,13 @@ export const ImageSlide: React.FC<ImageSlideProps> = ({ src, durationInFrames, e
     translateY = interpolate(frame, [0, durationInFrames], [10, -10], { extrapolateRight: 'clamp' });
   }
 
+  // Clean any relative path segments and prepend assets folder
+  const cleanSrc = src.replace(/^(\.\.\/)+/, '');
+
   return (
     <AbsoluteFill style={{ overflow: 'hidden', backgroundColor: 'black', opacity }}>
       <Img
-        src={staticFile(src)}
+        src={staticFile(`assets/${cleanSrc}`)}
         style={{
           width: '100%',
           height: '100%',
@@ -55,3 +58,4 @@ export const ImageSlide: React.FC<ImageSlideProps> = ({ src, durationInFrames, e
     </AbsoluteFill>
   );
 };
+
