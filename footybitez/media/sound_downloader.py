@@ -21,17 +21,13 @@ SFX_QUERIES = {
 
 
 def _pixabay_search(api_key: str, query: str, per_page: int = 5) -> list:
-    """Search Pixabay sounds and return download URLs."""
-    try:
-        url = "https://pixabay.com/api/sounds/"
-        params = {"key": api_key, "q": query, "per_page": per_page}
-        resp = requests.get(url, params=params, timeout=10)
-        resp.raise_for_status()
-        hits = resp.json().get("hits", [])
-        return [h["sound_url"] for h in hits if h.get("sound_url")]
-    except Exception as e:
-        logger.warning(f"Pixabay search failed for '{query}': {e}")
-        return []
+    """
+    Search Pixabay sounds and return download URLs.
+    Note: Pixabay's public API does not support audio/sound effects search endpoints.
+    We return an empty list immediately and log a warning to avoid 404 errors.
+    """
+    logger.warning("Pixabay public API does not support sound effects search. Skipping search.")
+    return []
 
 
 def download_sound_effects(force: bool = False) -> dict:

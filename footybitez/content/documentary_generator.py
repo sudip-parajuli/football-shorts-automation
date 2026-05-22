@@ -41,7 +41,7 @@ class DocumentaryGenerator:
                 logger.info(f"Attempting script generation with Gemini key #{i+1}...")
                 client = genai.Client(api_key=key)
                 response = client.models.generate_content(
-                    model="gemini-1.5-flash",
+                    model="gemini-2.0-flash",
                     contents=f"{system_prompt}\n\n{user_prompt}",
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",

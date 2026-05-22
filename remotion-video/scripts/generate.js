@@ -31,7 +31,17 @@ function getAudioDuration(filePath) {
 
 function runStep(name, command, args, cwd = process.cwd()) {
   log(`Starting Step: ${name}...`);
-  const result = spawnSync(command, args, { cwd, stdio: 'inherit' });
+  const safeArgs = args.map(arg => {
+    if (typeof arg === 'string' && arg.includes(' ') && !arg.startsWith('"')) {
+      return `"${arg}"`;
+    }
+    return arg;
+  });
+  const result = spawnSync(command, safeArgs, { cwd, stdio: 'inherit', shell: true });
+  if (result.error) {
+    log(`ERROR: Step ${name} failed to start: ${result.error.message}`);
+    process.exit(1);
+  }
   if (result.status === 0) {
     log(`Step ${name} COMPLETED successfully.`);
     return true;

@@ -64,7 +64,7 @@ def generate_veo_clip(prompt: str, output_path: str, duration_seconds: int = 8) 
 
             # Start async generation operation
             operation = client.models.generate_videos(
-                model="veo-3.0-generate-preview",
+                model="veo-2.0-generate-001",
                 prompt=prompt,
                 config=types.GenerateVideosConfig(
                     aspect_ratio="16:9",
