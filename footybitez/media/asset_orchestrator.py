@@ -39,7 +39,7 @@ def fetch_asset(scene: dict, job_id: str, media_sourcer=None) -> dict:
           overlay_text: text for overlays (if image_with_overlay)
           kinetic_stat: text for kinetic text slides
     """
-    out_dir = os.path.join("footybitez", "data", "temp", job_id, str(scene.get("scene_index", "0")))
+    out_dir = os.path.join("remotion-video", "public", "assets", "temp", job_id, str(scene.get("scene_index", "0")))
     os.makedirs(out_dir, exist_ok=True)
 
     visual_type = scene.get("visual_type", "image")
@@ -213,7 +213,7 @@ def write_manifest(job_id: str, assets: list):
         job_id: Pipeline run identifier.
         assets: List of asset dicts returned by fetch_asset().
     """
-    manifest_path = os.path.join("footybitez", "data", "temp", job_id, "asset_manifest.json")
+    manifest_path = os.path.join("remotion-video", "public", "assets", "temp", job_id, "asset_manifest.json")
     os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
     with open(manifest_path, 'w') as f:
         json.dump({"job_id": job_id, "assets": assets}, f, indent=2, default=str)

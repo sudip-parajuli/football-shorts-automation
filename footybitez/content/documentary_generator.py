@@ -1,5 +1,7 @@
 import os
+import re
 import json
+import time
 import logging
 from dotenv import load_dotenv
 
@@ -27,8 +29,18 @@ class DocumentaryGenerator:
 
         logger.info(f"Loaded {len(self.gemini_keys)} Gemini key(s) and {len(self.groq_keys)} Groq key(s).")
 
+    @staticmethod
+    def _parse_retry_delay(error_str: str, default: float = 10.0) -> float:
+        """Extract retry delay seconds from a Gemini 429 error message."""
+        match = re.search(r"retry[\w\s]*?in\s+(\d+(?:\.\d+)?)s", str(error_str), re.IGNORECASE)
+        if match:
+            return min(float(match.group(1)), 120.0)  # cap at 2 minutes
+        return default
+
     def _try_gemini(self, system_prompt: str, user_prompt: str) -> dict | None:
-        """Try all Gemini keys in order using new google-genai SDK."""
+        """Try all Gemini keys in order using new google-genai SDK.
+        On 429, waits the suggested retry-after delay and retries once per key.
+        """
         try:
             from google import genai
             from google.genai import types
@@ -37,48 +49,93 @@ class DocumentaryGenerator:
             return None
 
         for i, key in enumerate(self.gemini_keys):
-            try:
-                logger.info(f"Attempting script generation with Gemini key #{i+1}...")
-                client = genai.Client(api_key=key)
-                response = client.models.generate_content(
-                    model="gemini-2.0-flash",
-                    contents=f"{system_prompt}\n\n{user_prompt}",
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        temperature=0.7,
-                        thinking_config=types.ThinkingConfig(thinking_budget=0)
+            for attempt in range(2):  # 2 attempts per key (initial + 1 retry after 429)
+                try:
+                    logger.info(f"Attempting script generation with Gemini key #{i+1} (attempt {attempt+1})...")
+                    client = genai.Client(api_key=key)
+                    response = client.models.generate_content(
+                        model="gemini-2.0-flash",
+                        contents=f"{system_prompt}\n\n{user_prompt}",
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            temperature=0.7,
+                            thinking_config=types.ThinkingConfig(thinking_budget=0)
+                        )
                     )
-                )
-                text = response.text.strip()
-                # Strip markdown code fences if present
-                if text.startswith("```"):
-                    text = text.split("\n", 1)[-1]
-                if text.endswith("```"):
-                    text = text.rsplit("```", 1)[0]
-                return json.loads(text.strip())
-            except Exception as e:
-                logger.warning(f"Gemini key #{i+1} failed: {e}")
+                    text = response.text.strip()
+                    # Strip markdown code fences if present
+                    if text.startswith("```"):
+                        text = text.split("\n", 1)[-1]
+                    if text.endswith("```"):
+                        text = text.rsplit("```", 1)[0]
+                    return json.loads(text.strip())
+                except Exception as e:
+                    err_str = str(e)
+                    if "429" in err_str and attempt == 0:
+                        delay = self._parse_retry_delay(err_str)
+                        logger.warning(f"Gemini key #{i+1} hit 429. Waiting {delay:.0f}s before retry...")
+                        time.sleep(delay)
+                        continue  # retry same key
+                    logger.warning(f"Gemini key #{i+1} failed: {e}")
+                    break  # move to next key
         return None
 
+    # Ordered model fallback chain for Groq
+    GROQ_MODELS = [
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
+        "gemma2-9b-it",
+    ]
+
     def _try_groq(self, system_prompt: str, user_prompt: str) -> dict | None:
-        """Try all Groq keys in order, return parsed JSON on first success."""
+        """Try all Groq keys × model fallback chain.
+        400 Bad Request on one model automatically tries the next model.
+        """
+        from groq import Groq
+
+        # Groq json_object mode requires the word "json" in the messages.
+        # Append a reminder to the user prompt to be safe.
+        groq_user_prompt = user_prompt + "\n\nRespond ONLY with valid JSON matching the schema above."
+
         for i, key in enumerate(self.groq_keys):
-            try:
-                logger.info(f"Attempting script generation with Groq key #{i+1}...")
-                from groq import Groq
-                client = Groq(api_key=key)
-                completion = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user",   "content": user_prompt}
-                    ],
-                    response_format={"type": "json_object"},
-                    temperature=0.7
-                )
-                return json.loads(completion.choices[0].message.content)
-            except Exception as e:
-                logger.warning(f"Groq key #{i+1} failed: {e}")
+            client = Groq(api_key=key)
+
+            for model in self.GROQ_MODELS:
+                logger.info(f"Groq key #{i+1} — trying model '{model}'...")
+                temperatures = [0.7, 0.3, 0.1]
+                for attempt, temp in enumerate(temperatures):
+                    try:
+                        logger.info(f"  Attempt {attempt+1}/3 (temp={temp})...")
+                        completion = client.chat.completions.create(
+                            model=model,
+                            messages=[
+                                {"role": "system", "content": system_prompt},
+                                {"role": "user",   "content": groq_user_prompt}
+                            ],
+                            response_format={"type": "json_object"},
+                            temperature=temp,
+                            max_tokens=4096,
+                        )
+                        content = completion.choices[0].message.content
+                        return json.loads(content)
+                    except json.JSONDecodeError as jde:
+                        logger.warning(f"  JSON decode error: {jde}. Retrying with lower temp...")
+                    except Exception as e:
+                        err_msg = str(e)
+                        if "json_validate_failed" in err_msg or "Failed to generate JSON" in err_msg:
+                            logger.warning(f"  Schema validation failed: {e}. Retrying with lower temp...")
+                        elif "400" in err_msg or "Bad Request" in err_msg:
+                            # 400 means this model rejected the request — try next model
+                            logger.warning(f"  Model '{model}' returned 400. Falling back to next model...")
+                            break  # break temperature loop → next model
+                        elif "429" in err_msg:
+                            delay = self._parse_retry_delay(err_msg, default=30.0)
+                            logger.warning(f"  Groq key #{i+1} rate limited. Waiting {delay:.0f}s...")
+                            time.sleep(delay)
+                            break  # break temperature loop → next key
+                        else:
+                            logger.warning(f"  Groq key #{i+1} / model '{model}' error: {e}. Trying next key...")
+                            break  # break temperature loop → next key
         return None
 
     def generate_script(self, topic, hook_style="verdict_first", tone="investigative", length_words=850):

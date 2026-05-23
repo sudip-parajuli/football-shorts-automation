@@ -9,6 +9,16 @@ from dotenv import load_dotenv
 
 # Suppress the ddgs package rename warning from duckduckgo_search
 warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*duckduckgo_search.*ddgs.*")
+warnings.filterwarnings("ignore", category=UserWarning, message=".*ddgs.*")
+
+# Support both the new 'ddgs' package and the legacy 'duckduckgo_search'
+try:
+    from ddgs import DDGS
+except ImportError:
+    try:
+        from duckduckgo_search import DDGS
+    except ImportError:
+        DDGS = None
 
 
 class MediaSourcer:
@@ -449,8 +459,10 @@ class MediaSourcer:
 
     def _fetch_ddg_image(self, query, suffix):
         """Fetches an image using DuckDuckGo as final free fallback."""
+        if DDGS is None:
+            print("[DDG] Neither 'ddgs' nor 'duckduckgo_search' is installed. Skipping.")
+            return None
         try:
-            from duckduckgo_search import DDGS
             with DDGS() as ddgs:
                 results = list(ddgs.images(query, max_results=1))
                 if results:

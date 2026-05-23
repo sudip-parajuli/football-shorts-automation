@@ -51,6 +51,7 @@ remotion-video/node_modules/
 remotion-video/public/*.jpg
 remotion-video/public/*.mp3
 remotion-video/public/*.mp4
+remotion-video/public/assets/temp/
 remotion-video/props.json
 props.json
 
