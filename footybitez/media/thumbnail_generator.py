@@ -154,76 +154,138 @@ class ThumbnailGenerator:
         output_path: str = "remotion-video/public/thumbnail.jpg"
     ) -> str:
         """
-        Generate a football-specific thumbnail with hook phrase, supporting fact,
-        background image/diagram, and optional overlay chart.
+        Generate a football-specific thumbnail matching the channel's visual formula:
+        - Full-bleed background (darkened, cinematic grade)
+        - Global dark overlay (top-heavy vignette)
+        - Top-left: Amber/gold label line (small caps)
+        - Middle-left: White bold title on dark maroon bar
+        - Bottom strip: Dark maroon full-width bar with bullet subtitle
         """
         try:
-            canvas = Image.new("RGB", (1280, 720), (10, 10, 18))
+            from PIL import ImageEnhance, ImageFilter
+            import numpy as np
 
-            # 1. Paste and resize background image
+            W, H = 1280, 720
+
+            # ── 1. Background ────────────────────────────────────────────────
             if background_path and os.path.exists(background_path):
                 bg = Image.open(background_path).convert("RGB")
             else:
-                # Default dark canvas fallback
-                bg = Image.new("RGB", (1280, 720), (10, 10, 18))
+                bg = Image.new("RGB", (W, H), (20, 10, 10))
 
-            bg = bg.resize((1280, 720), Image.Resampling.LANCZOS)
-            bg = self._apply_cinematic_grade(bg)  # contrast, saturation
-            canvas.paste(bg, (0, 0))
+            bg = bg.resize((W, H), Image.Resampling.LANCZOS)
 
-            # 2. Dark gradient overlay (left side fade)
-            gradient = self._create_gradient_overlay(width=640, height=720)
-            canvas.paste(gradient, (0, 0), gradient)
+            # Cinematic grade: boost contrast slightly, desaturate a touch
+            bg = ImageEnhance.Contrast(bg).enhance(1.2)
+            bg = ImageEnhance.Color(bg).enhance(0.85)
+            canvas = bg.copy()
 
-            # 3. Amber left bar (width=5px)
+            # ── 2. Global dark overlay (top & left heavier) ──────────────────
+            overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+            ov_draw = ImageDraw.Draw(overlay)
+
+            # Left-side gradient: opaque (#0A0A0A, 200) → transparent at x=750
+            for x in range(750):
+                alpha = int(200 * (1 - x / 750))
+                ov_draw.line([(x, 0), (x, H)], fill=(10, 10, 10, alpha))
+
+            # Top gradient: semi-opaque at top → transparent at y=350
+            for y in range(350):
+                alpha = int(140 * (1 - y / 350))
+                ov_draw.line([(0, y), (W, y)], fill=(10, 10, 10, alpha))
+
+            canvas = Image.alpha_composite(canvas.convert("RGBA"), overlay).convert("RGB")
             draw = ImageDraw.Draw(canvas)
-            draw.rectangle([0, 0, 5, 720], fill=(245, 166, 35, 255))
 
-            # 4. Main text (hook phrase)
-            font_size = 90
-            if self.font_path:
-                hook_font = ImageFont.truetype(self.font_path, font_size)
-            else:
-                hook_font = ImageFont.load_default()
+            # ── 3. Fonts ─────────────────────────────────────────────────────
+            def font(size):
+                if self.font_path:
+                    return ImageFont.truetype(self.font_path, size)
+                return ImageFont.load_default()
 
-            hook_text = thumbnail_data.get("hook_phrase", "FOOTBALL HISTORY").upper()
-            # Wrap text if needed
-            lines = self._wrap_text(hook_text, hook_font, max_width=500)
-            y = 80
-            for line in lines:
-                # Draw drop shadow (offset = 3px, color = amber/gold #F5A623)
-                for dx, dy in [(-3, -3), (-3, 3), (3, -3), (3, 3), (0, 3), (3, 0)]:
-                    draw.text((50 + dx, y + dy), line, font=hook_font, fill=(245, 166, 35, 255))
-                # Draw black outline for readability
-                for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1)]:
-                    draw.text((50 + dx, y + dy), line, font=hook_font, fill=(0, 0, 0, 255))
-                # Text
-                draw.text((50, y), line, font=hook_font, fill=(255, 255, 255, 255))
-                y += font_size + 10
+            # ── 4. Amber label (top-left small-caps) ─────────────────────────
+            label = thumbnail_data.get("hook_phrase", "FOOTBALL HISTORY").upper()
+            label_font = font(52)
 
-            # 5. Bottom strip (y from 620 to 720)
-            draw.rectangle([0, 620, 1280, 720], fill=(10, 10, 18, 217))  # 85% opacity
-            if self.font_path:
-                fact_font = ImageFont.truetype(self.font_path, 36)
-            else:
-                fact_font = ImageFont.load_default()
+            lx, ly = 50, 55
+            self._draw_text_with_outline(draw, lx, ly, label, label_font,
+                                          fill=(245, 166, 35), outline=(0, 0, 0), outline_width=4)
 
-            fact_text = thumbnail_data.get("supporting_fact", "").upper()
-            # Draw text centered anchor="mm" at (640, 670)
-            draw.text((640, 670), fact_text, font=fact_font, fill=(255, 255, 255, 255), anchor="mm")
+            # ── 5. Main title on dark-maroon bar ──────────────────────────────
+            # Use main_title if present (new schema), fall back to supporting_fact for old scripts
+            title = thumbnail_data.get("main_title") or thumbnail_data.get("supporting_fact", "FOOTBALL HISTORY")
+            title = title.upper()
+            title_font = font(78)
 
-            # 6. Optional: overlay diagram (bottom-right)
+            # Wrap title to ~780px wide
+            title_lines = self._wrap_text(title, title_font, max_width=760)
+
+            line_h = 90  # approx line height
+            bar_top = ly + 62
+            bar_bottom = bar_top + (len(title_lines) * line_h) + 20
+            bar_bottom = min(bar_bottom, H - 100)  # clamp
+
+            # Dark maroon bar (semi-transparent) behind title
+            bar_img = Image.new("RGBA", (W, bar_bottom - bar_top), (80, 10, 10, 210))
+            canvas.paste(
+                Image.fromarray(
+                    self._to_rgba_array(bar_img), "RGBA"
+                ).convert("RGB"),
+                (0, bar_top),
+            )
+            # Re-init draw after paste
+            draw = ImageDraw.Draw(canvas)
+
+            ty = bar_top + 12
+            for line in title_lines:
+                self._draw_text_with_outline(draw, 50, ty, line, title_font,
+                                              fill=(255, 255, 255), outline=(0, 0, 0), outline_width=6)
+                bbox = draw.textbbox((50, ty), line, font=title_font)
+                ty += (bbox[3] - bbox[1]) + 8
+                if ty > bar_bottom - 10:
+                    break
+
+            # ── 6. Bottom maroon strip ────────────────────────────────────────
+            strip_h = 72
+            strip_top = H - strip_h
+            strip_img = Image.new("RGBA", (W, strip_h), (100, 15, 15, 230))
+            canvas.paste(
+                Image.fromarray(self._to_rgba_array(strip_img), "RGBA").convert("RGB"),
+                (0, strip_top)
+            )
+            draw = ImageDraw.Draw(canvas)
+
+            subtitle = thumbnail_data.get("supporting_fact", "")
+            # Convert to uppercase, trim long queries
+            subtitle = subtitle.replace("_", " ").upper()
+            if len(subtitle) > 60:
+                subtitle = subtitle[:57] + "..."
+
+            sub_font = font(36)
+            draw.text(
+                (W // 2, strip_top + strip_h // 2),
+                subtitle,
+                font=sub_font,
+                fill=(255, 255, 255),
+                anchor="mm"
+            )
+
+            # ── 7. Optional diagram composite (bottom-right, 70% opacity) ────
             if thumbnail_data.get("composite") and diagram_path and os.path.exists(diagram_path):
-                diagram = Image.open(diagram_path).convert("RGBA")
-                diagram = diagram.resize((150, 100), Image.Resampling.LANCZOS)
-                
-                # Apply 70% opacity
-                alpha = diagram.split()[3]
-                alpha = alpha.point(lambda p: int(p * 0.7))
-                diagram.putalpha(alpha)
-                
-                canvas.paste(diagram, (1100, 500), diagram)
+                try:
+                    diagram = Image.open(diagram_path).convert("RGBA")
+                    diagram = diagram.resize((240, 160), Image.Resampling.LANCZOS)
+                    r, g, b, a = diagram.split()
+                    a = a.point(lambda p: int(p * 0.7))
+                    diagram.putalpha(a)
+                    canvas_rgba = canvas.convert("RGBA")
+                    canvas_rgba.paste(diagram, (W - 260, strip_top - 175), diagram)
+                    canvas = canvas_rgba.convert("RGB")
+                    draw = ImageDraw.Draw(canvas)
+                except Exception as de:
+                    logger.warning(f"Diagram composite failed: {de}")
 
+            # ── 8. Save ───────────────────────────────────────────────────────
             os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
             canvas.save(output_path, "JPEG", quality=95)
             logger.info(f"Football thumbnail saved to {output_path}")
@@ -233,16 +295,25 @@ class ThumbnailGenerator:
             logger.error(f"Failed to generate football thumbnail: {e}")
             return None
 
+    def _draw_text_with_outline(self, draw, x, y, text, font, fill, outline, outline_width=4):
+        """Draw text with solid outline for readability."""
+        for dx in range(-outline_width, outline_width + 1):
+            for dy in range(-outline_width, outline_width + 1):
+                if dx != 0 or dy != 0:
+                    draw.text((x + dx, y + dy), text, font=font, fill=outline)
+        draw.text((x, y), text, font=font, fill=fill)
+
+    def _to_rgba_array(self, img_rgba):
+        """Convert RGBA PIL image to numpy array for paste workaround."""
+        import numpy as np
+        return np.array(img_rgba)
+
     def _apply_cinematic_grade(self, img: Image.Image) -> Image.Image:
         """Applies cinematic grade: contrast(1.15) saturate(0.88)"""
         try:
             from PIL import ImageEnhance
-            # Contrast
-            enhancer = ImageEnhance.Contrast(img)
-            img = enhancer.enhance(1.15)
-            # Saturation (Color)
-            enhancer = ImageEnhance.Color(img)
-            img = enhancer.enhance(0.88)
+            img = ImageEnhance.Contrast(img).enhance(1.15)
+            img = ImageEnhance.Color(img).enhance(0.88)
             return img
         except Exception as e:
             logger.warning(f"Failed to apply cinematic grade: {e}")
@@ -254,10 +325,10 @@ class ThumbnailGenerator:
             gradient = Image.new("RGBA", (width, height), (0, 0, 0, 0))
             draw = ImageDraw.Draw(gradient)
             for x in range(width):
-                # Opaque at x=0 (220 alpha), fading to transparent at x=width (0 alpha)
                 alpha = int(220 * (1 - (x / width)))
                 draw.line([(x, 0), (x, height)], fill=(10, 10, 18, alpha))
             return gradient
         except Exception as e:
             logger.warning(f"Failed to create gradient overlay: {e}")
             return Image.new("RGBA", (width, height), (10, 10, 18, 150))
+

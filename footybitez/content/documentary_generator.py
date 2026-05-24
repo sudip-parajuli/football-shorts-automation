@@ -155,7 +155,11 @@ STRICT RULES:
 4. If a chapter compares two players, alternate queries between them (2-3 images per player).
 5. Sentence rhythm: 2-3 long sentences followed by 1 short punchy sentence.
 6. ACCURACY: Never invent transfer fees or contract values. Only state figures you are certain of.
-7. THUMBNAIL HOOK: The "hook_phrase" in thumbnail_data MUST be exactly 2-4 words. Never use the full video title. Make it punchy and intriguing.
+7. THUMBNAIL TEXT — 3 layers matching the reference channel style:
+   - hook_phrase: 2-5 words, amber label at top (e.g. "THE MIRACLE OF 2010:")
+   - main_title: 4-8 words, large white bold text on maroon bar (e.g. "ANDRES INIESTA'S WORLD CUP WINNING GOAL")
+   - supporting_fact: 4-8 words for bottom strip subtitle (e.g. "UNCOVERING SPAIN'S HISTORIC VICTORY")
+   NEVER use the full video title as hook_phrase. hook_phrase must be punchy and short.
 
 VISUAL TYPE CLASSIFICATION — for each chapter also output "visual_scenes" array:
 Each scene in visual_scenes must have:
@@ -246,8 +250,9 @@ OUTPUT FORMAT (JSON):
     }
   ],
   "thumbnail_data": {
-    "hook_phrase": "THE TIKI-TAKA REVOLUTION",
-    "supporting_fact": "POSSESSION-BASED DOMINATION",
+    "hook_phrase": "THE TIKI-TAKA REVOLUTION:",
+    "main_title": "BARCELONA'S TOTAL DOMINATION EXPLAINED",
+    "supporting_fact": "POSSESSION FOOTBALL REDEFINED",
     "background_query": "Barcelona football tiki-taka passing",
     "background_type": "real_image",
     "diagram_query": "tiki-taka formation passing lanes diagram",

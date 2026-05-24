@@ -49,19 +49,30 @@ export const ImageScene: React.FC<ImageSceneProps> = ({
   const ltStart = Math.round(0.5 * fps);
   const ltDuration = Math.round(3.0 * fps);
 
+  // If no valid asset, render a cinematic dark fallback instead of crashing
+  const isMissingAsset = !cleanSrc || cleanSrc === 'assets/images/placeholder.jpg';
+
   return (
     <AbsoluteFill style={{ overflow: 'hidden', backgroundColor: '#0a0a0a', opacity }}>
       {/* Sourced Image with Ken Burns and Cinematic Color Grading */}
-      <Img
-        src={staticFile(cleanSrc)}
-        style={{
-          width: '100%',
-          height: '100%',
-          objectFit: 'cover',
-          transform: `scale(${scale}) translate(${translateX}px, ${translateY}px)`,
-          filter: 'contrast(1.15) saturate(0.88)',
-        }}
-      />
+      {isMissingAsset ? (
+        <AbsoluteFill
+          style={{
+            background: 'linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 40%, #16213e 70%, #0f3460 100%)',
+          }}
+        />
+      ) : (
+        <Img
+          src={staticFile(cleanSrc)}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transform: `scale(${scale}) translate(${translateX}px, ${translateY}px)`,
+            filter: 'contrast(1.15) saturate(0.88)',
+          }}
+        />
+      )}
 
       {/* Cinematic Vignette Overlay */}
       <div
