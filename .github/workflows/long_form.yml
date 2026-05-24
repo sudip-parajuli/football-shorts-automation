@@ -1,6 +1,9 @@
 name: FootyBitez Long-form Documentary Automation
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     # Sunday and Wednesday at 16:00 UTC
     # 16:00 UTC = 11:00 AM EST (USA/Canada), 4:00 PM GMT (UK)
@@ -95,5 +98,4 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         export PYTHONPATH=$PYTHONPATH:.
-        node remotion-video/scripts/generate.js
-
+        node remotion-video/scripts/generate.js --topic "Champions League goal stats"

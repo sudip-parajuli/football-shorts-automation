@@ -79,6 +79,13 @@ class MediaSourcer:
         with open(self.credits_file, "a", encoding="utf-8") as f:
             f.write(text + "\n")
 
+    def _write_image_meta(self, filepath: str, source: str, artist: str = ""):
+        try:
+            with open(filepath + ".json", "w", encoding="utf-8") as f:
+                json.dump({"source": source, "artist": artist}, f)
+        except Exception:
+            pass
+
     def _download_file(self, url, filepath):
         """Downloads a file using requests with headers."""
         if os.path.exists(filepath):
@@ -328,6 +335,11 @@ class MediaSourcer:
                         return True
             except Exception as e:
                 print(f"[AI Image] Key #{i+1} failed: {e}")
+                try:
+                    from footybitez.media.football_visual_generator import handle_429_sleep
+                    handle_429_sleep(str(e))
+                except Exception as sleep_err:
+                    print(f"[AI Image] Error during sleep: {sleep_err}")
 
         return False
 
@@ -344,15 +356,18 @@ class MediaSourcer:
         """Fetches up to `count` images from Wikimedia Commons. Retries with broader query on failure."""
         results = []
         
-        # Clean query: remove special chars and too many words
-        clean_query = query.replace("*", "").strip()
+        # Clean query: remove special chars and too many words, truncate to 50 chars max
+        # Strip apostrophes and special characters
+        clean_query = re.sub(r"[^\w\s-]", "", query)
+        clean_query = re.sub(r"\s+", " ", clean_query).strip()
+        clean_query = clean_query[:50]
         
         queries_to_try = [
             clean_query,
-            f"{clean_query} soccer",
-            f"{clean_query} football",
+            f"{clean_query} soccer"[:50],
+            f"{clean_query} football"[:50],
             # If the specific subject fails, try to at least get a stadium or trophy if applicable
-            "stadium football" if "stadium" in clean_query.lower() else f"{clean_query.split()[0]} football",
+            ("stadium football" if "stadium" in clean_query.lower() else f"{clean_query.split()[0] if clean_query.split() else ''} football")[:50],
         ]
 
         seen_urls = set()
@@ -405,6 +420,7 @@ class MediaSourcer:
 
                     if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
                         self._add_credit(f"Image from Wikimedia Commons: {artist} ({license_name})")
+                        self._write_image_meta(fpath, "Wikimedia Commons", artist)
                         results.append(fpath)
 
             except Exception as e:
@@ -431,6 +447,7 @@ class MediaSourcer:
                     if os.path.exists(fpath):
                         paths.append(fpath)
                         self._add_credit(f"Photo by {user} on Unsplash")
+                        self._write_image_meta(fpath, "Unsplash", user)
         except Exception as e:
             print(f"Unsplash error: {e}")
         return paths
@@ -453,6 +470,7 @@ class MediaSourcer:
                     if os.path.exists(fpath):
                         paths.append(fpath)
                         self._add_credit(f"Image by {user} from Pixabay")
+                        self._write_image_meta(fpath, "Pixabay", user)
         except Exception as e:
             print(f"Pixabay error: {e}")
         return paths

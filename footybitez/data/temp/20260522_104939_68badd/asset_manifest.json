@@ -1,0 +1,24 @@
+{
+  "job_id": "20260522_104939_68badd",
+  "assets": [
+    {
+      "asset_type": "color_card",
+      "asset_path": null,
+      "color": "#111111",
+      "overlay_text": "Silvio Gazzaniga designing the current World Cup Trophy 1970",
+      "kinetic_stat": null
+    },
+    {
+      "asset_type": "image",
+      "asset_path": "remotion-video/public/assets/images\\wiki_-3265364096643617984.jpg",
+      "overlay_text": null,
+      "kinetic_stat": null
+    },
+    {
+      "asset_type": "kinetic_text",
+      "asset_path": null,
+      "kinetic_stat": "22: NUMBER OF TEAMS THAT HAVE WON THE WORLD CUP TROPHY",
+      "overlay_text": null
+    }
+  ]
+}

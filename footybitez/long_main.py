@@ -20,7 +20,6 @@ from footybitez.content.documentary_generator import DocumentaryGenerator
 from footybitez.media.media_sourcer import MediaSourcer
 from footybitez.media.voice_generator import VoiceGenerator
 from footybitez.media.thumbnail_generator import ThumbnailGenerator
-from footybitez.media.sound_downloader import download_sound_effects
 
 # Setup Logging
 os.makedirs("footybitez/logs", exist_ok=True)
@@ -51,14 +50,43 @@ def get_audio_duration(file_path):
         return 0
 
 
-def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourcer, media_dir: str) -> list:
+
+def assign_scene_durations(scenes: list, total_frames: int):
+    if not scenes:
+        return
+    
+    word_counts = []
+    for scene in scenes:
+        snippet = scene.get("narration_snippet", "")
+        words = len(snippet.split()) if snippet else 5
+        word_counts.append(words)
+        
+    total_words = sum(word_counts)
+    if total_words == 0:
+        total_words = len(scenes)
+        word_counts = [1] * len(scenes)
+        
+    allocated_frames = 0
+    for idx, scene in enumerate(scenes):
+        pct = word_counts[idx] / total_words
+        duration = int(pct * total_frames)
+        scene["duration_frames"] = duration
+        allocated_frames += duration
+        
+    diff = total_frames - allocated_frames
+    if diff != 0 and scenes:
+        scenes[-1]["duration_frames"] = max(1, scenes[-1]["duration_frames"] + diff)
+
+
+def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourcer, media_dir: str, topic: str) -> tuple:
     """
     Fetches visual assets for a single chapter using the AssetOrchestrator when
     visual_scenes data is present, otherwise falls back to image_queries.
 
-    Returns: list of relative image paths (relative to remotion-video/public)
+    Returns: (list of relative image paths, list of visual scene props)
     """
     chapter_images = []
+    visual_scenes_props = []
 
     # --- Path A: Use visual_scenes from new DocumentaryGenerator output ---
     visual_scenes = chapter.get("visual_scenes", [])
@@ -66,27 +94,44 @@ def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourc
         logger.info(f"  Chapter has {len(visual_scenes)} visual scenes — using AssetOrchestrator.")
         try:
             from footybitez.media import asset_orchestrator
-            assets_fetched = []
             for scene_idx, scene in enumerate(visual_scenes):
                 scene["scene_index"] = scene_idx
+                
+                # Fetch asset
                 asset = asset_orchestrator.fetch_asset(scene, job_id, media_sourcer)
-                assets_fetched.append(asset)
-
-                if asset["asset_type"] in ("image", "ai_video") and asset.get("asset_path"):
-                    path = asset["asset_path"]
-                    if os.path.exists(path):
-                        rel = os.path.relpath(path, "remotion-video/public")
-                        chapter_images.append(rel.replace("\\", "/"))
-                elif asset["asset_type"] == "kinetic_text":
-                    # Kinetic text scenes are tracked in asset manifest — no image path needed
-                    logger.info(f"  Scene {scene_idx}: kinetic_text — '{asset.get('kinetic_stat', '')}'")
-
-            # Write manifest for this chapter
-            asset_orchestrator.write_manifest(job_id, assets_fetched)
+                
+                # Create scene prop object
+                scene_prop = {
+                    "visual_type": scene["visual_type"],
+                    "transition": scene["transition"],
+                }
+                
+                # Copy relevant generator fields
+                for field in ["typewriter_words", "word_timestamps", "stat_data", "question_text", "emphasis_phrase", "bar_data", "named_entity", "ken_burns_style", "caption"]:
+                    if field in scene:
+                        scene_prop[field] = scene[field]
+                
+                if asset.get("asset_path"):
+                    rel_path = os.path.relpath(asset["asset_path"], "remotion-video/public").replace("\\", "/")
+                    scene_prop["asset_path"] = rel_path
+                    chapter_images.append(rel_path)
+                    
+                    if asset["asset_type"] == "ai_video":
+                        scene_prop["asset_type"] = "video"
+                    else:
+                        scene_prop["asset_type"] = "image"
+                else:
+                    scene_prop["asset_type"] = "image_fallback" if scene["visual_type"] == "ai_video" else "image"
+                    # Default placeholder if image failed to download
+                    placeholder = "assets/images/placeholder.jpg"
+                    scene_prop["asset_path"] = placeholder
+                    chapter_images.append(placeholder)
+                    
+                visual_scenes_props.append(scene_prop)
 
         except Exception as e:
             logger.warning(f"  AssetOrchestrator failed: {e}. Falling back to image_queries.")
-            visual_scenes = []  # Force fallback
+            visual_scenes_props = []
 
     # --- Path B: Legacy image_queries fallback ---
     if not visual_scenes or not chapter_images:
@@ -102,7 +147,7 @@ def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourc
                 rel = os.path.relpath(img_path, "remotion-video/public")
                 chapter_images.append(rel.replace("\\", "/"))
 
-    return chapter_images
+    return chapter_images, visual_scenes_props
 
 
 def main():
@@ -165,7 +210,7 @@ def main():
             duration_frames = int(duration_sec * 24)
 
             # B. Visual Assets (orchestrated with fallback chain)
-            chapter_images = _fetch_chapter_visuals(chapter, job_id, media_sourcer, media_dir)
+            chapter_images, visual_scenes_props = _fetch_chapter_visuals(chapter, job_id, media_sourcer, media_dir, topic)
 
             # Guard: ensure at least 1 image per chapter
             if not chapter_images:
@@ -179,14 +224,35 @@ def main():
                         pass
                 chapter_images = ["assets/images/placeholder.jpg"]
 
-            chapters_props.append({
+            # Distribute scene durations and generate typewriter timestamps
+            if visual_scenes_props:
+                assign_scene_durations(visual_scenes_props, duration_frames)
+                for scene in visual_scenes_props:
+                    if scene["visual_type"] == "typewriter_text" and not scene.get("word_timestamps"):
+                        words = scene.get("typewriter_words", [])
+                        num_words = len(words)
+                        if num_words > 0:
+                            word_timestamps = []
+                            for w_idx, w_item in enumerate(words):
+                                start_frame = int((w_idx / num_words) * scene["duration_frames"])
+                                word_timestamps.append({
+                                    "word": w_item["word"],
+                                    "startFrame": start_frame
+                                })
+                            scene["word_timestamps"] = word_timestamps
+
+            chapter_data = {
                 "chapter_number": i + 1,
                 "chapter_title": chapter["chapter_title"],
                 "script": chapter["script"],
                 "duration_in_frames": duration_frames,
                 "audio_path": f"assets/audio/{audio_filename}",
                 "images": chapter_images,
-            })
+            }
+            if visual_scenes_props:
+                chapter_data["visual_scenes"] = visual_scenes_props
+
+            chapters_props.append(chapter_data)
 
         # 5. Generate Thumbnail (AI → PIL fallback)
         thumb_gen = ThumbnailGenerator()
@@ -230,8 +296,15 @@ def main():
             with open(credits_file, "r", encoding="utf-8") as f:
                 image_credits = [line.strip() for line in f if line.strip()]
 
-        logger.info("Downloading sound effects...")
-        sound_effects = download_sound_effects()
+        logger.info("Setting up offline sound effects...")
+        sound_effects = {
+            "whoosh": "assets/sounds/whoosh.mp3",
+            "transition": "assets/sounds/transition.mp3",
+            "rise": "assets/sounds/rise.mp3",
+            "impact": "assets/sounds/impact.mp3",
+            "drum": "assets/sounds/drum.mp3",
+            "crowd_cheer": "assets/sounds/crowd_cheer.mp3"
+        }
 
         props = {
             "chapters": chapters_props,
@@ -258,6 +331,62 @@ def main():
         logger.info(f"Job ID: {job_id}")
         logger.info("=" * 60)
         topic_gen.mark_topic_as_used(topic)
+
+        # 7. Render Video via Remotion CLI
+        import platform
+        import shutil
+        logger.info("Starting Remotion render step...")
+        # Concurrency=1 renders one frame at a time — prevents Chrome OOM crashes on low-RAM machines.
+        # Timeout=60000 gives each frame up to 60s to render (default is 30s).
+        cmd = [
+            "npx", "remotion", "render",
+            "src/index.ts", "MainVideo",
+            "output/video.mp4",
+            "--props=public/props.json",
+            "--concurrency=1",
+            "--timeout=60000",
+        ]
+
+        remotion_dir = "remotion-video"
+        if platform.system() != "Windows":
+            import shlex
+            cmd_str = shlex.join(cmd)
+            logger.info("Linux/Mac detected. Using shlex joined command.")
+        else:
+            cmd_str = " ".join(cmd)
+            
+        logger.info(f"Executing rendering command in {remotion_dir}: {cmd_str}")
+        
+        try:
+            process = subprocess.run(
+                cmd_str,
+                cwd=remotion_dir,
+                check=True,
+                shell=True,
+                capture_output=True,
+                text=True
+            )
+            if process.stdout:
+                logger.info(f"Remotion Render Output: {process.stdout}")
+            if process.stderr:
+                logger.warning(f"Remotion Render Warnings/Errors: {process.stderr}")
+                
+            logger.info("Remotion rendering completed successfully (exit code 0).")
+            
+            # Clean up temp assets on success
+            temp_dir = os.path.join("remotion-video", "public", "assets", "temp", job_id)
+            if os.path.exists(temp_dir):
+                logger.info(f"Cleaning up temporary assets: {temp_dir}")
+                shutil.rmtree(temp_dir)
+            else:
+                logger.info(f"No temp directory found to clean up: {temp_dir}")
+                
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Remotion Render Failed (Code {e.returncode})")
+            logger.error(f"RENDER STDOUT: {e.stdout}")
+            logger.error(f"RENDER STDERR: {e.stderr}")
+            logger.warning(f"Keeping temporary assets in remotion-video/public/assets/temp/{job_id}/ for debugging.")
+            raise Exception(f"Remotion failed to render video: {e.stderr}")
 
     except Exception as e:
         logger.error(f"Critical error in documentary pipeline: {e}", exc_info=True)

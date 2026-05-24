@@ -155,14 +155,36 @@ STRICT RULES:
 4. If a chapter compares two players, alternate queries between them (2-3 images per player).
 5. Sentence rhythm: 2-3 long sentences followed by 1 short punchy sentence.
 6. ACCURACY: Never invent transfer fees or contract values. Only state figures you are certain of.
+7. THUMBNAIL HOOK: The "hook_phrase" in thumbnail_data MUST be exactly 2-4 words. Never use the full video title. Make it punchy and intriguing.
 
 VISUAL TYPE CLASSIFICATION — for each chapter also output "visual_scenes" array:
 Each scene in visual_scenes must have:
-  - "visual_type": one of "ai_video" | "image" | "kinetic_text" | "image_with_overlay"
-  - "image_cue": specific search query (for image / image_with_overlay types)
+  - "visual_type": one of "typewriter_text" | "kinetic_stat" | "image" | "ai_image" | "ai_video" | "hook_question" | "data_bars"
+  - "image_cue": specific search query (for image types)
+  - "ai_image_prompt": specific prompt for generating AI image (ONLY for ai_image type)
   - "ai_video_prompt": "[camera move], [subject], [atmosphere], [style]" (ONLY for ai_video type)
-  - "kinetic_stat": short text to display (for kinetic_text and image_with_overlay types)
   - "narration_snippet": which sentence(s) of the chapter script this scene covers
+  - "transition": "flash" | "fade" | "cut" (default is "cut")
+
+Type-specific fields:
+  - typewriter_text: include "typewriter_words" array (each with "word" and "weight": "xl_accent" | "xl_amber" | "lg" | "md" | "dim")
+  - kinetic_stat: include "stat_data" object with "value", "unit", "label"
+  - hook_question: include "question_text" and "emphasis_phrase" (words to highlight)
+  - data_bars: include "bar_data" array (each with "label", "value", and "color": "amber" | "teal" | "purple" | "gray")
+  - image / ai_image / ai_video: optional "named_entities" list (each with "name", "description"), "ken_burns_style" ("zoom_in_center", "zoom_in_topleft", "pan_left", "pan_right"), "caption"
+
+CRITICAL FACE RULE:
+Never output visual_type='ai_image' or visual_type='ai_video' for scenes where a named, real player or coach is the main subject. AI models cannot generate recognizable faces of real people — they produce hallucinated, wrong, or generic faces.
+
+If a scene describes a named player (e.g., "Messi scoring"), classify it as:
+  visual_type: "image"
+  image_cue: "Messi Ligue 1 goal 2023"
+
+Only use ai_image/ai_video for:
+  - Abstract concepts (speed, passion, tactics, formations)
+  - Atmospheric scenes (stadium crowds, team celebrations without faces)
+  - Tactical diagrams and formations
+  - Generic actions (a goalkeeper diving, a midfielder passing, soccer ball close-up)
 
 RULES for ai_video visual type (MAXIMUM 3 per entire video — enforce strictly):
   ✅ USE FOR: stadium atmospheres, crowd energy, abstract sport moods, rain/lighting/fog effects,
@@ -175,11 +197,6 @@ RULES for ai_video_prompt (only written when visual_type == "ai_video"):
   Good examples:
     "Slow aerial drone pull-back over a packed 80,000-seat stadium at night, floodlights blazing, crowd a sea of color, cinematic"
     "Low-angle tracking shot of a football rolling across a wet pitch, floodlights reflected in puddles, dramatic atmosphere"
-    "Wide shot of empty stadium at dusk, golden hour light across empty seats, melancholic mood, cinematic"
-  Bad examples (will hallucinate badly — use image type instead):
-    "Lionel Messi scoring against Real Madrid" — named player
-    "The 1966 World Cup final at Wembley" — specific real event
-    "Referee showing a red card to a player" — faces distort badly
 
 OUTPUT FORMAT (JSON):
 {
@@ -200,25 +217,43 @@ OUTPUT FORMAT (JSON):
       ],
       "visual_scenes": [
         {
+          "visual_type": "hook_question",
+          "question_text": "But was it really that simple?",
+          "emphasis_phrase": "really that simple?",
+          "narration_snippet": "But was it really that simple?",
+          "transition": "flash"
+        },
+        {
           "visual_type": "image",
           "image_cue": "specific search query",
-          "narration_snippet": "first sentence of this chapter"
+          "ken_burns_style": "zoom_in_center",
+          "narration_snippet": "first sentence of this chapter",
+          "transition": "cut"
         },
         {
           "visual_type": "ai_video",
           "ai_video_prompt": "Slow aerial drone pull-back over packed stadium, cinematic",
-          "narration_snippet": "crowd erupted as the final whistle blew"
+          "narration_snippet": "crowd erupted as the final whistle blew",
+          "transition": "fade"
         },
         {
-          "visual_type": "kinetic_text",
-          "kinetic_stat": "91 GOALS IN 2012",
-          "narration_snippet": "he scored 91 goals that calendar year"
+          "visual_type": "kinetic_stat",
+          "stat_data": {"value": 91, "unit": "GOALS", "label": "IN 2012"},
+          "narration_snippet": "he scored 91 goals that calendar year",
+          "transition": "flash"
         }
       ]
     }
   ],
-  "thumbnail_prompt": "ultra detailed AI image prompt: cinematic YouTube thumbnail for a football documentary, [SPECIFIC DESCRIPTION], dramatic stadium background, photorealistic, 4K, professional sports broadcast quality, volumetric lighting",
-  "thumbnail_query": "specific high-contrast fallback query for image search",
+  "thumbnail_data": {
+    "hook_phrase": "THE TIKI-TAKA REVOLUTION",
+    "supporting_fact": "POSSESSION-BASED DOMINATION",
+    "background_query": "Barcelona football tiki-taka passing",
+    "background_type": "real_image",
+    "diagram_query": "tiki-taka formation passing lanes diagram",
+    "diagram_type": "ai_generated",
+    "composite": true
+  },
   "quiz": {
     "question": "string",
     "options": ["A", "B", "C"],

@@ -1,0 +1,49 @@
+export interface VisualScene {
+  visual_type: "typewriter_text" | "kinetic_stat" | "image" | "ai_video" | "hook_question" | "data_bars";
+  asset_path?: string;          // relative to public/
+  asset_type?: "video" | "image_fallback" | "image";
+  duration_frames: number;
+  transition: "flash" | "fade" | "cut";
+
+  // typewriter_text
+  typewriter_words?: Array<{ word: string; weight: string }>;
+  word_timestamps?: Array<{ word: string; startFrame: number }>;
+
+  // kinetic_stat
+  stat_data?: { value: number; unit: string; label: string };
+
+  // hook_question
+  question_text?: string;
+  emphasis_phrase?: string;
+
+  // data_bars
+  bar_data?: Array<{ label: string; value: number; color: string }>;
+
+  // image / ai_video
+  named_entity?: { name: string; description: string };
+  ken_burns_style?: string;
+  caption?: string;
+}
+
+export interface Chapter {
+  chapter_number: number;
+  chapter_title: string;
+  script: string;
+  duration_in_frames: number;
+  audio_path: string;
+  images: string[];
+  visual_scenes?: VisualScene[];
+}
+
+export interface MainVideoProps {
+  chapters: Chapter[];
+  background_music: string;
+  image_credits: string[];
+  sound_effects?: Record<string, string>; // category -> relative path
+  quiz?: {
+    question: string;
+    options: string[];
+    correct_answer_index: number;
+    explanation: string;
+  };
+}

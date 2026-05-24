@@ -1,0 +1,25 @@
+{
+  "job_id": "20260522_105227_9e0ec6",
+  "assets": [
+    {
+      "asset_type": "image",
+      "asset_path": "remotion-video/public/assets/images\\wiki_3715060729681264786.jpg",
+      "overlay_text": null,
+      "kinetic_stat": null
+    },
+    {
+      "asset_type": "color_card",
+      "asset_path": null,
+      "color": "#111111",
+      "overlay_text": "Silvio Gazzaniga designing FIFA World Cup Trophy 1969",
+      "kinetic_stat": null
+    },
+    {
+      "asset_type": "color_card",
+      "asset_path": null,
+      "color": "#0a0a0a",
+      "overlay_text": "The modern era has seen the World Cup grow in popularity, with more teams partic",
+      "kinetic_stat": null
+    }
+  ]
+}

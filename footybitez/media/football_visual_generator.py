@@ -14,6 +14,7 @@ import os
 import io
 import time
 import logging
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -27,101 +28,54 @@ def _get_gemini_keys() -> list:
     return keys
 
 
+def handle_429_sleep(err_msg: str) -> float:
+    """
+    Parses the retryDelay value from error response.
+    Supports both 'Please retry in 27.613595891s' and 'retryDelay: 27s' or similar.
+    Sleeps for the parsed duration and returns it. If 429/quota error is detected
+    but not parsed, sleeps for a default 30s.
+    """
+    delay = 0.0
+    
+    # 1. Parse 'Please retry in 27.61s'
+    match1 = re.search(r"Please retry in ([0-9.]+)\s*s", err_msg, re.IGNORECASE)
+    if match1:
+        try:
+            delay = float(match1.group(1))
+        except ValueError:
+            pass
+            
+    # 2. Parse 'retryDelay: 27s' or 'retryDelay': '27s'
+    if delay == 0.0:
+        match2 = re.search(r"retryDelay[\"']?\s*:\s*[\"']?([0-9.]+)\s*s", err_msg, re.IGNORECASE)
+        if match2:
+            try:
+                delay = float(match2.group(1))
+            except ValueError:
+                pass
+                
+    if delay > 0.0:
+        logger.warning(f"[Gemini API] Rate limited (429). Sleeping for exactly {delay} seconds.")
+        time.sleep(delay)
+        return delay
+    elif any(term in err_msg.lower() for term in ["429", "resourceexhausted", "quota", "limit"]):
+        logger.warning("[Gemini API] Rate limited (429) but could not parse retryDelay. Sleeping 30s fallback.")
+        time.sleep(30.0)
+        return 30.0
+        
+    return 0.0
+
+
 # ─────────────────────────────────────────────────────────────────────────────
-# VEO 3.1 VIDEO GENERATION
+# VEO 3.0 VIDEO GENERATION
 # ─────────────────────────────────────────────────────────────────────────────
 
 def generate_veo_clip(prompt: str, output_path: str, duration_seconds: int = 8) -> bool:
     """
-    Generates an AI video clip using Veo 3.1 Fast via Gemini API.
-    Polls every 10 seconds, max 36 attempts (~6 minutes timeout).
-
-    Args:
-        prompt: Cinematic text-to-video prompt. Must follow football channel rules:
-                only atmospheric/generic shots, NO named players or specific events.
-        output_path: Where to save the resulting .mp4 file.
-        duration_seconds: Clip length (default 8s, Veo supports 5-8s).
-
-    Returns:
-        True on success, False on any failure (API error, timeout, invalid output).
+    Disabled due to Veo 3.x models requiring paid GCP billing (March 2026).
+    Forces orchestrator fallback to Gemini Image or Pollinations.
     """
-    keys = _get_gemini_keys()
-    if not keys:
-        logger.warning("[Veo] No GEMINI_API_KEY available. Skipping Veo generation.")
-        return False
-
-    try:
-        from google import genai
-        from google.genai import types
-    except ImportError:
-        logger.error("[Veo] google-genai not installed. Run: pip install google-genai>=1.0.0")
-        return False
-
-    for key_idx, key in enumerate(keys):
-        try:
-            logger.info(f"[Veo] Attempting generation with key #{key_idx + 1}...")
-            client = genai.Client(api_key=key)
-
-            # Start async generation operation
-            operation = client.models.generate_videos(
-                model="veo-2.0-generate-001",
-                prompt=prompt,
-                config=types.GenerateVideosConfig(
-                    aspect_ratio="16:9",
-                    duration_seconds=duration_seconds,
-                    number_of_videos=1,
-                )
-            )
-
-            # Poll until done — max ~6 minutes (36 × 10s)
-            MAX_POLLS = 36
-            POLL_INTERVAL = 10
-            start = time.time()
-            for attempt in range(MAX_POLLS):
-                if operation.done:
-                    break
-                if (time.time() - start) > 360:
-                    logger.warning(f"[Veo] Wall-clock timeout exceeded for key #{key_idx + 1}.")
-                    break
-                logger.info(f"[Veo] Polling attempt {attempt + 1}/{MAX_POLLS}...")
-                time.sleep(POLL_INTERVAL)
-                try:
-                    operation = client.operations.get(operation)
-                except Exception as e:
-                    logger.error(f"[Veo] Failed to refresh operation: {e}")
-                    return False
-
-            if not operation.done:
-                logger.warning(f"[Veo] Timeout after {MAX_POLLS * POLL_INTERVAL}s for key #{key_idx + 1}.")
-                continue
-
-            # Extract video bytes
-            result = operation.result
-            if not result or not hasattr(result, 'generated_videos') or not result.generated_videos:
-                logger.warning(f"[Veo] Key #{key_idx + 1}: operation done but no video in result.")
-                continue
-
-            video = result.generated_videos[0]
-            if not hasattr(video, 'video') or not video.video:
-                logger.warning(f"[Veo] Key #{key_idx + 1}: video object has no data.")
-                continue
-
-            # Save to disk
-            os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
-            with open(output_path, 'wb') as f:
-                f.write(video.video.video_bytes)
-
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 10000:
-                logger.info(f"[Veo] Clip saved: {output_path} ({os.path.getsize(output_path) // 1024}KB)")
-                return True
-            else:
-                logger.warning(f"[Veo] Saved file too small or missing: {output_path}")
-
-        except Exception as e:
-            logger.warning(f"[Veo] Key #{key_idx + 1} failed: {e}")
-            continue
-
-    logger.warning("[Veo] All keys exhausted or failed. Caller should use fallback.")
+    logger.warning("[Veo] Veo 3.x API requires paid billing. Disabling and forcing fallback.")
     return False
 
 
@@ -139,8 +93,8 @@ def generate_ai_image(
     Model: gemini-2.5-flash-image
 
     NOTE: imagen-4.0-fast-generate-001 is a PAID model. We use the free
-          gemini-2.5-flash-image instead, which supports
-          response_modalities=["TEXT", "IMAGE"] in the new SDK.
+    gemini-2.5-flash-image instead, which supports
+    response_modalities=["TEXT", "IMAGE"] in the new SDK.
 
     Args:
         prompt: Descriptive image prompt.
@@ -203,7 +157,26 @@ def generate_ai_image(
 
         except Exception as e:
             logger.warning(f"[GeminiImg] Key #{key_idx + 1} failed: {e}")
+            handle_429_sleep(str(e))
             continue
 
     logger.warning("[GeminiImg] All keys exhausted. Caller should use Pollinations fallback.")
     return False
+
+def generate_tactical_diagram(prompt: str, diagram_type: str, output_path: str) -> bool:
+    """
+    Generates a minimalist tactical diagram using Gemini.
+    diagram_type: 'formation', 'heat_map', 'passing_lanes', 'pressure_map', 'comparison_chart'
+    """
+    style_prompts = {
+        "formation": "minimalist football pitch, 2D top-down view, player dots, clean lines, dark theme #111111 background, #F5A623 amber and #C0392B red tactical markings, professional broadcast style, no text",
+        "heat_map": "football pitch heat map, dark theme background, intense red and amber gradient zones showing player activity, professional data visualization style, glowing effects, no text",
+        "passing_lanes": "football pitch, minimalist dark theme, glowing passing lane arrows, player nodes, tiki-taka visualization, #F5A623 amber lines, clean professional graphics, no text",
+        "pressure_map": "football tactical pressure map, dark theme #111111, glowing red zones for gegenpressing, subtle grid lines, professional broadcast graphics, no text",
+        "comparison_chart": "minimalist football data visualization chart, dark theme #111111, amber #F5A623 and red #C0392B accent colors, sleek modern broadcast graphic, neon lines, no text"
+    }
+    
+    style_suffix = style_prompts.get(diagram_type, style_prompts["formation"])
+    full_prompt = f"tactical football graphic: {prompt}. {style_suffix}"
+    
+    return generate_ai_image(full_prompt, output_path, aspect_ratio="16:9")
