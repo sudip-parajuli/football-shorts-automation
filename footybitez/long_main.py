@@ -306,6 +306,29 @@ def main():
             "crowd_cheer": "assets/sounds/crowd_cheer.mp3"
         }
 
+        try:
+            from footybitez.media.sfx_manager import SFXManager
+            # Ensure output directory exists
+            sfx_out_dir = "remotion-video/public/assets/sounds"
+            os.makedirs(sfx_out_dir, exist_ok=True)
+            
+            sfx_manager = SFXManager(sfx_dir="footybitez/media/sfx")
+            
+            for sfx_key, rel_path in sound_effects.items():
+                out_path = os.path.join("remotion-video", "public", rel_path)
+                if not os.path.exists(out_path):
+                    gen_name = sfx_key
+                    if sfx_key == "transition": gen_name = "whoosh"
+                    elif sfx_key == "rise": gen_name = "riser"
+                    elif sfx_key == "drum": gen_name = "kick"
+                    elif sfx_key == "crowd_cheer": gen_name = "impact"
+                    
+                    logger.info(f"Generating SFX: {sfx_key} at {out_path}")
+                    clip = sfx_manager.get_sfx(gen_name)
+                    clip.write_audiofile(out_path, fps=44100, logger=None)
+        except Exception as e:
+            logger.error(f"Error setting up sound effects: {e}")
+
         props = {
             "chapters": chapters_props,
             "background_music": music_file,

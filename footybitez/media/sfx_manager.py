@@ -99,6 +99,7 @@ class SFXManager:
             if np.isscalar(t):
                 return np.array([result, result]) 
             return self._to_stereo(result)
+        return AudioClip(make_frame, duration=duration, fps=self.sample_rate)
 
     def _make_kick(self, duration):
         """Punchy 'Ball Kick' sound (Impact + Thud)."""
@@ -117,6 +118,7 @@ class SFXManager:
             if np.isscalar(t):
                 return np.array([result, result])
             return self._to_stereo(result)
+        return AudioClip(make_frame, duration=duration, fps=self.sample_rate)
 
     def _make_impact(self, duration):
         """Cinematic Boom."""
@@ -150,6 +152,7 @@ class SFXManager:
             if np.isscalar(t):
                 return np.array([result, result])
             return self._to_stereo(result)
+        return AudioClip(make_frame, duration=duration, fps=self.sample_rate)
 
     def _make_alien_invert(self, duration):
         """High pitch sine wave modulating down rapidly + tremolo."""
