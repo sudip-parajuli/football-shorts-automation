@@ -15,19 +15,32 @@ from dotenv import load_dotenv
 logger = logging.getLogger(__name__)
 
 class VoiceGenerator:
-    def __init__(self, output_dir="remotion-video/public/assets/audio"):
+    def __init__(self, output_dir="remotion-video/public/assets/audio", key_pool="auto"):
         load_dotenv()
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
         
         # Hume Keys
-        self.hume_keys = [
-            os.getenv("HUME_API_KEY"),
-            os.getenv("HUME_API_KEY2"),
-            os.getenv("HUME_API_KEY3"),
-            os.getenv("HUME_API_KEY4"),
-            os.getenv("HUME_API_KEY5")
-        ]
+        if key_pool == "long_form":
+            self.hume_keys = [
+                os.getenv("HUME_API_KEY_LONG_1"),
+                os.getenv("HUME_API_KEY_LONG_2"),
+                os.getenv("HUME_API_KEY_LONG_3"),
+            ]
+        elif key_pool == "shorts":
+            self.hume_keys = [
+                os.getenv("HUME_API_KEY_SHORT_1"),
+                os.getenv("HUME_API_KEY_SHORT_2"),
+                os.getenv("HUME_API_KEY_SHORT_3"),
+            ]
+        else:
+            self.hume_keys = [
+                os.getenv("HUME_API_KEY"),
+                os.getenv("HUME_API_KEY2"),
+                os.getenv("HUME_API_KEY3"),
+                os.getenv("HUME_API_KEY4"),
+                os.getenv("HUME_API_KEY5")
+            ]
         self.hume_keys = [k for k in self.hume_keys if k]
         
         # Hume Voice IDs

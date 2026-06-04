@@ -151,7 +151,7 @@ STRICT RULES:
 1. No generic intros/outros. Start with the hook.
 2. image_queries MUST be VERY specific — always include the player's full name, the team, and the action
    (e.g. "Neymar Jr Barcelona skills 2015", "Ronaldinho dribbling Brazil 2006"). Never use generic queries.
-3. Each chapter MUST have 4-6 image_queries — enough to fill the narration with changing visuals.
+3. Each chapter MUST have 6-8 image_queries — enough to fill the narration with rapidly changing visuals.
 4. If a chapter compares two players, alternate queries between them (2-3 images per player).
 5. Sentence rhythm: 2-3 long sentences followed by 1 short punchy sentence.
 6. ACCURACY: Never invent transfer fees or contract values. Only state figures you are certain of.
@@ -161,25 +161,61 @@ STRICT RULES:
    - supporting_fact: 4-8 words for bottom strip subtitle (e.g. "UNCOVERING SPAIN'S HISTORIC VICTORY")
    NEVER use the full video title as hook_phrase. hook_phrase must be punchy and short.
 
+STATISTICS TOPIC RULES:
+For any topic involving goal records, player statistics, match counts, or historical comparisons:
+  - At least ONE scene in the video MUST be a data_visualization, leaderboard, head_to_head, or timeline scene.
+  - Every statistical claim must have a specific number (e.g., "140 goals" instead of "many goals").
+  - Use active voice for action descriptions.
+
+VISUAL DENSITY RULES (CRITICAL — STRICTLY ENFORCE):
+1. Each chapter MUST have 10-14 visual_scenes. Aim for a scene change every 3-4 seconds of narration.
+2. IMAGE 4-SECOND RULE: No single image scene may cover more than ONE sentence of narration.
+   If the narration snippet covers two sentences, use TWO separate image scenes.
+3. TIMING SYNC — text/kinetic/data scenes MUST appear DURING their narration_snippet, never before:
+   - typewriter_text, kinetic_stat, hook_question: place them exactly when the narrator says those words.
+   - leaderboard, head_to_head, timeline, data_bars, data_visualization: place ONLY during the
+     exact narration_snippet that MENTIONS those statistics. Never show a chart before the stats are spoken.
+4. ALTERNATION RULE: Never stack more than 2 consecutive image scenes without inserting a text/data/motion break.
+   Good pattern: image → image → kinetic_stat → image → leaderboard → image → motion_graphic → image
+5. For every named player chapter: open with their image_tag (Wikipedia lookup), then cut between action shots.
+6. Add at least 2 kinetic_stat or typewriter_text scenes per chapter for rhythmic pacing.
+7. NEVER repeat ken_burns_style on consecutive image scenes. Cycle through:
+   zoom_in_center → pan_left → zoom_out_center → pan_right → zoom_in_topleft → pan_diagonal → tilt_up → tilt_down
+8. Add 1-2 motion_graphic scenes per chapter — before/after major statistics or as a visual "breath" beat.
+9. For chapters with comparisons: include at least one head_to_head scene.
+10. For historical timelines: include at least one timeline scene.
+
 VISUAL TYPE CLASSIFICATION — for each chapter also output "visual_scenes" array:
 Each scene in visual_scenes must have:
-  - "visual_type": one of "typewriter_text" | "kinetic_stat" | "image" | "ai_image" | "ai_video" | "hook_question" | "data_bars"
-  - "image_cue": specific search query (for image types)
+  - "visual_type": one of "typewriter_text" | "kinetic_stat" | "image" | "image_tag" | "ai_image" | "ai_video" | "hook_question" | "data_bars" | "data_visualization" | "leaderboard" | "head_to_head" | "timeline" | "motion_graphic"
+  - "image_cue": specific search query (for image/image_tag types)
   - "ai_image_prompt": specific prompt for generating AI image (ONLY for ai_image type)
   - "ai_video_prompt": "[camera move], [subject], [atmosphere], [style]" (ONLY for ai_video type)
-  - "narration_snippet": which sentence(s) of the chapter script this scene covers
-  - "transition": "flash" | "fade" | "cut" (default is "cut")
+  - "narration_snippet": which exact sentence(s) of the chapter script this scene covers
+  - "transition": "flash" | "fade" | "cut" (use "flash" between consecutive images for quick cutting)
 
 Type-specific fields:
   - typewriter_text: include "typewriter_words" array (each with "word" and "weight": "xl_accent" | "xl_amber" | "lg" | "md" | "dim")
-  - kinetic_stat: include "stat_data" object with "value", "unit", "label"
+  - kinetic_stat: include "stat_data" object with "value" (number), "unit" (string), "label" (string)
   - hook_question: include "question_text" and "emphasis_phrase" (words to highlight)
   - data_bars: include "bar_data" array (each with "label", "value", and "color": "amber" | "teal" | "purple" | "gray")
-  - image / ai_image / ai_video: optional "named_entities" list (each with "name", "description"), "ken_burns_style" ("zoom_in_center", "zoom_in_topleft", "pan_left", "pan_right"), "caption"
+  - data_visualization: include "chart_type" ("bar_chart" | "line_chart") and "bar_data" array (each with "label", "value")
+  - leaderboard: include "leaderboard_data" array of up to 5 objects (each with "rank" integer, "name" string, "club" string, "value" number, "unit" string)
+  - head_to_head: include "head_to_head_data" object with "playerA" and "playerB" objects (each with "name" string, "value" number, "color" "amber"|"red"|"teal"), and "metric" string (e.g. "Champions League Goals")
+  - timeline: include "timeline_data" array of objects (each with "year" integer, "value" number, and optional "event" string), and "timeline_title" string
+  - image / image_tag / ai_image / ai_video:
+      * "named_entities": list of objects (each with "name" string, "type" "player"|"club"|"stadium"|"event", "wikipedia_lookup" boolean). Mark "wikipedia_lookup": true only for the single primary subject.
+      * "ken_burns_style": one of "zoom_in_center" | "zoom_in_topleft" | "zoom_out_center" | "pan_left" | "pan_right" | "pan_diagonal" | "tilt_up" | "tilt_down" — CYCLE through these; never repeat two consecutive scenes with the same style.
+      * "caption": short (1-5 word) text to overlay on the image
+  - image_tag: Same as image but used specifically for Wikipedia-sourced entity photos. Use for the FIRST image of any named player/club in a chapter. Set "wikipedia_lookup": true on the named entity.
+  - motion_graphic: Abstract animated B-roll scene. Include:
+      * "motion_style": "pulse" | "lines" | "grid" | "counter" | "slash"
+      * "accent_color": hex color (e.g. "#F5A623" for amber, "#E74C3C" for red, "#1ABC9C" for teal)
+      * "motion_label": short text to display (e.g. "140 GOALS", "WORLD CUP 2018", "CHAMPIONS")
+      * For counter style only: "counter_value" (number) and "counter_unit" (string)
 
 CRITICAL FACE RULE:
-Never output visual_type='ai_image' or visual_type='ai_video' for scenes where a named, real player or coach is the main subject. AI models cannot generate recognizable faces of real people — they produce hallucinated, wrong, or generic faces.
-
+Never output visual_type='ai_image' or visual_type='ai_video' for scenes where a named, real player or coach is the main subject. AI models cannot generate recognizable faces of real people.
 If a scene describes a named player (e.g., "Messi scoring"), classify it as:
   visual_type: "image"
   image_cue: "Messi Ligue 1 goal 2023"
@@ -228,11 +264,57 @@ OUTPUT FORMAT (JSON):
           "transition": "flash"
         },
         {
-          "visual_type": "image",
-          "image_cue": "specific search query",
+          "visual_type": "image_tag",
+          "image_cue": "Cristiano Ronaldo Real Madrid 2018",
+          "named_entities": [
+            {"name": "Cristiano Ronaldo", "type": "player", "wikipedia_lookup": true}
+          ],
           "ken_burns_style": "zoom_in_center",
-          "narration_snippet": "first sentence of this chapter",
+          "narration_snippet": "first sentence about the player",
+          "caption": "CRISTIANO RONALDO",
           "transition": "cut"
+        },
+        {
+          "visual_type": "image",
+          "image_cue": "Cristiano Ronaldo Champions League goal celebration 2017",
+          "named_entities": [
+            {"name": "Cristiano Ronaldo", "type": "player", "wikipedia_lookup": false}
+          ],
+          "ken_burns_style": "pan_left",
+          "narration_snippet": "second sentence about his goals",
+          "transition": "flash"
+        },
+        {
+          "visual_type": "kinetic_stat",
+          "stat_data": {"value": 140, "unit": "goals", "label": "Champions League"},
+          "narration_snippet": "exactly when narrator says '140 goals'",
+          "transition": "cut"
+        },
+        {
+          "visual_type": "motion_graphic",
+          "motion_style": "counter",
+          "accent_color": "#F5A623",
+          "motion_label": "ALL-TIME RECORD",
+          "counter_value": 140,
+          "counter_unit": "goals",
+          "narration_snippet": "sentence just before or after stat reveal",
+          "transition": "flash"
+        },
+        {
+          "visual_type": "leaderboard",
+          "leaderboard_data": [
+            {"rank": 1, "name": "Cristiano Ronaldo", "club": "Real Madrid", "value": 140, "unit": "goals"},
+            {"rank": 2, "name": "Lionel Messi", "club": "Barcelona", "value": 129, "unit": "goals"}
+          ],
+          "narration_snippet": "EXACT sentence: Ronaldo leads the all-time list with 140 goals",
+          "transition": "cut"
+        },
+        {
+          "visual_type": "image",
+          "image_cue": "Cristiano Ronaldo trophy celebration",
+          "ken_burns_style": "zoom_out_center",
+          "narration_snippet": "next sentence after statistics",
+          "transition": "flash"
         },
         {
           "visual_type": "ai_video",
@@ -241,10 +323,12 @@ OUTPUT FORMAT (JSON):
           "transition": "fade"
         },
         {
-          "visual_type": "kinetic_stat",
-          "stat_data": {"value": 91, "unit": "GOALS", "label": "IN 2012"},
-          "narration_snippet": "he scored 91 goals that calendar year",
-          "transition": "flash"
+          "visual_type": "motion_graphic",
+          "motion_style": "lines",
+          "accent_color": "#E74C3C",
+          "motion_label": "LEGACY",
+          "narration_snippet": "closing line of the chapter",
+          "transition": "fade"
         }
       ]
     }

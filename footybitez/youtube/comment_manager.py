@@ -6,7 +6,8 @@ from google.auth.transport.requests import Request
 import googleapiclient.discovery
 import googleapiclient.errors
 import google_auth_oauthlib.flow
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -24,8 +25,7 @@ class CommentManager:
         # Configure Gemini for reply generation
         self.gemini_api_key = os.getenv("GEMINI_API_KEY")
         if self.gemini_api_key:
-            genai.configure(api_key=self.gemini_api_key)
-            self.model = genai.GenerativeModel("gemini-2.5-flash")
+            self.client = genai.Client(api_key=self.gemini_api_key)
 
     def _authenticate(self, client_secrets_file, token_file):
         """Authenticates and returns the YouTube service."""
@@ -161,7 +161,10 @@ class CommentManager:
         REPLY:
         """
         try:
-            response = self.model.generate_content(prompt)
+            response = self.client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
             return response.text.strip()
         except Exception as e:
             logger.error(f"Gemini reply generation failed: {e}")
@@ -202,9 +205,8 @@ class CommentManager:
             comment_id = response["snippet"]["topLevelComment"]["id"]
             logger.info(f"Comment posted. ID: {comment_id}")
 
-            # 2. Pin the comment (setAtTop)
-            self.youtube.comments().setAtTop(id=comment_id).execute()
-            logger.info(f"Comment pinned to video {video_id}")
+            # 2. Pin the comment (setAtTop is not supported by public API, we log and skip)
+            logger.info("Comment posted. Pinning comments is not supported by the public YouTube Data API v3.")
             return True
 
         except Exception as e:

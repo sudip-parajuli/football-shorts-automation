@@ -1,5 +1,17 @@
 export interface VisualScene {
-  visual_type: "typewriter_text" | "kinetic_stat" | "image" | "ai_video" | "hook_question" | "data_bars";
+  visual_type:
+    | "typewriter_text"
+    | "kinetic_stat"
+    | "image"
+    | "ai_video"
+    | "hook_question"
+    | "data_bars"
+    | "data_visualization"
+    | "leaderboard"
+    | "head_to_head"
+    | "timeline"
+    | "motion_graphic"
+    | "image_tag";      // alias for "image" — Wikipedia/Wikimedia sourced
   asset_path?: string;          // relative to public/
   asset_type?: "video" | "image_fallback" | "image";
   duration_frames: number;
@@ -16,13 +28,38 @@ export interface VisualScene {
   question_text?: string;
   emphasis_phrase?: string;
 
-  // data_bars
-  bar_data?: Array<{ label: string; value: number; color: string }>;
+  // data_bars / data_visualization
+  bar_data?: Array<{ label: string; value: number; color?: string }>;
+  chart_type?: "bar_chart" | "line_chart";
 
-  // image / ai_video
+  // leaderboard
+  leaderboard_data?: Array<{ rank: number; name: string; club: string; value: number; unit?: string }>;
+
+  // head_to_head
+  head_to_head_data?: {
+    playerA: { name: string; value: number; color: string };
+    playerB: { name: string; value: number; color: string };
+    metric: string;
+  };
+
+  // timeline
+  timeline_data?: Array<{ year: number; value: number; event?: string }>;
+  timeline_title?: string;
+
+  // motion_graphic
+  motion_style?: "pulse" | "lines" | "grid" | "particles" | "counter" | "slash";
+  accent_color?: string;
+  motion_label?: string;
+  counter_value?: number;
+  counter_unit?: string;
+
+  // image / ai_video / image_tag
   named_entity?: { name: string; description: string };
   ken_burns_style?: string;
   caption?: string;
+
+  // collage: multiple images shown side-by-side (up to 3)
+  secondary_asset_path?: string;
 }
 
 export interface Chapter {

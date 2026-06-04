@@ -51,31 +51,156 @@ def get_audio_duration(file_path):
 
 
 
+# ── Duration assignment constants ────────────────────────────────────────────
+_FPS = 24
+_MAX_IMAGE_FRAMES = 3 * _FPS    # 3 s hard cap for any image scene (faster pacing)
+_MIN_DATA_FRAMES  = 3 * _FPS    # 3 s minimum for charts/leaderboards
+_MIN_TEXT_FRAMES  = 2 * _FPS    # 2 s minimum for kinetic/typewriter scenes
+_MIN_MG_FRAMES    = int(1.2 * _FPS)  # 1.2 s minimum for motion_graphic (snappier)
+
+_IMAGE_TYPES = {"image", "image_tag", "ai_video", "ai_image"}
+_DATA_TYPES  = {"leaderboard", "head_to_head", "timeline", "data_visualization", "data_bars"}
+_TEXT_TYPES  = {"typewriter_text", "kinetic_stat", "hook_question"}
+_MG_TYPES    = {"motion_graphic"}
+
+_KB_STYLES = [
+    "zoom_in_center", "pan_left", "zoom_out_center", "pan_right",
+    "zoom_in_topleft", "pan_diagonal", "tilt_up", "tilt_down",
+]
+
+
 def assign_scene_durations(scenes: list, total_frames: int):
+    """
+    Distribute total_frames across scenes proportionally by narration_snippet
+    word count, then enforce per-type caps/minimums and redistribute excess.
+    """
     if not scenes:
         return
-    
+
+    # --- word-count weights ---
     word_counts = []
     for scene in scenes:
         snippet = scene.get("narration_snippet", "")
-        words = len(snippet.split()) if snippet else 5
+        words = max(1, len(snippet.split()) if snippet else 5)
+        v = scene.get("visual_type", "image")
+        if v in _DATA_TYPES:
+            words = max(words, 20)      # charts need reading time
+        elif v in _TEXT_TYPES:
+            words = max(words, 10)
+        elif v in _MG_TYPES:
+            words = max(words, 8)
         word_counts.append(words)
-        
+
     total_words = sum(word_counts)
-    if total_words == 0:
-        total_words = len(scenes)
-        word_counts = [1] * len(scenes)
-        
-    allocated_frames = 0
+
+    # --- first pass: proportional ---
+    raw = [max(1, int((wc / total_words) * total_frames)) for wc in word_counts]
+
+    # --- second pass: apply caps + collect excess ---
+    final = list(raw)
+    excess = 0
     for idx, scene in enumerate(scenes):
-        pct = word_counts[idx] / total_words
-        duration = int(pct * total_frames)
-        scene["duration_frames"] = duration
-        allocated_frames += duration
-        
-    diff = total_frames - allocated_frames
-    if diff != 0 and scenes:
+        v = scene.get("visual_type", "image")
+        d = raw[idx]
+        if v in _IMAGE_TYPES:
+            if d > _MAX_IMAGE_FRAMES:
+                excess += d - _MAX_IMAGE_FRAMES
+                d = _MAX_IMAGE_FRAMES
+        elif v in _DATA_TYPES:
+            d = max(d, _MIN_DATA_FRAMES)
+        elif v in _TEXT_TYPES:
+            d = max(d, _MIN_TEXT_FRAMES)
+        elif v in _MG_TYPES:
+            d = max(d, _MIN_MG_FRAMES)
+        final[idx] = max(1, d)
+
+    # --- redistribute excess to data/text scenes ---
+    if excess > 0:
+        recipients = [
+            i for i, s in enumerate(scenes)
+            if s.get("visual_type", "image") in (_DATA_TYPES | _TEXT_TYPES | _MG_TYPES)
+        ] or list(range(len(scenes)))
+        extra_each = excess // len(recipients)
+        remainder  = excess % len(recipients)
+        for j, ridx in enumerate(recipients):
+            final[ridx] += extra_each + (1 if j < remainder else 0)
+
+    # --- assign + fix rounding diff on last scene ---
+    for idx, scene in enumerate(scenes):
+        scene["duration_frames"] = max(1, final[idx])
+
+    diff = total_frames - sum(s["duration_frames"] for s in scenes)
+    if diff and scenes:
         scenes[-1]["duration_frames"] = max(1, scenes[-1]["duration_frames"] + diff)
+
+
+def _split_long_image_scenes(visual_scenes: list) -> list:
+    """
+    After duration assignment, split any image scene still > MAX_IMAGE_FRAMES
+    (can happen if excess redistribution pushed the last scene over the cap)
+    into sub-scenes reusing the same asset but with a different Ken Burns style.
+    Also inserts a 'flash' transition between sub-scenes.
+    """
+    expanded = []
+    kb_idx = 0
+    for scene in visual_scenes:
+        v = scene.get("visual_type", "image")
+        d = scene.get("duration_frames", _MAX_IMAGE_FRAMES)
+        if v in _IMAGE_TYPES and d > _MAX_IMAGE_FRAMES:
+            num_splits = -(-d // _MAX_IMAGE_FRAMES)   # ceil division
+            frames_each = d // num_splits
+            remainder   = d - frames_each * num_splits
+            for s_idx in range(num_splits):
+                sub = dict(scene)
+                sub["duration_frames"] = frames_each + (remainder if s_idx == num_splits - 1 else 0)
+                sub["ken_burns_style"] = _KB_STYLES[kb_idx % len(_KB_STYLES)]
+                if s_idx > 0:
+                    sub["transition"] = "flash"
+                kb_idx += 1
+                expanded.append(sub)
+        else:
+            if v in _IMAGE_TYPES:
+                # Ensure ken_burns_style is cycled globally
+                if not scene.get("ken_burns_style"):
+                    scene["ken_burns_style"] = _KB_STYLES[kb_idx % len(_KB_STYLES)]
+                kb_idx += 1
+            expanded.append(scene)
+    return expanded
+
+
+def _pad_short_visual_coverage(visual_scenes: list, target_frames: int) -> list:
+    """
+    If image caps cause total scene duration to fall below target_frames,
+    insert duplicate image scenes (with new Ken Burns styles) to fill the gap.
+    Only called when the gap is significant (> 1 second).
+    """
+    total = sum(s.get("duration_frames", 0) for s in visual_scenes)
+    gap   = target_frames - total
+    if gap < _FPS:   # < 1 second — ignore
+        return visual_scenes
+
+    image_pool = [s for s in visual_scenes if s.get("visual_type") in _IMAGE_TYPES]
+    if not image_pool:
+        return visual_scenes
+
+    result = list(visual_scenes)
+    kb_idx = len(result)
+    pool_idx = 0
+    while gap >= _FPS:
+        base = image_pool[pool_idx % len(image_pool)]
+        new_dur = min(gap, _MAX_IMAGE_FRAMES)
+        sub = dict(base)
+        sub["duration_frames"]  = new_dur
+        sub["ken_burns_style"]  = _KB_STYLES[kb_idx % len(_KB_STYLES)]
+        sub["transition"]       = "flash"
+        sub["caption"]          = None    # suppress caption on duplicates
+        sub["named_entity"]     = None
+        result.append(sub)
+        gap     -= new_dur
+        kb_idx  += 1
+        pool_idx += 1
+
+    return result
 
 
 def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourcer, media_dir: str, topic: str) -> tuple:
@@ -88,7 +213,7 @@ def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourc
     chapter_images = []
     visual_scenes_props = []
 
-    # --- Path A: Use visual_scenes from new DocumentaryGenerator output ---
+    # --- Path A: Use visual_scenes from DocumentaryGenerator output ---
     visual_scenes = chapter.get("visual_scenes", [])
     if visual_scenes:
         logger.info(f"  Chapter has {len(visual_scenes)} visual scenes — using AssetOrchestrator.")
@@ -96,37 +221,56 @@ def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourc
             from footybitez.media import asset_orchestrator
             for scene_idx, scene in enumerate(visual_scenes):
                 scene["scene_index"] = scene_idx
-                
-                # Fetch asset
-                asset = asset_orchestrator.fetch_asset(scene, job_id, media_sourcer)
-                
-                # Create scene prop object
+
+                # Fetch asset (pass-through for non-image types)
+                asset = asset_orchestrator.fetch_asset(scene, job_id, media_sourcer, topic=topic)
+
+                # Build scene prop object
                 scene_prop = {
                     "visual_type": scene["visual_type"],
-                    "transition": scene["transition"],
+                    "transition":  scene["transition"],
                 }
-                
-                # Copy relevant generator fields
-                for field in ["typewriter_words", "word_timestamps", "stat_data", "question_text", "emphasis_phrase", "bar_data", "named_entity", "ken_burns_style", "caption"]:
+
+                # Copy all relevant generator fields
+                for field in [
+                    "typewriter_words", "word_timestamps", "stat_data",
+                    "question_text", "emphasis_phrase",
+                    "bar_data", "named_entity", "ken_burns_style", "caption",
+                    "leaderboard_data", "head_to_head_data",
+                    "timeline_data", "timeline_title",
+                    # motion_graphic fields
+                    "motion_style", "accent_color", "motion_label",
+                    "counter_value", "counter_unit",
+                    # named_entities needed for pipeline logic
+                    "named_entities",
+                ]:
                     if field in scene:
                         scene_prop[field] = scene[field]
-                
+
                 if asset.get("asset_path"):
-                    rel_path = os.path.relpath(asset["asset_path"], "remotion-video/public").replace("\\", "/")
+                    rel_path = os.path.relpath(
+                        asset["asset_path"], "remotion-video/public"
+                    ).replace("\\", "/")
                     scene_prop["asset_path"] = rel_path
                     chapter_images.append(rel_path)
-                    
+
                     if asset["asset_type"] == "ai_video":
                         scene_prop["asset_type"] = "video"
                     else:
                         scene_prop["asset_type"] = "image"
                 else:
-                    scene_prop["asset_type"] = "image_fallback" if scene["visual_type"] == "ai_video" else "image"
-                    # Default placeholder if image failed to download
+                    v_type = scene["visual_type"]
+                    scene_prop["asset_type"] = (
+                        "image_fallback" if v_type == "ai_video" else "image"
+                    )
                     placeholder = "assets/images/placeholder.jpg"
                     scene_prop["asset_path"] = placeholder
-                    chapter_images.append(placeholder)
-                    
+                    if v_type not in ("motion_graphic", "typewriter_text",
+                                     "kinetic_stat", "hook_question",
+                                     "data_bars", "data_visualization",
+                                     "leaderboard", "head_to_head", "timeline"):
+                        chapter_images.append(placeholder)
+
                 visual_scenes_props.append(scene_prop)
 
         except Exception as e:
@@ -196,7 +340,7 @@ def main():
             pass
 
         # 4. Generate Voice + Visuals per Chapter
-        voice_gen = VoiceGenerator(output_dir="remotion-video/public/assets/audio")
+        voice_gen = VoiceGenerator(output_dir="remotion-video/public/assets/audio", key_pool="long_form")
         voice_index = script_data.get("suggested_voice_index", 0)
         chapters_props = []
 
@@ -340,9 +484,37 @@ def main():
         with open("remotion-video/public/props.json", "w", encoding="utf-8") as f:
             json.dump(props, f, indent=2)
 
-        # Save Metadata for Uploader
+        # Save Metadata for Uploader with template titles
+        title = script_data["title"]
+        thumbnail_data = script_data.get("thumbnail_data", {})
+        hook_phrase = thumbnail_data.get("hook_phrase", "").strip()
+        if hook_phrase:
+            if hook_phrase.endswith(":"):
+                hook_phrase = hook_phrase[:-1].strip()
+            
+            topic_lower = topic.lower()
+            if any(k in topic_lower for k in ["stats", "record", "goal", "number", "statistic"]):
+                t_type = "stats"
+            elif any(k in topic_lower for k in ["tactic", "formation", "style", "coach", "system", "philosophy"]):
+                t_type = "tactics"
+            elif any(k in topic_lower for k in ["shocking", "truth", "secret", "scandal", "mystery", "uncover"]):
+                t_type = "shocking"
+            elif any(k in topic_lower for k in ["player", "career", "messi", "ronaldo", "pele", "maradona", "legend"]):
+                t_type = "player"
+            else:
+                t_type = "history"
+                
+            templates = {
+                "stats":     "{hook_phrase}: The Numbers That Changed Football",
+                "history":   "{hook_phrase}: The Story Nobody Told",
+                "tactics":   "{hook_phrase}: How It Really Works",
+                "shocking":  "{hook_phrase}: The Truth Behind the Headlines",
+                "player":    "{hook_phrase}: The Career That Defined a Generation",
+            }
+            title = templates[t_type].format(hook_phrase=hook_phrase)
+
         metadata = {
-            "title": script_data["title"],
+            "title": title,
             "tags": script_data.get("tags", ["football", "documentary"]),
             "topic": topic,
         }

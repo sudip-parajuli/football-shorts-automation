@@ -34,7 +34,28 @@ class MediaSourcer:
         # Clean directory at startup to ensure no stale cached assets are reused
         self.startup_cleanup()
         os.makedirs(download_dir, exist_ok=True)
-        self.neg_keywords = "-nfl -american -rugby -superbowl -touchdown -helmet -cfl -afl -handball"
+        self.used_urls = set()
+
+        # ── Football-only filter constants ──────────────────────────────────
+        # Keywords that identify wrong-sport or wrong-gender content
+        self._BAD_KEYWORDS = [
+            # American football
+            "nfl", "gridiron", "american football", "superbowl", "super bowl",
+            "touchdown", "quarterback", "helmet", "nfl draft", "cfl", "afl",
+            # Rugby
+            "rugby", "rugby union", "rugby league",
+            # Other sports
+            "cricket", "hockey", "nhl", "baseball", "basketball", "nba",
+            "tennis", "golf", "boxing", "mma", "handball",
+            # Wrong gender
+            "women", "woman", "female", "ladies", "girls",
+            "nwsl", "wsl", "nwt", "women's national", "women football",
+            "women soccer", "womens",
+        ]
+        # Safe suffix appended to every query
+        self._FOOTBALL_SAFE_SUFFIX = "association football soccer men"
+        # Negative suffix for search engines that support it
+        self._FOOTBALL_NEG_SUFFIX = "-nfl -american -rugby -gridiron -cricket -hockey -women -nwsl -wsl"
 
         # Initialize credits file
         if os.path.exists(self.credits_file):
@@ -119,6 +140,97 @@ class MediaSourcer:
 
 
     # ─────────────────────────────────────────────────────────
+    # FOOTBALL-ONLY FILTER ENGINE
+    # ─────────────────────────────────────────────────────────
+
+    def _make_football_query(self, raw_query: str, is_entity: bool = False) -> str:
+        """
+        Sanitizes a raw search query to be football-specific.
+        Strips bad-sport keywords and appends sport-safe terms.
+        """
+        q = raw_query.strip()
+        # Remove any bad keywords accidentally in the query
+        for bk in self._BAD_KEYWORDS:
+            q = re.sub(re.escape(bk), "", q, flags=re.IGNORECASE).strip()
+        # Always append the safe football suffix
+        if self._FOOTBALL_SAFE_SUFFIX not in q.lower():
+            q = f"{q} {self._FOOTBALL_SAFE_SUFFIX}"
+        return q
+
+    def _is_bad_image(self, url: str = "", title: str = "", tags: str = "") -> bool:
+        """
+        Returns True if this image should be rejected (wrong sport / wrong gender).
+        Checks URL, filename, title, and tags strings.
+        """
+        combined = f"{url} {title} {tags}".lower()
+        for bk in self._BAD_KEYWORDS:
+            if bk in combined:
+                print(f"[Filter] Rejected image — matched bad keyword '{bk}' in: {url[:80]}")
+                return True
+        return False
+
+    def _fetch_thesportsdb_image(self, entity_name: str) -> str | None:
+        """
+        Fetches an official player or team image from TheSportsDB free API.
+        TheSportsDB only covers association football (soccer) when filtered by sport.
+        No API key needed for the free tier.
+        Returns a local file path or None.
+        """
+        try:
+            # Search players
+            url = f"https://www.thesportsdb.com/api/v1/json/3/searchplayers.php"
+            r = requests.get(url, params={"p": entity_name},
+                             headers={"User-Agent": "FootyBitezBot/1.0"}, timeout=10)
+            if r.status_code == 200:
+                players = r.json().get("player", []) or []
+                # Filter: only soccer/football (idSport=17 in TSDB) and men
+                for p in players:
+                    sport = (p.get("strSport") or "").lower()
+                    gender = (p.get("strGender") or "Male").strip()
+                    if sport not in ("soccer", "football") and sport != "":
+                        continue
+                    if gender.lower() not in ("male", "m", ""):
+                        continue
+                    thumb = p.get("strThumb") or p.get("strCutout")
+                    if thumb and thumb not in self.used_urls:
+                        fname = f"tsdb_player_{hash(entity_name)}.jpg"
+                        fpath = os.path.join(self.download_dir, fname)
+                        self._download_file(thumb, fpath)
+                        if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
+                            self.used_urls.add(thumb)
+                            self._add_credit(f"Image from TheSportsDB (Player: {entity_name})")
+                            self._write_image_meta(fpath, "TheSportsDB", entity_name)
+                            print(f"[TheSportsDB] Got player image for '{entity_name}'")
+                            return fpath
+
+            # Search teams
+            url2 = f"https://www.thesportsdb.com/api/v1/json/3/searchteams.php"
+            r2 = requests.get(url2, params={"t": entity_name},
+                              headers={"User-Agent": "FootyBitezBot/1.0"}, timeout=10)
+            if r2.status_code == 200:
+                teams = r2.json().get("teams", []) or []
+                for t in teams:
+                    sport = (t.get("strSport") or "").lower()
+                    if sport not in ("soccer", "football", ""):
+                        continue
+                    badge = t.get("strTeamBadge") or t.get("strTeamJersey")
+                    banner = t.get("strTeamBanner")
+                    img_url = banner or badge
+                    if img_url and img_url not in self.used_urls:
+                        fname = f"tsdb_team_{hash(entity_name)}.jpg"
+                        fpath = os.path.join(self.download_dir, fname)
+                        self._download_file(img_url, fpath)
+                        if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
+                            self.used_urls.add(img_url)
+                            self._add_credit(f"Image from TheSportsDB (Team: {entity_name})")
+                            self._write_image_meta(fpath, "TheSportsDB", entity_name)
+                            print(f"[TheSportsDB] Got team image for '{entity_name}'")
+                            return fpath
+        except Exception as e:
+            print(f"[TheSportsDB] Error for '{entity_name}': {e}")
+        return None
+
+    # ─────────────────────────────────────────────────────────
     # PUBLIC API — called by main.py (Shorts pipeline)
     # ─────────────────────────────────────────────────────────
 
@@ -189,55 +301,78 @@ class MediaSourcer:
     def get_profile_image(self, entity_query: str) -> str | None:
         """
         Fetches a portrait image of the primary entity (player/club).
+        Priority chain: Wikipedia → TheSportsDB → Wikimedia → Unsplash → Pixabay → DDG
         Returns None if nothing found — caller handles the fallback.
         """
         print(f"Sourcing profile image for: {entity_query}")
 
-        # 1. Wikimedia (best quality, free, licensed)
+        # 1. Wikipedia Page Summary (most accurate — exact match for players/clubs)
+        path = self.get_wikipedia_entity_image(entity_query)
+        if path:
+            return path
+
+        # 2. TheSportsDB (football-specific database, no wrong-sport risk)
+        path = self._fetch_thesportsdb_image(entity_query)
+        if path:
+            return path
+
+        # 3. Wikimedia Commons (filtered)
         path = self._fetch_wikimedia_image(f"{entity_query} footballer portrait")
         if path:
             return path
 
-        # 2. Unsplash
+        # 4. Unsplash (filtered)
         paths = self._fetch_unsplash_image(f"{entity_query} soccer player portrait", count=1)
         if paths:
             return paths[0]
 
-        # 3. Pixabay
+        # 5. Pixabay (filtered)
         paths = self._fetch_pixabay_image(f"{entity_query} football player", count=1)
         if paths:
             return paths[0]
 
-        # 4. DDG fallback
-        return self._fetch_ddg_image(f"{entity_query} soccer portrait high quality", suffix=f"profile_{hash(entity_query)}")
+        # 6. DDG fallback (filtered)
+        return self._fetch_ddg_image(f"{entity_query} soccer portrait", suffix=f"profile_{hash(entity_query)}")
 
     def get_media(self, visual_keyword: str, count: int = 3) -> list:
         """
         Fetches a list of image paths for a given visual keyword.
         Used by Shorts pipeline for segment visuals.
-        Returns an interleaved list of Wikimedia and Unsplash images.
+        Priority: Wikipedia entity → TheSportsDB → Wikimedia → Unsplash → Pixabay → DDG
+        All queries are filtered to men's association football only.
         """
-        wiki_paths = self._fetch_wikimedia_images(visual_keyword, count=count)
-        
-        unsplash_count = max(1, count - (len(wiki_paths) // 2))
-        portrait_query = f"{visual_keyword} football soccer"
-        unsplash_paths = self._fetch_unsplash_image(portrait_query, count=unsplash_count)
-
-        # Interleave
         results = []
-        for i in range(max(len(wiki_paths), len(unsplash_paths))):
-            if i < len(wiki_paths):
-                results.append(wiki_paths[i])
-            if i < len(unsplash_paths):
-                results.append(unsplash_paths[i])
+        safe_query = self._make_football_query(visual_keyword)
 
-        # Pixabay fallback if still low
+        # 1. If the keyword looks like a named entity, try Wikipedia + TheSportsDB first
+        if self._is_player_query(visual_keyword) or len(visual_keyword.split()) <= 4:
+            wiki_entity = self.get_wikipedia_entity_image(visual_keyword)
+            if wiki_entity:
+                results.append(wiki_entity)
+
+            if len(results) < count:
+                tsdb = self._fetch_thesportsdb_image(visual_keyword)
+                if tsdb:
+                    results.append(tsdb)
+
+        # 2. Wikimedia Commons (filtered)
         if len(results) < count:
-            results.extend(self._fetch_pixabay_image(visual_keyword, count=count - len(results)))
+            wiki_paths = self._fetch_wikimedia_images(safe_query, count=count - len(results))
+            results.extend(wiki_paths)
 
-        # DDG fallback
+        # 3. Unsplash (filtered)
+        if len(results) < count:
+            unsplash_paths = self._fetch_unsplash_image(safe_query, count=count - len(results))
+            results.extend(unsplash_paths)
+
+        # 4. Pixabay (filtered)
+        if len(results) < count:
+            pix_paths = self._fetch_pixabay_image(safe_query, count=count - len(results))
+            results.extend(pix_paths)
+
+        # 5. DDG fallback (filtered)
         if not results:
-            path = self._fetch_ddg_image(f"{visual_keyword} soccer player", suffix=f"seg_{hash(visual_keyword)}")
+            path = self._fetch_ddg_image(safe_query, suffix=f"seg_{hash(visual_keyword)}")
             if path:
                 results.append(path)
 
@@ -287,6 +422,80 @@ class MediaSourcer:
             assets[f"image_{i}"] = self._fetch_ddg_image(f"{query} soccer", f"fallback_{i}")
 
         return assets
+
+    def get_wikipedia_entity_image(self, entity_name: str) -> str | None:
+        """
+        Fetches the primary image from a Wikipedia article for a named entity.
+        This guarantees accuracy — the image is the one Wikipedia uses for this exact person/club.
+        """
+        import requests
+        try:
+            url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + entity_name.replace(" ", "_")
+            r = requests.get(url, headers={'User-Agent': 'FootyBitezBot/1.0 (contact: admin@footybitez.com)'}, timeout=10)
+            if r.status_code != 200:
+                return None
+            
+            data = r.json()
+            image_url = (data.get("originalimage", {}).get("source") or
+                         data.get("thumbnail", {}).get("source"))
+            if not image_url:
+                return None
+            
+            fname = f"wiki_entity_{hash(image_url)}.jpg"
+            fpath = os.path.join(self.download_dir, fname)
+            self._download_file(image_url, fpath)
+            if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
+                self._add_credit(f"Image from Wikipedia (Entity: {entity_name})")
+                self._write_image_meta(fpath, "Wikipedia Page Summary API", entity_name)
+                return fpath
+        except Exception as e:
+            print(f"Wikipedia entity image lookup error ({entity_name}): {e}")
+        return None
+
+    def fetch_pexels_video(self, query: str, output_path: str) -> bool:
+        """
+        Fetches a CC0 stock football video from Pexels.
+        Pexels API is free — register at pexels.com/api for a key.
+        """
+        import requests
+        
+        PEXELS_API_KEY = self.pexels_api_key
+        if not PEXELS_API_KEY:
+            print("[Pexels] No API Key set.")
+            return False
+        
+        try:
+            r = requests.get(
+                "https://api.pexels.com/videos/search",
+                headers={"Authorization": PEXELS_API_KEY},
+                params={"query": query, "per_page": 5, "orientation": "landscape"},
+                timeout=15
+            )
+            
+            if r.status_code != 200:
+                print(f"[Pexels] API error {r.status_code}: {r.text}")
+                return False
+            
+            videos = r.json().get("videos", [])
+            if not videos:
+                print(f"[Pexels] No videos found for query '{query}'")
+                return False
+            
+            for video in videos:
+                for vfile in video.get("video_files", []):
+                    if vfile.get("width", 0) >= 1280 and vfile.get("file_type") == "video/mp4":
+                        video_url = vfile["link"]
+                        vid_r = requests.get(video_url, timeout=60, stream=True)
+                        if vid_r.status_code == 200:
+                            os.makedirs(os.path.dirname(output_path), exist_ok=True)
+                            with open(output_path, 'wb') as f:
+                                for chunk in vid_r.iter_content(chunk_size=8192):
+                                    f.write(chunk)
+                            print(f"[Pexels] Successfully downloaded video for '{query}' to {output_path}")
+                            return True
+        except Exception as e:
+            print(f"[Pexels] Exception during video fetch: {e}")
+        return False
 
     # ─────────────────────────────────────────────────────────
     # AI IMAGE GENERATION
@@ -353,24 +562,23 @@ class MediaSourcer:
         return results[0] if results else None
 
     def _fetch_wikimedia_images(self, query, count=3):
-        """Fetches up to `count` images from Wikimedia Commons. Retries with broader query on failure."""
+        """Fetches up to `count` images from Wikimedia Commons with football-only filter."""
         results = []
-        
-        # Clean query: remove special chars and too many words, truncate to 50 chars max
-        # Strip apostrophes and special characters
-        clean_query = re.sub(r"[^\w\s-]", "", query)
-        clean_query = re.sub(r"\s+", " ", clean_query).strip()
-        clean_query = clean_query[:50]
-        
+
+        # Apply football filter to the incoming query
+        safe_q = self._make_football_query(query)
+        # Clean: remove special chars, truncate
+        clean_query = re.sub(r"[^\w\s-]", "", safe_q)
+        clean_query = re.sub(r"\s+", " ", clean_query).strip()[:60]
+
         queries_to_try = [
             clean_query,
-            f"{clean_query} soccer"[:50],
-            f"{clean_query} football"[:50],
-            # If the specific subject fails, try to at least get a stadium or trophy if applicable
-            ("stadium football" if "stadium" in clean_query.lower() else f"{clean_query.split()[0] if clean_query.split() else ''} football")[:50],
+            f"{clean_query} soccer"[:60],
+            f"{clean_query} football"[:60],
+            ("stadium football soccer men" if "stadium" in clean_query.lower()
+             else f"{clean_query.split()[0] if clean_query.split() else ''} football soccer")[:60],
         ]
 
-        seen_urls = set()
         for attempt_query in queries_to_try:
             if len(results) >= count:
                 break
@@ -382,7 +590,7 @@ class MediaSourcer:
                     "generator": "search",
                     "gsrnamespace": 6,
                     "gsrsearch": f"{attempt_query} filetype:bitmap",
-                    "gsrlimit": 10, # Fetch more to find high quality
+                    "gsrlimit": 15,  # Fetch more so we can filter bad ones out
                     "prop": "imageinfo",
                     "iiprop": "url|size|mime|extmetadata",
                 }
@@ -403,6 +611,8 @@ class MediaSourcer:
                         continue
 
                     url = imageinfo[0].get("url", "")
+                    if url in self.used_urls:
+                        continue
                     mime = imageinfo[0].get("mime", "")
 
                     # Skip SVGs, audio, video
@@ -410,15 +620,22 @@ class MediaSourcer:
                         continue
 
                     meta = imageinfo[0].get("extmetadata", {})
+                    categories = meta.get("Categories", {}).get("value", "")
                     license_name = meta.get("LicenseShortName", {}).get("value", "CC BY-SA")
                     artist = meta.get("Artist", {}).get("value", "Unknown")
                     artist = re.sub('<[^<]+?>', '', artist)
+
+                    # ── Football-only filter ──────────────────────────────
+                    img_title = page.get("title", "")
+                    if self._is_bad_image(url=url, title=img_title, tags=categories):
+                        continue
 
                     fname = f"wiki_{hash(url)}.jpg"
                     fpath = os.path.join(self.download_dir, fname)
                     self._download_file(url, fpath)
 
                     if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
+                        self.used_urls.add(url)
                         self._add_credit(f"Image from Wikimedia Commons: {artist} ({license_name})")
                         self._write_image_meta(fpath, "Wikimedia Commons", artist)
                         results.append(fpath)
@@ -434,17 +651,33 @@ class MediaSourcer:
             return []
         paths = []
         try:
+            safe_query = self._make_football_query(query)
             url = "https://api.unsplash.com/search/photos"
-            params = {"query": query, "per_page": count, "client_id": self.unsplash_api_key}
+            params = {
+                "query": safe_query,
+                "per_page": count * 4,  # Fetch more to filter bad ones
+                "client_id": self.unsplash_api_key,
+                "content_filter": "high",
+            }
             res = requests.get(url, params=params, timeout=10)
             if res.status_code == 200:
                 data = res.json()
                 for photo in data.get('results', []):
+                    if len(paths) >= count:
+                        break
                     src = photo['urls']['regular']
+                    if src in self.used_urls:
+                        continue
+                    # Check photo tags for bad-sport content
+                    photo_tags = " ".join(t.get("title", "") for t in photo.get("tags", []))
+                    alt = photo.get("alt_description") or ""
+                    if self._is_bad_image(url=src, title=alt, tags=photo_tags):
+                        continue
                     user = photo['user']['name']
                     fpath = os.path.join(self.download_dir, f"unsplash_{photo['id']}.jpg")
                     self._download_file(src, fpath)
                     if os.path.exists(fpath):
+                        self.used_urls.add(src)
                         paths.append(fpath)
                         self._add_credit(f"Photo by {user} on Unsplash")
                         self._write_image_meta(fpath, "Unsplash", user)
@@ -457,17 +690,33 @@ class MediaSourcer:
             return []
         paths = []
         try:
+            safe_query = self._make_football_query(query)
             url = "https://pixabay.com/api/"
-            params = {"key": self.pixabay_api_key, "q": query, "image_type": "photo", "per_page": count}
+            params = {
+                "key": self.pixabay_api_key,
+                "q": safe_query,
+                "image_type": "photo",
+                "category": "sports",  # Restrict to sports category
+                "per_page": count * 4,  # Fetch more to filter
+            }
             res = requests.get(url, params=params, timeout=10)
             if res.status_code == 200:
                 data = res.json()
                 for hit in data.get('hits', []):
+                    if len(paths) >= count:
+                        break
                     src = hit['largeImageURL']
+                    if src in self.used_urls:
+                        continue
+                    # Check pixabay tags field
+                    tags = hit.get("tags", "")
+                    if self._is_bad_image(url=src, title=tags, tags=tags):
+                        continue
                     user = hit['user']
                     fpath = os.path.join(self.download_dir, f"pixabay_{hit['id']}.jpg")
                     self._download_file(src, fpath)
                     if os.path.exists(fpath):
+                        self.used_urls.add(src)
                         paths.append(fpath)
                         self._add_credit(f"Image by {user} from Pixabay")
                         self._write_image_meta(fpath, "Pixabay", user)
@@ -476,16 +725,25 @@ class MediaSourcer:
         return paths
 
     def _fetch_ddg_image(self, query, suffix):
-        """Fetches an image using DuckDuckGo as final free fallback."""
+        """Fetches an image using DuckDuckGo as final free fallback with football-only filter."""
         if DDGS is None:
             print("[DDG] Neither 'ddgs' nor 'duckduckgo_search' is installed. Skipping.")
             return None
         try:
+            safe_query = self._make_football_query(query)
+            # Append negative terms in the query string (DDG supports them)
+            ddg_query = f"{safe_query} {self._FOOTBALL_NEG_SUFFIX}"
             with DDGS() as ddgs:
-                results = list(ddgs.images(query, max_results=1))
+                results = list(ddgs.images(ddg_query, max_results=25))
                 if results:
-                    image_url = results[0].get('image')
-                    if image_url:
+                    for result in results:
+                        image_url = result.get('image', '')
+                        title = result.get('title', '')
+                        if not image_url or image_url in self.used_urls:
+                            continue
+                        # Filter: reject bad-sport URLs and titles
+                        if self._is_bad_image(url=image_url, title=title):
+                            continue
                         ext = image_url.split('.')[-1].split('?')[0][:3]
                         filename = f"ddg_{suffix}_{hash(query)}.{ext}"
                         if len(ext) > 4 or not ext.isalpha():
@@ -493,6 +751,7 @@ class MediaSourcer:
                         filepath = os.path.join(self.download_dir, filename)
                         self._download_file(image_url, filepath)
                         if os.path.exists(filepath):
+                            self.used_urls.add(image_url)
                             return filepath
         except Exception as e:
             print(f"DDG Fallback error: {e}")

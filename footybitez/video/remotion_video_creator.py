@@ -18,7 +18,7 @@ class RemotionVideoCreator:
         
         from footybitez.media.voice_generator import VoiceGenerator
         from footybitez.media.sfx_manager import SFXManager
-        self.voice_gen = VoiceGenerator()
+        self.voice_gen = VoiceGenerator(key_pool="shorts")
         self.sfx_man = SFXManager()
 
     def _copy_to_public(self, filepath, fallback=""):

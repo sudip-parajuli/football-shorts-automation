@@ -162,7 +162,7 @@ class WorldCupPipeline:
         self.media_sourcer = MediaSourcer()
         self.video_creator = RemotionVideoCreator()
         self.uploader = YouTubeUploader()
-        self.voice_gen = VoiceGenerator()
+        self.voice_gen = VoiceGenerator(key_pool="shorts")
         self.socials = SocialOrchestrator()
 
         fd_key = os.getenv("FOOTBALL_DATA_API_KEY", "")

@@ -46,7 +46,11 @@ def _validate_no_ai_faces(scenes: list) -> list:
     return scenes
 
 def _enforce_schema(scene: dict, topic: str) -> dict:
-    valid_types = {"typewriter_text", "kinetic_stat", "image", "ai_image", "ai_video", "hook_question", "data_bars", "data_visualization"}
+    valid_types = {
+        "typewriter_text", "kinetic_stat", "image", "image_tag", "ai_image", "ai_video",
+        "hook_question", "data_bars", "data_visualization", "leaderboard", "head_to_head",
+        "timeline", "motion_graphic"
+    }
     
     # Temporarily stash topic inside scene for validation
     scene["topic"] = topic
@@ -166,14 +170,14 @@ def fetch_asset(scene: dict, job_id: str, media_sourcer=None, topic: str = "") -
     result = None
 
     if visual_type == "ai_video":
-        result = _fetch_ai_video(scene, out_dir)
+        result = _fetch_ai_video(scene, out_dir, media_sourcer)
     elif visual_type == "ai_image":
         result = _fetch_ai_image(scene, out_dir)
     elif visual_type in ("image", "image_with_overlay"):
         result = _fetch_image(scene, out_dir, media_sourcer)
         if visual_type == "image_with_overlay":
             result["overlay_text"] = scene.get("kinetic_stat", "")
-    elif visual_type in ("kinetic_text", "typewriter_text", "kinetic_stat", "hook_question", "data_bars", "data_visualization"):
+    elif visual_type in ("kinetic_text", "typewriter_text", "kinetic_stat", "hook_question", "data_bars", "data_visualization", "leaderboard", "head_to_head", "timeline", "motion_graphic"):
         result = {
             "asset_type": visual_type,
             "asset_path": None,
@@ -207,13 +211,29 @@ def fetch_asset(scene: dict, job_id: str, media_sourcer=None, topic: str = "") -
 
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _fetch_ai_video(scene: dict, out_dir: str) -> dict:
-    """Tier: Veo 3.1 → Gemini image → Pollinations → ColorCard"""
+def _fetch_ai_video(scene: dict, out_dir: str, media_sourcer=None) -> dict:
+    """Tier: Pexels Video B-roll → Veo 3.1 → Gemini image → Pollinations → ColorCard"""
     from footybitez.media import quota_tracker
     from footybitez.media import football_visual_generator
 
     video_path = os.path.join(out_dir, "clip.mp4")
     prompt = scene.get("ai_video_prompt", "aerial drone shot over football stadium, cinematic")
+
+    # Tier 0: Pexels Video B-roll
+    if media_sourcer is not None:
+        clean_kw = prompt.replace("cinematic", "").replace("slow motion", "").replace("aerial drone shot", "")
+        clean_kw = clean_kw.replace(",", " ").strip()
+        words = [w for w in clean_kw.split() if w.lower() not in ["and", "or", "the", "a", "of", "with", "over", "in"]]
+        search_query = " ".join(words[:4])
+        if not search_query:
+            search_query = "football soccer"
+        
+        logger.info(f"[Orchestrator] Trying Pexels Video for search query: '{search_query}'...")
+        success = media_sourcer.fetch_pexels_video(search_query, video_path)
+        if success and _validate_video(video_path):
+            logger.info("[Orchestrator] Pexels Video B-roll succeeded.")
+            return {"asset_type": "ai_video", "asset_path": video_path, "overlay_text": None, "kinetic_stat": None}
+        logger.warning("[Orchestrator] Pexels Video search failed or returned nothing. Trying next tier.")
 
     # Tier 1: Veo 3.1
     if quota_tracker.can_use("veo"):
@@ -327,6 +347,19 @@ def _fetch_image(scene: dict, out_dir: str, media_sourcer=None) -> dict:
     if media_sourcer is None:
         from footybitez.media.media_sourcer import MediaSourcer
         media_sourcer = MediaSourcer(download_dir=out_dir)
+
+    # Tier 0: Wikipedia Entity Lookup
+    named_entities = scene.get("named_entities", [])
+    for entity in named_entities:
+        if isinstance(entity, dict) and entity.get("wikipedia_lookup") is True:
+            entity_name = entity.get("name")
+            if entity_name:
+                logger.info(f"[Orchestrator] Performing Wikipedia entity image lookup for: '{entity_name}'")
+                path = media_sourcer.get_wikipedia_entity_image(entity_name)
+                if path:
+                    logger.info(f"[Orchestrator] Wikipedia entity image succeeded: {path}")
+                    return {"asset_type": "image", "asset_path": path, "overlay_text": None, "kinetic_stat": None}
+                logger.warning(f"[Orchestrator] Wikipedia entity lookup failed for '{entity_name}'. Falling back.")
 
     path = media_sourcer._fetch_wikimedia_image(image_cue)
     if path:

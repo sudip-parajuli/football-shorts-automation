@@ -95,7 +95,7 @@ class ScriptGenerator:
                 data = json.loads(text)
                 if self._validate_script_data(data):
                     logger.info("Groq generation successful.")
-                    return data
+                    return self._sanitize_visual_keywords(data)
             except Exception as e:
                 logger.error(f"Groq generation failed: {e}")
 
@@ -104,7 +104,7 @@ class ScriptGenerator:
             logger.info(f"Generating script with Gemini for category: {category}...")
             result = self._try_gemini(prompt)
             if result:
-                return result
+                return self._sanitize_visual_keywords(result)
 
         # 3. Fallback: Wikipedia
         logger.warning("All AI models failed. Converting to Wikipedia Mode.")
@@ -222,6 +222,8 @@ class ScriptGenerator:
         extra_instructions = (
             "CRITICAL GLOBAL RULE: Focus strictly on major Men's Football (e.g. English Premier League, "
             "La Liga, Champions League, World Cup, Saudi Pro League, MLS).\n"
+            "STRICT GENDER RULE: Content is ONLY about MEN'S football. NEVER mention women's football, "
+            "women's national teams, NWSL, WSL, or female players. This is non-negotiable.\n"
             "CRITICAL SPECIFICITY RULE: NEVER use generic pronouns like 'a team', 'a player', "
             "'this club', or 'a certain match'. You MUST explicitly name the exact club (e.g., 'Real Madrid'), "
             "the exact player (e.g., 'Lionel Messi'), and the exact score or year in EVERY sentence. "
@@ -306,10 +308,27 @@ class ScriptGenerator:
            Count your words before returning. Do NOT exceed 160 words.
         """
 
+        VISUAL_KEYWORD_RULES = """
+VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated):
+- Every visual_keyword MUST reference a specific named player, club, stadium, or event.
+- ALWAYS include the player's FULL NAME and club name in the query.
+- ALWAYS end with "soccer" or "football" to confirm sport context.
+- For national team scenes: use "[Country] men national football team [year]" format.
+  GOOD: "Brazil men national football team 2002 World Cup"
+  BAD: "Brazil football", "national team trophy"
+- For player scenes: use "[Full name] [club] soccer [year/action]"
+  GOOD: "Cristiano Ronaldo Real Madrid soccer 2018 bicycle kick"
+  BAD: "footballer celebrating", "player goal"
+- FORBIDDEN words in visual_keyword: "nfl", "american", "rugby", "women", "female",
+  "cricket", "hockey", "basketball", "tennis", "golf", "ladies", "girl"
+- NEVER use just "football" or "soccer" alone — always add the entity name.
+"""
+
         return f"""
         {factual_grounding}
         {strict_accuracy}
         {PLAYER_VERIFICATION_RULE}
+        {VISUAL_KEYWORD_RULES}
 
         Create a viral YouTube Short script about: "{topic.replace('football', 'soccer')}".
         STRICT DEFINITION: This video is STRICTLY about Association Football (Soccer).
@@ -347,6 +366,38 @@ class ScriptGenerator:
            - ALL Numerical Values (*7*, *1999*, *90+5*, *first*, *billion*)
            - Superlatives (*Best*, *Fastest*, *Legend*)
         """
+
+    def _sanitize_visual_keywords(self, script_data: dict) -> dict:
+        """
+        Post-processing safety net: scans every segment's visual_keyword and
+        replaces any that contain wrong-sport or wrong-gender terms.
+        This runs AFTER the LLM response — it's the last line of defense.
+        """
+        BAD_KW = [
+            "nfl", "gridiron", "american football", "superbowl", "touchdown",
+            "rugby", "cricket", "hockey", "nhl", "baseball", "basketball",
+            "tennis", "golf", "boxing", "women", "woman", "female", "ladies",
+            "girl", "nwsl", "wsl", "nwt", "womens",
+        ]
+        primary = script_data.get("primary_entity", "football")
+        fallback_kw = f"{primary} association football soccer men"
+
+        segments = script_data.get("segments", [])
+        for seg in segments:
+            if not isinstance(seg, dict):
+                continue
+            kw = seg.get("visual_keyword", "")
+            kw_lower = kw.lower()
+            for bad in BAD_KW:
+                if bad in kw_lower:
+                    logger.warning(
+                        f"[Sanitizer] Rejected visual_keyword '{kw}' — contains '{bad}'. "
+                        f"Replacing with fallback: '{fallback_kw}'"
+                    )
+                    seg["visual_keyword"] = fallback_kw
+                    break  # One replacement per segment is enough
+
+        return script_data
 
     def _validate_script_data(self, data):
         if "hook" in data and "segments" in data:
