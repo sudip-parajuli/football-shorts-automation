@@ -99,6 +99,29 @@ class YouTubeUploader:
             print(f"Upload failed: {e}")
             return None
 
+    def set_thumbnail(self, video_id, thumbnail_path):
+        """Uploads a custom thumbnail for a video."""
+        if not self.youtube:
+            print("Cannot upload thumbnail: Service not authenticated.")
+            return False
+
+        if not os.path.exists(thumbnail_path):
+            print(f"Thumbnail file not found at: {thumbnail_path}")
+            return False
+
+        try:
+            import googleapiclient.http
+            request = self.youtube.thumbnails().set(
+                videoId=video_id,
+                media_body=googleapiclient.http.MediaFileUpload(thumbnail_path)
+            )
+            request.execute()
+            print(f"Uploaded custom thumbnail for Video ID: {video_id}")
+            return True
+        except Exception as e:
+            print(f"Failed to set custom thumbnail: {e}")
+            return False
+
 if __name__ == "__main__":
     # Test Stub
     pass

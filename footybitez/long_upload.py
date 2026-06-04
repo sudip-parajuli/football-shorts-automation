@@ -76,6 +76,15 @@ If you enjoyed this documentary, please Like and Subscribe for more high-quality
     if video_id:
         logger.info(f"SUCCESS: Video uploaded with ID: {video_id}")
         
+        # Upload custom thumbnail if exists
+        thumbnail_path = "remotion-video/public/thumbnail.jpg"
+        if os.path.exists(thumbnail_path):
+            logger.info(f"Uploading custom thumbnail from: {thumbnail_path}...")
+            if uploader.set_thumbnail(video_id, thumbnail_path):
+                logger.info("Custom thumbnail uploaded successfully.")
+            else:
+                logger.warning("Custom thumbnail upload failed.")
+        
         # Auto-pin a comment
         comment_manager = CommentManager()
         comment_text = "Which football legend should we cover next? Let us know in the comments! 👇"

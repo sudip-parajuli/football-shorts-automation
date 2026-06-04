@@ -53,7 +53,7 @@ def get_audio_duration(file_path):
 
 # ── Duration assignment constants ────────────────────────────────────────────
 _FPS = 24
-_MAX_IMAGE_FRAMES = 3 * _FPS    # 3 s hard cap for any image scene (faster pacing)
+_MAX_IMAGE_FRAMES = 4 * _FPS    # 4 s hard cap for any image scene (updated per request)
 _MIN_DATA_FRAMES  = 3 * _FPS    # 3 s minimum for charts/leaderboards
 _MIN_TEXT_FRAMES  = 2 * _FPS    # 2 s minimum for kinetic/typewriter scenes
 _MIN_MG_FRAMES    = int(1.2 * _FPS)  # 1.2 s minimum for motion_graphic (snappier)
@@ -132,6 +132,141 @@ def assign_scene_durations(scenes: list, total_frames: int):
     diff = total_frames - sum(s["duration_frames"] for s in scenes)
     if diff and scenes:
         scenes[-1]["duration_frames"] = max(1, scenes[-1]["duration_frames"] + diff)
+
+
+def align_scenes_with_voice_timings(scenes: list, timing_data: list, total_frames: int):
+    """
+    Align scenes to exact spoken word timings using sequential matching.
+    """
+    if not scenes:
+        return
+    
+    if not timing_data:
+        assign_scene_durations(scenes, total_frames)
+        return
+
+    # Clean punctuation helper
+    def clean_w(w):
+        return "".join(c.lower() for c in w if c.isalnum())
+
+    # Prep timed words
+    timed_words = []
+    for t in timing_data:
+        w_clean = clean_w(t.get("word", ""))
+        if w_clean:
+            timed_words.append({
+                "word": w_clean,
+                "raw_word": t.get("word", ""),
+                "start": t.get("start", 0.0),
+                "duration": t.get("duration", 0.0)
+            })
+
+    # If timing_data has no clean words, fallback
+    if not timed_words:
+        assign_scene_durations(scenes, total_frames)
+        return
+
+    # Match sequentially
+    timed_idx = 0
+    num_timed = len(timed_words)
+
+    for s_idx, scene in enumerate(scenes):
+        snippet = scene.get("narration_snippet", "")
+        if not snippet:
+            snippet_words = []
+        else:
+            snippet_words = [clean_w(w) for w in snippet.split() if clean_w(w)]
+
+        start_time = None
+        end_time = None
+        matched_timed_words = []
+
+        if not snippet_words:
+            # Naive fallback for this specific scene: consume next few words or use current time
+            if timed_idx < num_timed:
+                start_time = timed_words[timed_idx]["start"]
+                # Consume up to 5 words or remaining
+                consume_count = min(5, num_timed - timed_idx)
+                end_time = timed_words[timed_idx + consume_count - 1]["start"] + timed_words[timed_idx + consume_count - 1]["duration"]
+                matched_timed_words = timed_words[timed_idx : timed_idx + consume_count]
+                timed_idx += consume_count
+            else:
+                # No more words left
+                start_time = timed_words[-1]["start"] + timed_words[-1]["duration"]
+                end_time = start_time
+        else:
+            # Find candidate start match index
+            best_match_idx = timed_idx
+            min_diff = len(snippet_words)
+            
+            # Lookahead window of up to 15 words to handle minor omissions/insertions
+            for lookahead in range(min(15, num_timed - timed_idx)):
+                candidate_idx = timed_idx + lookahead
+                # Calculate how many of the snippet_words match starting here
+                matches = 0
+                for offset in range(min(len(snippet_words), num_timed - candidate_idx)):
+                    if timed_words[candidate_idx + offset]["word"] == snippet_words[offset]:
+                        matches += 1
+                diff = len(snippet_words) - matches
+                if diff < min_diff:
+                    min_diff = diff
+                    best_match_idx = candidate_idx
+                    if min_diff == 0:
+                        break # perfect match
+
+            # Consume matching range
+            consume_len = len(snippet_words)
+            end_match_idx = min(best_match_idx + consume_len, num_timed)
+            
+            # Extract timings
+            matched_slice = timed_words[best_match_idx:end_match_idx]
+            if matched_slice:
+                start_time = matched_slice[0]["start"]
+                end_time = matched_slice[-1]["start"] + matched_slice[-1]["duration"]
+                matched_timed_words = matched_slice
+                timed_idx = end_match_idx
+            else:
+                start_time = timed_words[min(timed_idx, num_timed - 1)]["start"]
+                end_time = start_time
+
+        # Convert times to frames
+        start_frame = int(start_time * 24)
+        end_frame = int(end_time * 24)
+        duration_frames = max(24, end_frame - start_frame) # minimum 1 second duration
+        
+        scene["duration_frames"] = duration_frames
+        scene["_matched_words"] = matched_timed_words
+
+    # Resolve any rounding diffs on the last scene
+    diff = total_frames - sum(s["duration_frames"] for s in scenes)
+    if diff and scenes:
+        scenes[-1]["duration_frames"] = max(24, scenes[-1]["duration_frames"] + diff)
+
+    # Now populate typewriter word timestamps with exact timings relative to the start of the scene
+    for scene in scenes:
+        if scene.get("visual_type") == "typewriter_text":
+            matched = scene.get("_matched_words", [])
+            word_timestamps = []
+            if matched:
+                scene_start_sec = matched[0]["start"]
+                for w in matched:
+                    rel_start_frame = max(0, int((w["start"] - scene_start_sec) * 24))
+                    word_timestamps.append({
+                        "word": w["raw_word"],
+                        "startFrame": rel_start_frame
+                    })
+            else:
+                # Fallback to linear distribution if no matches
+                words = scene.get("typewriter_words", [])
+                num_words = len(words)
+                for w_idx, w_item in enumerate(words):
+                    start_frame = int((w_idx / num_words) * scene["duration_frames"])
+                    word_timestamps.append({
+                        "word": w_item["word"],
+                        "startFrame": start_frame
+                    })
+            scene["word_timestamps"] = word_timestamps
+
 
 
 def _split_long_image_scenes(visual_scenes: list) -> list:
@@ -370,20 +505,34 @@ def main():
 
             # Distribute scene durations and generate typewriter timestamps
             if visual_scenes_props:
-                assign_scene_durations(visual_scenes_props, duration_frames)
-                for scene in visual_scenes_props:
-                    if scene["visual_type"] == "typewriter_text" and not scene.get("word_timestamps"):
-                        words = scene.get("typewriter_words", [])
-                        num_words = len(words)
-                        if num_words > 0:
-                            word_timestamps = []
-                            for w_idx, w_item in enumerate(words):
-                                start_frame = int((w_idx / num_words) * scene["duration_frames"])
-                                word_timestamps.append({
-                                    "word": w_item["word"],
-                                    "startFrame": start_frame
-                                })
-                            scene["word_timestamps"] = word_timestamps
+                # Load exact word timing JSON from voice generator output
+                json_path = audio_path.replace(".mp3", ".json")
+                timing_data = []
+                if os.path.exists(json_path):
+                    try:
+                        with open(json_path, "r", encoding="utf-8") as f:
+                            timing_data = json.load(f)
+                    except Exception as e:
+                        logger.warning(f"Failed to load timing JSON {json_path}: {e}")
+
+                if timing_data:
+                    align_scenes_with_voice_timings(visual_scenes_props, timing_data, duration_frames)
+                else:
+                    assign_scene_durations(visual_scenes_props, duration_frames)
+                    # Fallback to linear typewriter timestamps if no timing data
+                    for scene in visual_scenes_props:
+                        if scene["visual_type"] == "typewriter_text" and not scene.get("word_timestamps"):
+                            words = scene.get("typewriter_words", [])
+                            num_words = len(words)
+                            if num_words > 0:
+                                word_timestamps = []
+                                for w_idx, w_item in enumerate(words):
+                                    start_frame = int((w_idx / num_words) * scene["duration_frames"])
+                                    word_timestamps.append({
+                                        "word": w_item["word"],
+                                        "startFrame": start_frame
+                                    })
+                                scene["word_timestamps"] = word_timestamps
 
             chapter_data = {
                 "chapter_number": i + 1,
