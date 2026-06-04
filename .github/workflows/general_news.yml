@@ -70,7 +70,16 @@ jobs:
         FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
         API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
         YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
-        HUME_API_KEY: ${{ secrets.HUME_API_KEY }}
+        HUME_API_KEY_LONG_1: ${{ secrets.HUME_API_KEY_LONG_1 }}
+        HUME_API_KEY_LONG_2: ${{ secrets.HUME_API_KEY_LONG_2 }}
+        HUME_API_KEY_LONG_3: ${{ secrets.HUME_API_KEY_LONG_3 }}
+        HUME_API_KEY_LONG_4: ${{ secrets.HUME_API_KEY_LONG_4 }}
+        HUME_API_KEY_LONG_5: ${{ secrets.HUME_API_KEY_LONG_5 }}
+        HUME_API_KEY_SHORT_1: ${{ secrets.HUME_API_KEY_SHORT_1 }}
+        HUME_API_KEY_SHORT_2: ${{ secrets.HUME_API_KEY_SHORT_2 }}
+        HUME_API_KEY_SHORT_3: ${{ secrets.HUME_API_KEY_SHORT_3 }}
+        HUME_API_KEY_SHORT_4: ${{ secrets.HUME_API_KEY_SHORT_4 }}
+        HUME_API_KEY_SHORT_5: ${{ secrets.HUME_API_KEY_SHORT_5 }}
         HUME_VOICE_ID: ${{ secrets.HUME_VOICE_ID }}
         ENABLE_UPLOAD: ${{ github.event.inputs.skip_upload == 'true' && 'false' || 'true' }}
         ENABLE_SOCIAL_PUBLISHING: ${{ github.event.inputs.skip_upload == 'true' && 'false' || 'true' }}
