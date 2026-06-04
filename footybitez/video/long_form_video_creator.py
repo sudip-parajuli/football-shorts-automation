@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class LongFormVideoCreator:
     def __init__(self, output_dir="footybitez/output"):
         self.output_dir = output_dir
-        self.voice_gen = VoiceGenerator()
+        self.voice_gen = VoiceGenerator(key_pool="long_form")
         self.sfx_man = SFXManager()
         os.makedirs(output_dir, exist_ok=True)
         os.makedirs(os.path.join(output_dir, "temp_text"), exist_ok=True)

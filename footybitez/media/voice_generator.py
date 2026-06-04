@@ -20,28 +20,36 @@ class VoiceGenerator:
         self.output_dir = output_dir
         os.makedirs(output_dir, exist_ok=True)
         
-        # Hume Keys
+        # Hume Keys — separate pools for long-form and shorts to avoid quota starvation
         if key_pool == "long_form":
             self.hume_keys = [
                 os.getenv("HUME_API_KEY_LONG_1"),
                 os.getenv("HUME_API_KEY_LONG_2"),
                 os.getenv("HUME_API_KEY_LONG_3"),
+                os.getenv("HUME_API_KEY_LONG_4"),
+                os.getenv("HUME_API_KEY_LONG_5"),
             ]
         elif key_pool == "shorts":
             self.hume_keys = [
                 os.getenv("HUME_API_KEY_SHORT_1"),
                 os.getenv("HUME_API_KEY_SHORT_2"),
                 os.getenv("HUME_API_KEY_SHORT_3"),
+                os.getenv("HUME_API_KEY_SHORT_4"),
+                os.getenv("HUME_API_KEY_SHORT_5"),
             ]
         else:
+            # Legacy "auto" mode — falls back to old generic keys
             self.hume_keys = [
                 os.getenv("HUME_API_KEY"),
                 os.getenv("HUME_API_KEY2"),
                 os.getenv("HUME_API_KEY3"),
                 os.getenv("HUME_API_KEY4"),
-                os.getenv("HUME_API_KEY5")
+                os.getenv("HUME_API_KEY5"),
             ]
         self.hume_keys = [k for k in self.hume_keys if k]
+        # Start at a random key index to spread initial hit and round-robin rotate from there
+        self._key_index = random.randint(0, len(self.hume_keys) - 1) if self.hume_keys else 0
+
         
         # Hume Voice IDs
         self.hume_voices = [
@@ -89,15 +97,18 @@ class VoiceGenerator:
         return None
 
     def _generate_hume(self, text, output_path, voice_index):
-        """Internal method to call Hume TTS API."""
-        # Note: Using rotation of keys if one fails
-        for api_key in self.hume_keys:
+        """Internal method to call Hume TTS API with key rotation."""
+        if not self.hume_keys:
+            return False
+        
+        num_keys = len(self.hume_keys)
+        for i in range(num_keys):
+            # Rotate key index starting from current position
+            current_index = (self._key_index + i) % num_keys
+            api_key = self.hume_keys[current_index]
             try:
                 voice_id = self.hume_voices[voice_index % len(self.hume_voices)] if self.hume_voices else None
                 
-                # Placeholder for Hume TTS API call
-                # Hume's TTS is often part of their EVI or a specific endpoint
-                # Assuming typical REST pattern if using their newer TTS engine
                 # Updated Hume TTS API endpoint (Octave models)
                 url = "https://api.hume.ai/v0/tts/file"
                 headers = {
@@ -109,9 +120,6 @@ class VoiceGenerator:
                     "format": {"type": "mp3"}
                 }
                 
-                # Note: Voice ID support in /v0/tts/file is limited. 
-                # We'll use the voice_id as a hint in a description if available
-                # or just let Hume's default emotional engine handle it.
                 if voice_id:
                      payload["utterances"][0]["description"] = f"Voice ID: {voice_id}"
                 
@@ -119,11 +127,13 @@ class VoiceGenerator:
                 if response.status_code == 200:
                     with open(output_path, "wb") as f:
                         f.write(response.content)
+                    # Advance rotation index to the next key after this successful key
+                    self._key_index = (current_index + 1) % num_keys
                     return True
                 else:
-                    logger.warning(f"Hume API error {response.status_code}: {response.text}")
+                    logger.warning(f"Hume API error {response.status_code} on key index {current_index}: {response.text}")
             except Exception as e:
-                logger.warning(f"Hume attempt failed: {e}")
+                logger.warning(f"Hume attempt failed on key index {current_index}: {e}")
         return False
 
     async def _generate_edge_async(self, text, output_path, json_path, voice):

@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 class VideoCreator:
     def __init__(self, output_dir="footybitez/output"):
         self.output_dir = output_dir
-        self.voice_gen = VoiceGenerator()
+        self.voice_gen = VoiceGenerator(key_pool="shorts")
         self.sfx_man = SFXManager()
         os.makedirs(output_dir, exist_ok=True)
         # Helper folder for text images

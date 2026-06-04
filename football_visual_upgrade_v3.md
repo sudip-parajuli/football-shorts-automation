@@ -398,11 +398,15 @@ In `.env.example` and GitHub Secrets, add:
 HUME_API_KEY_LONG_1=
 HUME_API_KEY_LONG_2=
 HUME_API_KEY_LONG_3=
+HUME_API_KEY_LONG_4=
+HUME_API_KEY_LONG_5=
 
 # Shorts Hume TTS keys (use for football shorts + science shorts)
 HUME_API_KEY_SHORT_1=
 HUME_API_KEY_SHORT_2=
 HUME_API_KEY_SHORT_3=
+HUME_API_KEY_SHORT_4=
+HUME_API_KEY_SHORT_5=
 ```
 
 In `hume_tts.py`, accept a `key_pool` parameter:
