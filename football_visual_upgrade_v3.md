@@ -395,18 +395,18 @@ In `.env.example` and GitHub Secrets, add:
 
 ```
 # Long-form Hume TTS keys (use for football documentary + science long-form)
-HUME_API_KEY_LONG_1=
-HUME_API_KEY_LONG_2=
-HUME_API_KEY_LONG_3=
-HUME_API_KEY_LONG_4=
-HUME_API_KEY_LONG_5=
+HUME_API_KEY_LONG_1=""
+HUME_API_KEY_LONG_2=""
+HUME_API_KEY_LONG_3=""
+HUME_API_KEY_LONG_4=""
+HUME_API_KEY_LONG_5=""
 
 # Shorts Hume TTS keys (use for football shorts + science shorts)
-HUME_API_KEY_SHORT_1=
-HUME_API_KEY_SHORT_2=
-HUME_API_KEY_SHORT_3=
-HUME_API_KEY_SHORT_4=
-HUME_API_KEY_SHORT_5=
+HUME_API_KEY_SHORT_1=""
+HUME_API_KEY_SHORT_2=""
+HUME_API_KEY_SHORT_3=""
+HUME_API_KEY_SHORT_4=""
+HUME_API_KEY_SHORT_5=""
 ```
 
 In `hume_tts.py`, accept a `key_pool` parameter:
@@ -573,12 +573,12 @@ STEP 8 — End-to-end test
 | Key | Source | Cost | Purpose |
 |-----|--------|------|---------|
 | `PEXELS_API_KEY` | pexels.com/api | Free | Stock football video B-roll |
-| `HUME_API_KEY_LONG_1/2/3` | hume.ai | Free (10k chars/mo each) | Long-form TTS |
-| `HUME_API_KEY_SHORT_1/2/3` | hume.ai | Free (10k chars/mo each) | Shorts TTS |
+| `HUME_API_KEY_LONG_1/2/3/4/5` | hume.ai | Free (10k chars/mo each) | Long-form TTS |
+| `HUME_API_KEY_SHORT_1/2/3/4/5` | hume.ai | Free (10k chars/mo each) | Shorts TTS |
 
 Wikipedia REST API requires no key — it's completely free and open.
 
-Total new free accounts needed: 7 (1 Pexels + 6 Hume)
+Total new free accounts needed: 11 (1 Pexels + 10 Hume)
 
 ---
 
