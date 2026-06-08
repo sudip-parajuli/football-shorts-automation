@@ -9,6 +9,11 @@ on:
     # 16:00 UTC = 11:00 AM EST (USA/Canada), 4:00 PM GMT (UK)
     - cron: '0 16 * * 0,3'
   workflow_dispatch: # Allow manual trigger
+    inputs:
+      topic:
+        description: 'Optional: Specific topic to generate (leave empty for auto-generated)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -105,4 +110,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         export PYTHONPATH=$PYTHONPATH:.
-        node remotion-video/scripts/generate.js --topic "Champions League goal stats"
+        if [ -n "${{ github.event.inputs.topic }}" ]; then
+          node remotion-video/scripts/generate.js --topic "${{ github.event.inputs.topic }}"
+        else
+          node remotion-video/scripts/generate.js
+        fi
