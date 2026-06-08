@@ -62,6 +62,15 @@ class SFXManager:
         elif effect_type == "riser":
             dur = duration or 3.0
             return self._make_riser(dur)
+        elif effect_type == "rise":
+            dur = duration or 3.0
+            return self._make_riser(dur)
+        elif effect_type == "crowd_cheer":
+            dur = duration or 2.5
+            return self._make_riser_shake(dur)
+        elif effect_type == "dong":
+            dur = duration or 0.3
+            return self._make_impact(dur)
         elif effect_type == "alien_invert":
             dur = duration or 1.5
             return self._make_alien_invert(dur)

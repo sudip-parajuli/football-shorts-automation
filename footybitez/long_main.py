@@ -448,6 +448,10 @@ def main():
         if args.topic:
             topic = args.topic
             category = "Manual"
+            used_topics = topic_gen._load_used_topics()
+            if topic.lower() in used_topics:
+                logger.warning(f"Topic '{topic}' has already been processed. Skipping.")
+                sys.exit(0)
         else:
             topic, category = topic_gen.get_random_topic()
 
@@ -607,14 +611,19 @@ def main():
             
             sfx_manager = SFXManager(sfx_dir="footybitez/media/sfx")
             
+            sfx_mapping = {
+                "whoosh": "whoosh",
+                "transition": "whoosh",
+                "rise": "rise",
+                "impact": "impact",
+                "drum": "kick",
+                "crowd_cheer": "crowd_cheer"
+            }
+            
             for sfx_key, rel_path in sound_effects.items():
                 out_path = os.path.join("remotion-video", "public", rel_path)
                 if not os.path.exists(out_path):
-                    gen_name = sfx_key
-                    if sfx_key == "transition": gen_name = "whoosh"
-                    elif sfx_key == "rise": gen_name = "riser"
-                    elif sfx_key == "drum": gen_name = "kick"
-                    elif sfx_key == "crowd_cheer": gen_name = "impact"
+                    gen_name = sfx_mapping.get(sfx_key, sfx_key)
                     
                     logger.info(f"Generating SFX: {sfx_key} at {out_path}")
                     clip = sfx_manager.get_sfx(gen_name)

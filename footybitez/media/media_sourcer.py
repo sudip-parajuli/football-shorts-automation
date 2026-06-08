@@ -577,7 +577,7 @@ class MediaSourcer:
             f"{clean_query} football"[:60],
             ("stadium football soccer men" if "stadium" in clean_query.lower()
              else f"{clean_query.split()[0] if clean_query.split() else ''} football soccer")[:60],
-        ]
+]
 
         for attempt_query in queries_to_try:
             if len(results) >= count:
@@ -590,13 +590,18 @@ class MediaSourcer:
                     "generator": "search",
                     "gsrnamespace": 6,
                     "gsrsearch": f"{attempt_query} filetype:bitmap",
-                    "gsrlimit": 15,  # Fetch more so we can filter bad ones out
+                    "gsrlimit": 15,
                     "prop": "imageinfo",
                     "iiprop": "url|size|mime|extmetadata",
                 }
                 headers = {'User-Agent': 'FootyBitezBot/1.0'}
                 r = requests.get(search_url, params=params, headers=headers, timeout=10)
-                data = r.json()
+                if r.status_code != 200 or not r.text.strip():
+                    continue
+                try:
+                    data = r.json()
+                except json.JSONDecodeError:
+                    continue
 
                 pages = data.get("query", {}).get("pages", {})
                 if not pages:

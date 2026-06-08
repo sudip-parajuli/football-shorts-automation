@@ -173,7 +173,7 @@ def fetch_asset(scene: dict, job_id: str, media_sourcer=None, topic: str = "") -
         result = _fetch_ai_video(scene, out_dir, media_sourcer)
     elif visual_type == "ai_image":
         result = _fetch_ai_image(scene, out_dir)
-    elif visual_type in ("image", "image_with_overlay"):
+    elif visual_type in ("image", "image_tag", "image_with_overlay"):
         result = _fetch_image(scene, out_dir, media_sourcer)
         if visual_type == "image_with_overlay":
             result["overlay_text"] = scene.get("kinetic_stat", "")
