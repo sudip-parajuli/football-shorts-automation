@@ -167,6 +167,8 @@ class MediaSourcer:
         Checks URL, filename, title, and tags strings.
         """
         combined = f"{url} {title} {tags}".lower()
+        # Normalize underscores to spaces for better matching
+        combined = combined.replace("_", " ").replace("-", " ")
         for bk in self._BAD_KEYWORDS:
             if bk in combined:
                 print(f"[Filter] Rejected image — matched bad keyword '{bk}' in: {url[:80]}")
