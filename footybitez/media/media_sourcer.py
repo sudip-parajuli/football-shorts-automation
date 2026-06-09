@@ -47,8 +47,9 @@ class MediaSourcer:
             # Other sports
             "cricket", "hockey", "nhl", "baseball", "basketball", "nba",
             "tennis", "golf", "boxing", "mma", "handball", "volleyball",
-            # Beach/pitch variants (different from standard football) - check for beach alone
-            "beach", "futsal", "futbol sala", "indoor football", "indoor soccer",
+            # Beach/futsal variants (different from standard association football)
+            "beach socca", "futsal", "futbol sala", "indoor football", "indoor soccer",
+            "beach soccer", "beach football", "sand soccer",
             "seven-a-side", "five-a-side",
             # Wrong gender
             "women", "woman", "female", "ladies", "girls",
