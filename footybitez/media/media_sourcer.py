@@ -46,7 +46,10 @@ class MediaSourcer:
             "rugby", "rugby union", "rugby league",
             # Other sports
             "cricket", "hockey", "nhl", "baseball", "basketball", "nba",
-            "tennis", "golf", "boxing", "mma", "handball",
+            "tennis", "golf", "boxing", "mma", "handball", "volleyball",
+            # Beach/pitch variants (different from standard football)
+            "beach soccer", "beach football", "sand soccer", "futsal", "futbol sala",
+            "seven-a-side", "five-a-side", "indoor football", "indoor soccer",
             # Wrong gender
             "women", "woman", "female", "ladies", "girls",
             "nwsl", "wsl", "nwt", "women's national", "women football",
@@ -55,7 +58,7 @@ class MediaSourcer:
         # Safe suffix appended to every query
         self._FOOTBALL_SAFE_SUFFIX = "association football soccer men"
         # Negative suffix for search engines that support it
-        self._FOOTBALL_NEG_SUFFIX = "-nfl -american -rugby -gridiron -cricket -hockey -women -nwsl -wsl"
+        self._FOOTBALL_NEG_SUFFIX = "-nfl -american -rugby -gridiron -cricket -hockey -women -nwsl -wsl -beach -futsal"
 
         # Initialize credits file
         if os.path.exists(self.credits_file):
