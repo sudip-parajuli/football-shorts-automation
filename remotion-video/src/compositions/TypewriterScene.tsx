@@ -1,6 +1,34 @@
 import React from 'react';
 import { AbsoluteFill, interpolate, useCurrentFrame } from 'remotion';
 
+const PITCH_LINES_SVG = ({ opacity = 0.06 }: { opacity?: number }) => (
+  <svg
+    width="1280"
+    height="720"
+    viewBox="0 0 1280 720"
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      opacity,
+      pointerEvents: 'none',
+    }}
+  >
+    <rect width="1280" height="720" fill="#1A3A1A" />
+    <line x1="640" y1="0" x2="640" y2="720" stroke="#FFFFFF" strokeWidth="2" />
+    <circle cx="640" cy="360" r="60" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+    <circle cx="640" cy="360" r="4" fill="#FFFFFF" />
+    <rect x="430" y="0" width="420" height="120" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+    <line x1="640" y1="0" x2="640" y2="120" stroke="#FFFFFF" strokeWidth="2" />
+    <rect x="430" y="600" width="420" height="120" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+    <line x1="640" y1="600" x2="640" y2="720" stroke="#FFFFFF" strokeWidth="2" />
+    <rect x="540" y="0" width="160" height="60" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+    <rect x="540" y="660" width="160" height="60" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+  </svg>
+);
+
 export interface TypewriterWord {
   word: string;
   weight: "xl_accent" | "xl_amber" | "lg" | "md" | "dim" | string;
@@ -51,6 +79,7 @@ export const TypewriterScene: React.FC<TypewriterSceneProps> = ({
         padding: '0 80px',
       }}
     >
+      <PITCH_LINES_SVG />
       <div
         style={{
           display: 'flex',
@@ -60,6 +89,8 @@ export const TypewriterScene: React.FC<TypewriterSceneProps> = ({
           maxWidth: '95%',
           fontFamily: 'Barlow Condensed, sans-serif',
           lineHeight: '1.4',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         {visibleIndices.map((idx) => {
@@ -90,19 +121,19 @@ export const TypewriterScene: React.FC<TypewriterSceneProps> = ({
             </span>
           );
         })}
-        {/* Blinking amber cursor */}
-        <span
-          style={{
-            fontSize: visibleIndices.length > 0 
-              ? (WEIGHT_STYLES[typewriter_words[visibleIndices[visibleIndices.length - 1]]?.weight || 'md']?.fontSize || 38)
-              : 52,
-            color: '#F5A623',
-            opacity: Math.floor(frame / 12) % 2 === 0 ? 1 : 0,
-            marginLeft: '2px',
-          }}
-        >
-          ▍
-        </span>
+{/* Blinking amber cursor */}
+         <span
+           style={{
+             fontSize: visibleIndices.length > 0 
+               ? 38 
+               : 52,
+             color: '#F5A623',
+             opacity: Math.floor(frame / 12) % 2 === 0 ? 1 : 0,
+             marginLeft: '2px',
+           }}
+         >
+           ▍
+         </span>
       </div>
     </AbsoluteFill>
   );

@@ -60,7 +60,7 @@ class ThumbnailGenerator:
                     if part.inline_data and part.inline_data.mime_type.startswith("image/"):
                         img_data = part.inline_data.data
                         img = Image.open(io.BytesIO(img_data)).convert("RGB")
-                        img = img.resize((1280, 720), Image.Resampling.LANCZOS)
+                        img = self._crop_to_fill(img, (1280, 720))
                         os.makedirs(
                             os.path.dirname(output_path) if os.path.dirname(output_path) else ".",
                             exist_ok=True
@@ -80,10 +80,11 @@ class ThumbnailGenerator:
     def generate_thumbnail(self, background_path, text, output_path="remotion-video/public/thumbnail.jpg", is_list=False):
         """
         PIL-based thumbnail — used as fallback when AI generation fails.
+        Uses crop-to-fit to preserve aspect ratio.
         """
         try:
             img = Image.open(background_path).convert("RGBA")
-            img = img.resize((1280, 720), Image.Resampling.LANCZOS)
+            img = self._crop_to_fill(img, (1280, 720))
 
             overlay = Image.new("RGBA", img.size, (0, 0, 0, 0))
             draw = ImageDraw.Draw(overlay)
@@ -173,7 +174,7 @@ class ThumbnailGenerator:
             else:
                 bg = Image.new("RGB", (W, H), (20, 10, 10))
 
-            bg = bg.resize((W, H), Image.Resampling.LANCZOS)
+            bg = self._crop_to_fill(bg, (W, H))
 
             # Cinematic grade: boost contrast slightly, desaturate a touch
             bg = ImageEnhance.Contrast(bg).enhance(1.2)
@@ -302,6 +303,14 @@ class ThumbnailGenerator:
                 if dx != 0 or dy != 0:
                     draw.text((x + dx, y + dy), text, font=font, fill=outline)
         draw.text((x, y), text, font=font, fill=fill)
+    
+    def _crop_to_fill(self, img: Image.Image, target_size: tuple) -> Image.Image:
+        """
+        Crops image to fill target dimensions while preserving aspect ratio.
+        Scales the smaller dimension to match target, then center-crops.
+        """
+        from PIL import ImageOps
+        return ImageOps.fit(img, target_size, Image.Resampling.LANCZOS)
 
     def _to_rgba_array(self, img_rgba):
         """Convert RGBA PIL image to numpy array for paste workaround."""

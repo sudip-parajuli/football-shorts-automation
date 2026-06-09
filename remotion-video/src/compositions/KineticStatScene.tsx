@@ -1,6 +1,34 @@
 import React from 'react';
 import { AbsoluteFill, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
+const PITCH_LINES_SVG = ({ opacity = 0.06 }: { opacity?: number }) => (
+  <svg
+    width="1280"
+    height="720"
+    viewBox="0 0 1280 720"
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      opacity,
+      pointerEvents: 'none',
+    }}
+  >
+    <rect width="1280" height="720" fill="#1A3A1A" />
+    <line x1="640" y1="0" x2="640" y2="720" stroke="#FFFFFF" strokeWidth="2" />
+    <circle cx="640" cy="360" r="60" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+    <circle cx="640" cy="360" r="4" fill="#FFFFFF" />
+    <rect x="430" y="0" width="420" height="120" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+    <line x1="640" y1="0" x2="640" y2="120" stroke="#FFFFFF" strokeWidth="2" />
+    <rect x="430" y="600" width="420" height="120" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+    <line x1="640" y1="600" x2="640" y2="720" stroke="#FFFFFF" strokeWidth="2" />
+    <rect x="540" y="0" width="160" height="60" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+    <rect x="540" y="660" width="160" height="60" fill="none" stroke="#FFFFFF" strokeWidth="2" />
+  </svg>
+);
+
 export interface KineticStatSceneProps {
   stat_data?: {
     value: number;
@@ -48,6 +76,7 @@ export const KineticStatScene: React.FC<KineticStatSceneProps> = ({
         fontFamily: 'Barlow Condensed, sans-serif',
       }}
     >
+      <PITCH_LINES_SVG />
       <div
         style={{
           display: 'flex',
@@ -56,6 +85,8 @@ export const KineticStatScene: React.FC<KineticStatSceneProps> = ({
           textAlign: 'center',
           transform: `scale(${scale})`,
           maxWidth: '85%',
+          position: 'relative',
+          zIndex: 1,
         }}
       >
         {/* Unit Above */}

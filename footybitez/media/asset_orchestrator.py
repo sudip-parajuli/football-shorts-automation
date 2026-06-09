@@ -158,6 +158,20 @@ def _add_image_credit_overlay(image_path: str, source: str, artist: str = None) 
 
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Football-specific Pexels query library
+FOOTBALL_BROLL_QUERIES = {
+    "stadium_crowd": "soccer stadium crowd fans association football",
+    "training": "soccer football training drill association football",
+    "celebration": "soccer goal celebration team association football",
+    "tactical": "soccer coach tactics whiteboard association football",
+    "aerial": "stadium aerial drone shot association football",
+    "ball": "soccer ball grass close up association football",
+    "goalkeeper": "goalkeeper save football association football",
+    "trophy": "soccer trophy award ceremony association football",
+    "default": "soccer football match association football",
+}
+
+
 def fetch_asset(scene: dict, job_id: str, media_sourcer=None, topic: str = "") -> dict:
     """
     Fetch the best available visual asset for a scene.
@@ -221,12 +235,19 @@ def _fetch_ai_video(scene: dict, out_dir: str, media_sourcer=None) -> dict:
 
     # Tier 0: Pexels Video B-roll
     if media_sourcer is not None:
-        clean_kw = prompt.replace("cinematic", "").replace("slow motion", "").replace("aerial drone shot", "")
-        clean_kw = clean_kw.replace(",", " ").strip()
-        words = [w for w in clean_kw.split() if w.lower() not in ["and", "or", "the", "a", "of", "with", "over", "in"]]
-        search_query = " ".join(words[:4])
-        if not search_query:
-            search_query = "football soccer"
+        # Use pexels_query field if available, otherwise use broll_category mapping
+        if scene.get("pexels_query"):
+            search_query = f"{scene['pexels_query']} soccer association football"
+        elif scene.get("broll_category") and scene["broll_category"] in FOOTBALL_BROLL_QUERIES:
+            search_query = FOOTBALL_BROLL_QUERIES[scene["broll_category"]]
+        else:
+            # Fallback: extract clean 2-4 word query from ai_video_prompt
+            clean_kw = prompt.replace("cinematic", "").replace("slow motion", "").replace("aerial drone shot", "")
+            clean_kw = clean_kw.replace(",", " ").strip()
+            words = [w for w in clean_kw.split() if w.lower() not in ["and", "or", "the", "a", "of", "with", "over", "in"]]
+            search_query = " ".join(words[:4])
+            if not search_query:
+                search_query = FOOTBALL_BROLL_QUERIES["default"]
         
         logger.info(f"[Orchestrator] Trying Pexels Video for search query: '{search_query}'...")
         success = media_sourcer.fetch_pexels_video(search_query, video_path)

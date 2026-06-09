@@ -427,6 +427,7 @@ class MediaSourcer:
         """
         Fetches the primary image from a Wikipedia article for a named entity.
         This guarantees accuracy — the image is the one Wikipedia uses for this exact person/club.
+        Validates that the image is football-relevant before returning.
         """
         import requests
         try:
@@ -438,19 +439,103 @@ class MediaSourcer:
             data = r.json()
             image_url = (data.get("originalimage", {}).get("source") or
                          data.get("thumbnail", {}).get("source"))
-            if not image_url:
-                return None
             
-            fname = f"wiki_entity_{hash(image_url)}.jpg"
-            fpath = os.path.join(self.download_dir, fname)
-            self._download_file(image_url, fpath)
-            if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
-                self._add_credit(f"Image from Wikipedia (Entity: {entity_name})")
-                self._write_image_meta(fpath, "Wikipedia Page Summary API", entity_name)
-                return fpath
+            # Validate that the image is football-relevant
+            if image_url:
+                url_lower = image_url.lower()
+                if any(kw in url_lower for kw in ["trump", "president", "politician", "award", "ceremony", "meeting"]):
+                    # Non-football image - fall through to MediaWiki API for more options
+                    logger.info(f"[Orchestrator] Wikipedia thumbnail contains non-football keywords - trying MediaWiki images list")
+                    result = self._get_wikipedia_images_from_api(entity_name)
+                    if result:
+                        return result
+                    return None
+                
+                fname = f"wiki_entity_{hash(image_url)}.jpg"
+                fpath = os.path.join(self.download_dir, fname)
+                self._download_file(image_url, fpath)
+                if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
+                    self._add_credit(f"Image from Wikipedia (Entity: {entity_name})")
+                    self._write_image_meta(fpath, "Wikipedia Page Summary API", entity_name)
+                    return fpath
+            else:
+                # No thumbnail - try MediaWiki API for all images on the page
+                result = self._get_wikipedia_images_from_api(entity_name)
+                if result:
+                    return result
+                    
         except Exception as e:
             print(f"Wikipedia entity image lookup error ({entity_name}): {e}")
+            # Try MediaWiki API as fallback
+            return self._get_wikipedia_images_from_api(entity_name)
         return None
+    
+    def _get_wikipedia_images_from_api(self, entity_name: str) -> str | None:
+        """
+        Fetches the first football-relevant image from Wikipedia's full images list via MediaWiki API.
+        Filters for images containing entity name + football keywords in the filename.
+        """
+        try:
+            api_url = "https://en.wikipedia.org/w/api.php"
+            params = {
+                "action": "query",
+                "titles": entity_name,
+                "prop": "images",
+                "format": "json",
+                "redirects": True,
+            }
+            r = requests.get(api_url, params=params, headers={'User-Agent': 'FootyBitezBot/1.0'}, timeout=10)
+            if r.status_code != 200:
+                return None
+            
+            data = r.json()
+            pages = data.get("query", {}).get("pages", {})
+            if not pages:
+                return None
+            
+            page_id = next(iter(pages))
+            images = pages[page_id].get("images", [])
+            
+            football_keywords = ["playing", "football", "soccer", "goal", "match", "training", "action", "ronaldo", "goalkeeper", "ball", "kit", "stadium"]
+            entity_lower = entity_name.lower().replace(" ", "_")
+            
+            for img in images:
+                img_title = img.get("title", "")
+                img_lower = img_title.lower()
+                
+                # Prefer images with entity name and football keywords
+                has_entity = entity_lower in img_lower or entity_name.split()[0].lower() in img_lower
+                has_football = any(kw in img_lower for kw in football_keywords)
+                
+                if has_entity or has_football:
+                    # Get imageinfo for the image URL
+                    info_params = {
+                        "action": "query",
+                        "titles": img_title,
+                        "prop": "imageinfo",
+                        "iiprop": "url",
+                        "format": "json",
+                    }
+                    info_r = requests.get(api_url, params=info_params, headers={'User-Agent': 'FootyBitezBot/1.0'}, timeout=10)
+                    if info_r.status_code == 200:
+                        info_data = info_r.json()
+                        info_pages = info_data.get("query", {}).get("pages", {})
+                        for info_page in info_pages.values():
+                            imageinfo = info_page.get("imageinfo", [])
+                            if imageinfo:
+                                img_url = imageinfo[0].get("url", "")
+                                if img_url:
+                                    fname = f"wiki_api_{hash(img_url)}.jpg"
+                                    fpath = os.path.join(self.download_dir, fname)
+                                    self._download_file(img_url, fpath)
+                                    if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
+                                        self._add_credit(f"Image from Wikipedia (Entity: {entity_name})")
+                                        self._write_image_meta(fpath, "Wikipedia API Images", entity_name)
+                                        return fpath
+            return None
+        except Exception as e:
+            print(f"Wikipedia API images fallback error ({entity_name}): {e}")
+            return None
 
     def fetch_pexels_video(self, query: str, output_path: str) -> bool:
         """

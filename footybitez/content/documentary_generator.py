@@ -54,7 +54,7 @@ class DocumentaryGenerator:
                     logger.info(f"Attempting script generation with Gemini key #{i+1} (attempt {attempt+1})...")
                     client = genai.Client(api_key=key)
                     response = client.models.generate_content(
-                        model="gemini-2.0-flash",
+                        model="gemini-2.5-flash",
                         contents=f"{system_prompt}\n\n{user_prompt}",
                         config=types.GenerateContentConfig(
                             response_mime_type="application/json",
@@ -168,10 +168,12 @@ For any topic involving goal records, player statistics, match counts, or histor
   - Use active voice for action descriptions.
 
 VISUAL DENSITY RULES (CRITICAL — STRICTLY ENFORCE):
-1. Each chapter MUST have 10-14 visual_scenes. Aim for a scene change every 3-4 seconds of narration.
-2. IMAGE 4-SECOND RULE: No single image scene may cover more than ONE sentence of narration.
+1. ALWAYS generate exactly 3 chapters. Never generate 2 or 4.
+2. Maximum 4 visual scenes per chapter regardless of script length. Combine shorter consecutive segments into one scene.
+3. Each scene must correspond to at least 2-3 sentences of narration, never just one sentence.
+4. IMAGE 4-SECOND RULE: No single image scene may cover more than ONE sentence of narration.
    If the narration snippet covers two sentences, use TWO separate image scenes.
-3. TIMING SYNC — text/kinetic/data scenes MUST appear DURING their narration_snippet, never before:
+4. TIMING SYNC — text/kinetic/data scenes MUST appear DURING their narration_snippet, never before:
    - typewriter_text, kinetic_stat, hook_question: place them exactly when the narrator says those words.
    - leaderboard, head_to_head, timeline, data_bars, data_visualization: place ONLY during the
      exact narration_snippet that MENTIONS those statistics. Never show a chart before the stats are spoken.
@@ -184,6 +186,12 @@ VISUAL DENSITY RULES (CRITICAL — STRICTLY ENFORCE):
 8. Add 1-2 motion_graphic scenes per chapter — before/after major statistics or as a visual "breath" beat.
 9. For chapters with comparisons: include at least one head_to_head scene.
 10. For historical timelines: include at least one timeline scene.
+
+AIM TOOLS:
+If this topic is in the "What If?" category, use chapter framework: ['The Setup: What Really Happened', 'The Alternative Timeline', 'The Legacy That Could Have Been']
+If this topic is in the "Tactics & IQ" category, use chapter framework: ['The Origins', 'How It Actually Works', 'Why It Changed Football']
+If this topic is in the "World Cup & Stats" or "Stats" category, use chapter framework: ['The Numbers That Shock', 'The Stories Behind The Stats', 'What It Means For The Future']
+If this topic is in the "Shocking Moments" category, use chapter framework: ['The Moment Itself', 'What Led To It', 'The Aftermath']
 
 VISUAL TYPE CLASSIFICATION — for each chapter also output "visual_scenes" array:
 Each scene in visual_scenes must have:
@@ -233,14 +241,17 @@ RULES for ai_video visual type (MAXIMUM 3 per entire video — enforce strictly)
                     any scene involving real identifiable people or club-specific kits/badges
 
 RULES for ai_video_prompt (only written when visual_type == "ai_video"):
-  Format: "[camera move], [subject], [atmosphere/mood], [cinematic style]"
-  Good examples:
-    "Slow aerial drone pull-back over a packed 80,000-seat stadium at night, floodlights blazing, crowd a sea of color, cinematic"
-    "Low-angle tracking shot of a football rolling across a wet pitch, floodlights reflected in puddles, dramatic atmosphere"
+   Format: "[camera move], [subject], [atmosphere/mood], [cinematic style]"
+   Good examples:
+     "Slow aerial drone pull-back over a packed 80,000-seat stadium at night, floodlights blazing, crowd a sea of color, cinematic"
+     "Low-angle tracking shot of a football rolling across a wet pitch, floodlights reflected in puddles, dramatic atmosphere"
+   ALSO include "pexels_query" field (2-4 words, core subject) which is used as the Pexels search query.
+   Example pexels_query: "stadium aerial", "soccer training", "goalkeeper save"
 
 OUTPUT FORMAT (JSON):
 {
   "title": "video title",
+  "category": "exact category from the topic (e.g. "What If?", "Shocking Moments", "Stats", "Tactics & IQ")",
   "suggested_voice_index": 0,
   "chapters": [
     {

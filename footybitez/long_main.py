@@ -457,6 +457,30 @@ def main():
 
         logger.info(f"Selected Topic: {topic} ({category})")
 
+        # Pre-flight SFX generation - ensure all sound effects exist
+        from footybitez.media.sfx_manager import SFXManager
+        sfx_out_dir = "remotion-video/public/assets/sounds"
+        os.makedirs(sfx_out_dir, exist_ok=True)
+        try:
+            sfx_man = SFXManager(sfx_dir=sfx_out_dir)
+            sfx_mapping = {
+                "whoosh": "whoosh",
+                "impact": "impact",
+                "rise": "rise",
+                "kick": "kick",
+                "crowd_cheer": "riser_shake",
+                "transition": "whoosh",
+                "drum": "kick",
+            }
+            for sfx_file, sfx_gen in sfx_mapping.items():
+                out_path = os.path.join(sfx_out_dir, f"{sfx_file}.mp3")
+                if not os.path.exists(out_path):
+                    logger.info(f"Pre-flight SFX generation: {sfx_file}")
+                    clip = sfx_man.get_sfx(sfx_gen)
+                    clip.write_audiofile(out_path, fps=44100, logger=None)
+        except Exception as e:
+            logger.warning(f"Pre-flight SFX check failed: {e}")
+
         # 2. Generate Documentary Script
         doc_gen = DocumentaryGenerator()
         script_data = doc_gen.generate_script(topic)
@@ -593,23 +617,13 @@ def main():
             with open(credits_file, "r", encoding="utf-8") as f:
                 image_credits = [line.strip() for line in f if line.strip()]
 
-        logger.info("Setting up offline sound effects...")
-        sound_effects = {
-            "whoosh": "assets/sounds/whoosh.mp3",
-            "transition": "assets/sounds/transition.mp3",
-            "rise": "assets/sounds/rise.mp3",
-            "impact": "assets/sounds/impact.mp3",
-            "drum": "assets/sounds/drum.mp3",
-            "crowd_cheer": "assets/sounds/crowd_cheer.mp3"
-        }
-
+        logger.info("Setting up sound effects...")
+        sfx_out_dir = "remotion-video/public/assets/sounds"
+        os.makedirs(sfx_out_dir, exist_ok=True)
+        sound_effects = {}
+        
         try:
-            from footybitez.media.sfx_manager import SFXManager
-            # Ensure output directory exists
-            sfx_out_dir = "remotion-video/public/assets/sounds"
-            os.makedirs(sfx_out_dir, exist_ok=True)
-            
-            sfx_manager = SFXManager(sfx_dir="footybitez/media/sfx")
+            sfx_manager = SFXManager(sfx_dir=sfx_out_dir)
             
             sfx_mapping = {
                 "whoosh": "whoosh",
@@ -617,17 +631,16 @@ def main():
                 "rise": "rise",
                 "impact": "impact",
                 "drum": "kick",
-                "crowd_cheer": "crowd_cheer"
+                "crowd_cheer": "riser_shake"
             }
             
-            for sfx_key, rel_path in sound_effects.items():
-                out_path = os.path.join("remotion-video", "public", rel_path)
+            for sfx_key, gen_name in sfx_mapping.items():
+                out_path = os.path.join(sfx_out_dir, f"{sfx_key}.mp3")
                 if not os.path.exists(out_path):
-                    gen_name = sfx_mapping.get(sfx_key, sfx_key)
-                    
                     logger.info(f"Generating SFX: {sfx_key} at {out_path}")
                     clip = sfx_manager.get_sfx(gen_name)
                     clip.write_audiofile(out_path, fps=44100, logger=None)
+                sound_effects[sfx_key] = f"assets/sounds/{sfx_key}.mp3"
         except Exception as e:
             logger.error(f"Error setting up sound effects: {e}")
 
@@ -646,30 +659,33 @@ def main():
         title = script_data["title"]
         thumbnail_data = script_data.get("thumbnail_data", {})
         hook_phrase = thumbnail_data.get("hook_phrase", "").strip()
+        
+        # Read category directly from script JSON top-level field
+        script_category = script_data.get("category", "").strip()
+        category_map = {
+            "What If?": "what_if",
+            "Shocking Moments": "shocking",
+            "Stats": "stats",
+            "Tactics": "tactics",
+        }
+        t_type = category_map.get(script_category, "player") if script_category else "player"
+        
         if hook_phrase:
             if hook_phrase.endswith(":"):
                 hook_phrase = hook_phrase[:-1].strip()
             
-            topic_lower = topic.lower()
-            if any(k in topic_lower for k in ["stats", "record", "goal", "number", "statistic"]):
-                t_type = "stats"
-            elif any(k in topic_lower for k in ["tactic", "formation", "style", "coach", "system", "philosophy"]):
-                t_type = "tactics"
-            elif any(k in topic_lower for k in ["shocking", "truth", "secret", "scandal", "mystery", "uncover"]):
-                t_type = "shocking"
-            elif any(k in topic_lower for k in ["player", "career", "messi", "ronaldo", "pele", "maradona", "legend"]):
-                t_type = "player"
-            else:
-                t_type = "history"
-                
             templates = {
+                "what_if":   "{hook_phrase}: What History Could Have Looked Like",
                 "stats":     "{hook_phrase}: The Numbers That Changed Football",
                 "history":   "{hook_phrase}: The Story Nobody Told",
                 "tactics":   "{hook_phrase}: How It Really Works",
                 "shocking":  "{hook_phrase}: The Truth Behind the Headlines",
                 "player":    "{hook_phrase}: The Career That Defined a Generation",
             }
-            title = templates[t_type].format(hook_phrase=hook_phrase)
+            if t_type in templates:
+                title = templates[t_type].format(hook_phrase=hook_phrase)
+            else:
+                title = f"{hook_phrase}: The Full Story"
 
         metadata = {
             "title": title,
@@ -689,8 +705,6 @@ def main():
         import platform
         import shutil
         logger.info("Starting Remotion render step...")
-        # Concurrency=1 renders one frame at a time — prevents Chrome OOM crashes on low-RAM machines.
-        # Timeout=60000 gives each frame up to 60s to render (default is 30s).
         cmd = [
             "npx", "remotion", "render",
             "src/index.ts", "MainVideo",
@@ -698,6 +712,7 @@ def main():
             "--props=public/props.json",
             "--concurrency=1",
             "--timeout=60000",
+            "--video-bitrate=4000k",
         ]
 
         remotion_dir = "remotion-video"
