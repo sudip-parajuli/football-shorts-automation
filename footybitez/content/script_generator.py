@@ -63,18 +63,21 @@ class ScriptGenerator:
                     logger.warning(f"Gemini key #{i+1} model={model_name} failed: {e}")
         return None
 
-    def generate_script(self, topic, category="General"):
+    def generate_script(self, topic, category="General", context=None):
         """
         Generates a short video script using Groq (priority), Gemini, or Wikipedia fallback.
         """
         # 0. Fetch Context for Factual Grounding (skip for What If?)
-        context = ""
-        if category != "What If?":
-            context = self._fetch_context(topic)
-            if context and context != "__NO_CONTEXT__":
-                logger.info(f"Fetched factual context for grounding ({len(context)} chars).")
-            elif context == "__NO_CONTEXT__":
-                logger.warning("Context fetch failed after retries — proceeding in conservative mode.")
+        if context is None:
+            context = ""
+            if category != "What If?":
+                context = self._fetch_context(topic)
+                if context and context != "__NO_CONTEXT__":
+                    logger.info(f"Fetched factual context for grounding ({len(context)} chars).")
+                elif context == "__NO_CONTEXT__":
+                    logger.warning("Context fetch failed after retries — proceeding in conservative mode.")
+        else:
+            logger.info("Using provided custom grounding context.")
 
         prompt = self._get_prompt(topic, category, context=context)
 
@@ -201,7 +204,7 @@ class ScriptGenerator:
 
         # ── Player verification rule (injected for all player-related categories) ──────
         PLAYER_CATEGORIES = {"Comparisons & Debates", "Football Stories", "Rankings & Lists",
-                             "World Cup & Stats", "Shocking Moments", "Money & Transfers"}
+                             "World Cup & Stats", "Shocking Moments", "Money & Transfers", "wc_upcoming"}
         is_player_category = category in PLAYER_CATEGORIES
         is_comparison = category == "Comparisons & Debates"
 
@@ -266,6 +269,16 @@ class ScriptGenerator:
         elif category == "World Cup & Stats":
             base_style = "Informative, epic, data-driven."
             extra_instructions = "Use impressive numbers. Highlight the scale of the event. Connect history to modern day."
+        elif category == "wc_upcoming":
+            base_style = "Pre-match preview, high anticipation, data-driven."
+            extra_instructions = (
+                "Highlight the upcoming match date and significance.\n"
+                "You MUST discuss:\n"
+                "1. Head-to-head records/history between the teams.\n"
+                "2. Winning probabilities or prediction statistics from the context.\n"
+                "3. Key players or recent form indicators.\n"
+                "End with an engaging question inviting predictions in the comments."
+            )
 
         import datetime
         current_year = datetime.datetime.now().year
@@ -532,12 +545,11 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
 
         STRICT RULES:
         1. MAX 60 WORDS TOTAL across hook + segments + outro. Count them.
-        2. Structure: [SCORELINE first sentence] → [KEY MOMENT] → [ONE STAT] → [CTA]
-        3. Always name the scorers with the minute if known.
-        4. If red card: name the player, minute, and reason if known.
-        5. End with: "Follow for the full breakdown."
-        6. FACTS ONLY. No speculation. Tone: urgent, fast, like a live news ticker.
-        7. Current year: {current_year}
+        2. Structure: [SCORELINE first sentence] → [KEY MOMENTS & STATS] → [CTA]
+        3. You MUST mention important stats from the match events: goals, goalscorers with minutes, and especially any RED CARDS (name player and minute) or penalty shootouts if they occurred.
+        4. End with: "Follow for the full breakdown."
+        5. FACTS ONLY. No speculation. Tone: urgent, fast, like a live news ticker.
+        6. Current year: {current_year}
 
         Return ONLY valid JSON:
         {{

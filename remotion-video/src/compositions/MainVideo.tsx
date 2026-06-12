@@ -153,7 +153,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
               sceneComponent = (
                 <DataBarsScene
                   title="Comparison"
-                  bars={(scene.bar_data || []).map(b => ({ ...b, color: b.color as any }))}
+                  bar_data={(scene.bar_data || []).map(b => ({ ...b, color: b.color as any }))}
                   durationInFrames={sceneDuration}
                 />
               );
@@ -186,10 +186,11 @@ export const MainVideo: React.FC<MainVideoProps> = ({
                 />
               );
             } else if (scene.visual_type === 'ai_video') {
+              const aiAssetType = scene.asset_type === 'image' ? 'image_fallback' : scene.asset_type || 'image_fallback';
               sceneComponent = (
                 <AIVideoScene
                   assetPath={scene.asset_path || ''}
-                  assetType={scene.asset_type || 'image_fallback'}
+                  assetType={aiAssetType}
                   durationInFrames={sceneDuration}
                   aiLabel="AI GENERATED"
                 />

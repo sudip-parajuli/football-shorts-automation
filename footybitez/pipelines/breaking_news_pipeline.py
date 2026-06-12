@@ -124,6 +124,15 @@ class BreakingNewsPipeline:
                 logger.info(f"Match {match_id} already processed — skipping.")
                 continue
 
+            # Skip match if the final full-time scores are not yet populated by the API
+            score_obj = match.get("score") or {}
+            full_time_score = score_obj.get("fullTime") or {}
+            home_score = full_time_score.get("home")
+            away_score = full_time_score.get("away")
+            if home_score is None or away_score is None:
+                logger.info(f"Match {match_id} scores are not yet available (home/away is None) — skipping this run.")
+                continue
+
             logger.info(f"New finished match detected: {match_id}")
 
             try:
@@ -272,12 +281,35 @@ class BreakingNewsPipeline:
             away = event.get("away", "")
             topic = f"{home} vs {away} World Cup 2026"
 
-            title_card = self.media_sourcer.get_title_card_image(topic)
-            profile_image = self.media_sourcer.get_profile_image(topic)
+            # Disable AI image generation fallback for breaking news, use real images or solid cards only
+            title_card = self.media_sourcer.get_title_card_image(topic, allow_ai=False)
+            
+            # Sourcing profile image of the primary entity (player/club), not the match string
+            entity_query = script.get("primary_entity")
+            if not entity_query:
+                entity_query = topic
+            profile_image = self.media_sourcer.get_profile_image(entity_query)
+
+            # Build match-specific enrichment for visual searches so real match
+            # images are returned instead of generic player photos
+            match_context = ""
+            if " vs " in topic:
+                try:
+                    parts = topic.split(" vs ", 1)
+                    team1_words = parts[0].strip().split()
+                    team2_words = parts[1].strip().split()
+                    team1 = team1_words[-1] if team1_words else ""
+                    team2 = team2_words[0] if team2_words else ""
+                    if team1 and team2:
+                        match_context = f"{team1} {team2} World Cup 2026"
+                except Exception:
+                    pass
 
             segment_media = []
             for seg in script.get("segments", []):
                 kw = seg.get("visual_keyword", topic) if isinstance(seg, dict) else topic
+                if match_context:
+                    kw = f"{kw} {match_context}"
                 segment_media.append(self.media_sourcer.get_media(kw, count=2))
 
             visual_assets = {

@@ -24,7 +24,7 @@ WC_START = date(2026, 6, 11)
 WC_END = date(2026, 7, 19)
 
 CONTENT_CATEGORIES = [
-    "wc_quiz", "wc_fact", "wc_group_preview", "wc_player_spotlight", "wc_history",
+    "wc_quiz", "wc_fact", "wc_group_preview", "wc_player_spotlight", "wc_history", "wc_upcoming"
 ]
 
 
@@ -178,6 +178,7 @@ class WorldCupPipeline:
             "wc_group_preview": self._run_group_preview,
             "wc_player_spotlight": self._run_player_spotlight,
             "wc_history": self._run_history,
+            "wc_upcoming": self._run_upcoming,
         }
         fn = dispatch.get(category)
         if not fn:
@@ -365,21 +366,116 @@ class WorldCupPipeline:
         script = self.script_gen.generate_script(topic, category="World Cup & Stats")
         return self._produce_and_upload(script, topic, "wc_history", skip_upload=skip_upload)
 
+    def _run_upcoming(self, skip_upload=False):
+        logger.info("Running upcoming match preview content category...")
+        upcoming_matches = []
+        if self.wc_data:
+            try:
+                upcoming_matches = self.wc_data.get_upcoming_matches()
+            except Exception as e:
+                logger.error(f"Failed to fetch upcoming matches from API: {e}")
+
+        # Choose a match to preview. If none scheduled, fallback to a high-profile mock match
+        if upcoming_matches:
+            match = upcoming_matches[0]
+            home = match.get("homeTeam", {}).get("name", "Home")
+            away = match.get("awayTeam", {}).get("name", "Away")
+            date_str = match.get("utcDate", "")
+            if date_str:
+                try:
+                    from datetime import datetime
+                    dt = datetime.fromisoformat(date_str.replace("Z", "+00:00"))
+                    date_str = dt.strftime("%B %d, %Y")
+                except Exception:
+                    date_str = date_str.split("T")[0]
+        else:
+            mock_matches = [
+                ("Spain", "Germany", "tomorrow"),
+                ("Argentina", "France", "this Friday"),
+                ("Brazil", "England", "this Saturday"),
+                ("Portugal", "Netherlands", "this Sunday")
+            ]
+            home, away, date_str = random.choice(mock_matches)
+
+        topic = f"Upcoming World Cup match: {home} vs {away} scheduled for {date_str}"
+        logger.info(f"Generating upcoming match preview for: {topic}")
+
+        # Gather head-to-head records and winning probabilities using Gemini Search Grounding
+        h2h_context = ""
+        gemini_keys = []
+        import os
+        for suffix in ["", "2", "3"]:
+            val = os.getenv(f"GEMINI_API_KEY{suffix}")
+            if val:
+                gemini_keys.append(val)
+
+        if gemini_keys:
+            for key in gemini_keys:
+                try:
+                    from google import genai
+                    from google.genai import types
+                    client = genai.Client(api_key=key)
+                    search_prompt = (
+                        f"Search for the head-to-head history (total matches played, wins for each team, draws), "
+                        f"recent form of both teams, and winning probabilities or match predictions for the upcoming "
+                        f"World Cup 2026 match: {home} vs {away}."
+                    )
+                    r = client.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents=search_prompt,
+                        config=types.GenerateContentConfig(
+                            tools=[types.Tool(google_search=types.GoogleSearch())]
+                        )
+                    )
+                    h2h_context = r.text
+                    logger.info(f"Retrieved head-to-head and probability context: {len(h2h_context)} chars.")
+                    break
+                except Exception as e:
+                    logger.warning(f"Failed to fetch h2h context via Gemini search: {e}")
+                    continue
+
+        if not h2h_context:
+            h2h_context = f"Both {home} and {away} have a rich history. Check the latest predictions and form guide for matchday!"
+
+        script = self.script_gen.generate_script(topic, category="wc_upcoming", context=h2h_context)
+        return self._produce_and_upload(script, topic, "wc_upcoming", skip_upload=skip_upload)
+
     def _produce_and_upload(self, script, topic, category, skip_upload=False):
         if not script:
             logger.error(f"Script generation failed for: {topic}")
             return None
 
-        title_card = self.media_sourcer.get_title_card_image(f"World Cup 2026 {topic}")
-        profile_image = self.media_sourcer.get_profile_image(topic)
+        # Disable AI image generation for World Cup matches title cards
+        title_card = self.media_sourcer.get_title_card_image(f"World Cup 2026 {topic}", allow_ai=False)
+        
+        # Profile image: search for script's primary entity instead of topic
+        entity_query = script.get("primary_entity")
+        if not entity_query:
+            entity_query = topic
+        profile_image = self.media_sourcer.get_profile_image(entity_query)
+
+        # Build match-specific keyword enrichment for better image search results.
+        # Extracts team names from topic (e.g. "Spain vs Germany") so that visual
+        # searches return actual match images instead of generic player photos.
+        match_context = ""
+        if " vs " in topic:
+            try:
+                parts = topic.split(" vs ", 1)
+                team1_words = parts[0].strip().split()
+                team2_words = parts[1].strip().split()
+                team1 = team1_words[-1] if team1_words else ""
+                team2 = team2_words[0] if team2_words else ""
+                if team1 and team2:
+                    match_context = f"{team1} {team2} World Cup 2026"
+            except Exception:
+                pass
 
         segment_media = []
         for seg in script.get("segments", []):
             kw = seg.get("visual_keyword", topic) if isinstance(seg, dict) else topic
-            player_names = ["Mbappe", "Haaland", "Messi", "Ronaldo", "Bellingham", "Vinicius", "Yamal"]
-            is_player = any(n in kw for n in player_names)
-            if is_player:
-                kw = self.media_sourcer._build_ai_image_prompt(kw, is_player_topic=True)
+            # Append match-specific context so search returns match images, not generic photos
+            if match_context:
+                kw = f"{kw} {match_context}"
             segment_media.append(self.media_sourcer.get_media(kw, count=2))
 
         visual_assets = {

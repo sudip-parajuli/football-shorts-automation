@@ -67,7 +67,7 @@ def main():
         
         # 1. Fetch Title Card
         logger.info("Fetching Title Card...")
-        title_card_path = media_sourcer.get_title_card_image(topic)
+        title_card_path = media_sourcer.get_title_card_image(topic, allow_ai=False)
         
         # 2. Fetch Profile Image
         entity_query = script.get('primary_entity')

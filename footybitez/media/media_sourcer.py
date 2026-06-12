@@ -250,7 +250,7 @@ class MediaSourcer:
         query_lower = query.lower()
         return any(p in query_lower for p in players)
 
-    def get_title_card_image(self, topic: str) -> str:
+    def get_title_card_image(self, topic: str, allow_ai: bool = True) -> str:
         """
         Fetches or generates a portrait (9:16) title card image for Shorts.
         4-tier fallback chain — NEVER raises, always returns a valid path.
@@ -269,6 +269,10 @@ class MediaSourcer:
         paths = self._fetch_unsplash_image(f"{topic} football portrait", count=1)
         if paths:
             return paths[0]
+
+        if not allow_ai:
+            print("[MediaSourcer] AI image generation disabled. Falling back to solid card.")
+            return self._create_solid_card(topic)
 
         is_player = self._is_player_query(topic)
 

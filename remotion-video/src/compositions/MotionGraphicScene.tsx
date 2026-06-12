@@ -129,7 +129,7 @@ const GridMotion: React.FC<{ frame: number; fps: number; color: string; label?: 
   frame, fps, color, label,
 }) => {
   const gridOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateRight: 'clamp' });
-  const scanY = interpolate(frame, [0, 60], ['-10%', '110%'], { extrapolateRight: 'clamp' });
+  const scanY = interpolate(frame, [0, 60], [-10, 110], { extrapolateRight: 'clamp' });
 
   return (
     <AbsoluteFill style={{ backgroundColor: '#040410', overflow: 'hidden' }}>
@@ -150,7 +150,7 @@ const GridMotion: React.FC<{ frame: number; fps: number; color: string; label?: 
         position: 'absolute',
         left: 0,
         right: 0,
-        top: scanY,
+        top: `${scanY}%`,
         height: 2,
         background: `linear-gradient(90deg, transparent, ${color}, transparent)`,
         boxShadow: `0 0 20px ${color}`,
@@ -314,7 +314,6 @@ const SlashMotion: React.FC<{ frame: number; fps: number; color: string; label?:
       <div style={{
         position: 'absolute',
         left: '20%',
-        top: 0,
         width: `${spring({ frame: Math.max(0, frame - 5), fps, config: { damping: 12, stiffness: 100 } }) * 60}%`,
         height: 4,
         backgroundColor: color,
