@@ -504,16 +504,15 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
 
     def generate_breaking_news_script(self, topic: str, event: dict) -> dict | None:
         """
-        Generates a 30-45 second breaking news script (max 60 words).
-        Used by the BreakingNewsPipeline for match result Shorts.
+        Generates a 120-140 word breaking news script for match result Shorts.
+        Used by the BreakingNewsPipeline.
 
         Rules:
-        - Max 60 words total
-        - Structure: [RESULT] -> [KEY MOMENT] -> [ONE STAT/REACTION] -> [CTA]
-        - Always starts with the scoreline
-        - Names goalscorers with minute of goal (if available from events)
-        - Tone: urgent, fast, news-ticker style
-        - Never speculation — facts only
+        - 120-140 words total (hook + segments + outro)
+        - Incorporates detailed match statistics (possession, shots, fouls, cards, corner kicks)
+        - Mentions goalscorers with minute of goal
+        - Tone: urgent, fast, detailed match breakdown
+        - Facts only, strictly grounded in input data
         """
         import datetime as _dt
         current_year = _dt.datetime.now().year
@@ -523,9 +522,9 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
         hs = event.get("home_score", 0)
         as_ = event.get("away_score", 0)
 
-        # Build event context string from API-Football events
+        # Build event context string from API-Football/Gemini events
         event_lines = []
-        for ev in event.get("api_events", [])[:10]:  # Limit to 10 events
+        for ev in event.get("api_events", []):
             ev_type = ev.get("type", "")
             player = ev.get("player", {}).get("name", "")
             minute = ev.get("time", {}).get("elapsed", "?")
@@ -534,57 +533,111 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
                 event_lines.append(f"  GOAL {minute}': {player}")
             elif ev_type == "Card" and detail == "Red Card":
                 event_lines.append(f"  RED CARD {minute}': {player}")
+            elif ev_type == "Card" and detail == "Yellow Card":
+                event_lines.append(f"  YELLOW CARD {minute}': {player}")
         event_context = "\n".join(event_lines) if event_lines else "No detailed event data available."
 
+        # Format stats
+        stats = event.get("stats", {})
+        stats_str = ""
+        if stats:
+            stats_str = json.dumps(stats, indent=2)
+        else:
+            stats_str = "No detailed match statistics available."
+
         prompt = f"""
-        You are a football news anchor. Generate a BREAKING NEWS YouTube Short script.
+        You are a football news anchor. Generate a detailed BREAKING NEWS YouTube Short script about a recently finished match.
 
         MATCH: {home} {hs}–{as_} {away} (World Cup 2026)
-        MATCH EVENTS:
+        
+        MATCH STATS:
+        {stats_str}
+        
+        MATCH TIMELINE & EVENTS:
         {event_context}
 
         STRICT RULES:
-        1. MAX 60 WORDS TOTAL across hook + segments + outro. Count them.
-        2. Structure: [SCORELINE first sentence] → [KEY MOMENTS & STATS] → [CTA]
-        3. You MUST mention important stats from the match events: goals, goalscorers with minutes, and especially any RED CARDS (name player and minute) or penalty shootouts if they occurred.
-        4. End with: "Follow for the full breakdown."
-        5. FACTS ONLY. No speculation. Tone: urgent, fast, like a live news ticker.
-        6. Current year: {current_year}
+        1. WORD COUNT: The script MUST be between 120 and 140 words total across hook + segments + outro. This is extremely important. Count the words and ensure they fit this range.
+        2. Hook: Start with a strong hook (max 10 words) stating the final result.
+        3. Match Review: Describe how the match played out. To hit the word count target, each segment MUST contain at least 2 to 3 detailed, descriptive sentences (around 20 to 25 words per segment). Highlight who dominated, possession percentages, shots, shots on target, fouls, corners, offsides, and cards (yellow/red) from the provided stats.
+        4. Visuals: Split the script into 4 to 6 segments. Each segment should have a unique, highly specific "visual_keyword".
+        5. Visual Keywords Rule: To ensure we get real photos of this specific match from the internet:
+           - Every keyword MUST include the team names and the World Cup 2026 context.
+           - Examples: "{home} vs {away} World Cup 2026 match action", "{home} fans celebrating 2026 World Cup", "[Scorer Name] goal {home} vs {away} 2026".
+           - DO NOT use generic stock terms. Only use terms that target the real match and players.
+        6. Outro: End with an engaging question for the comments.
+        7. HIGHLIGHTING: Enclose the following in asterisks (*):
+           - Player Names (e.g., *Messi*, *Ronaldo*)
+           - Team/Country Names (e.g., *Japan*, *Netherlands*)
+           - All Numerical Values (e.g., *2-0*, *62%*, *12*, *first*, *45'*)
+           - Superlatives (e.g., *Best*, *Legend*, *Unbelievable*)
+        8. FACTS ONLY. Do not speculate or hallucinate stats. If a statistic is not in the provided match data, do not mention it.
 
         Return ONLY valid JSON:
         {{
-            "hook": "The scoreline in max 8 words",
-            "primary_entity": "Winning team name or main story subject",
+            "hook": "The scoreline hook (max 10 words)",
+            "primary_entity": "Winning team or match name",
             "segments": [
-                {{"text": "Key moment sentence", "visual_keyword": "specific search term"}},
-                {{"text": "One stat or reaction", "visual_keyword": "specific search term"}}
+                {{"text": "Sentence 1 and Sentence 2 describing the game flow/events with highlighting...", "visual_keyword": "specific real match query"}},
+                {{"text": "Sentence 1 and Sentence 2 detailing scorers/cards with highlighting...", "visual_keyword": "specific real match query"}},
+                {{"text": "Sentence 1 and Sentence 2 breaking down the stats like possession and shots on target with highlighting...", "visual_keyword": "specific real match query"}},
+                {{"text": "Sentence 1 and Sentence 2 summarizing the tactical impact or aftermath with highlighting...", "visual_keyword": "specific real match query"}}
             ],
-            "outro": "Follow for the full breakdown."
+            "outro": "Engaging call to action outro (e.g. Follow for the full breakdown. Who was your player of the match?)"
         }}
         """
+        attempt_prompt = prompt
+        data = None
+        result = None
+        
+        for attempt in range(3):
+            if self.groq_api_key:
+                try:
+                    from groq import Groq
+                    client = Groq(api_key=self.groq_api_key)
+                    completion = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role": "user", "content": attempt_prompt}],
+                        temperature=0.3,
+                        max_tokens=1024,
+                        response_format={"type": "json_object"}
+                    )
+                    data = json.loads(completion.choices[0].message.content)
+                    if self._validate_script_data(data):
+                        hook = data.get("hook", "")
+                        segments_text = " ".join([seg.get("text", "") for seg in data.get("segments", []) if isinstance(seg, dict)])
+                        outro = data.get("outro", "")
+                        word_count = len(f"{hook} {segments_text} {outro}".strip().split())
+                        
+                        if 120 <= word_count <= 140:
+                            logger.info(f"Breaking news script generated via Groq (attempt {attempt+1}) with {word_count} words.")
+                            return data
+                        else:
+                            logger.warning(f"Groq script word count {word_count} out of range (120-140). Retrying...")
+                            attempt_prompt = prompt + f"\n\nSTRICT REQUIREMENT: Your previous attempt was {word_count} words. You MUST write longer, more detailed descriptions in each segment's text to reach a total word count of between 120 and 140 words. Make each of the 4 segments contain exactly 2-3 long, descriptive sentences!"
+                except Exception as e:
+                    logger.error(f"Breaking news Groq generation failed: {e}")
 
-        if self.groq_api_key:
-            try:
-                from groq import Groq
-                client = Groq(api_key=self.groq_api_key)
-                completion = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.3,
-                    max_tokens=512,
-                    response_format={"type": "json_object"}
-                )
-                data = json.loads(completion.choices[0].message.content)
-                if self._validate_script_data(data):
-                    logger.info("Breaking news script generated via Groq.")
-                    return data
-            except Exception as e:
-                logger.error(f"Breaking news Groq generation failed: {e}")
+            if self.gemini_keys:
+                result = self._try_gemini(attempt_prompt)
+                if result:
+                    hook = result.get("hook", "")
+                    segments_text = " ".join([seg.get("text", "") for seg in result.get("segments", []) if isinstance(seg, dict)])
+                    outro = result.get("outro", "")
+                    word_count = len(f"{hook} {segments_text} {outro}".strip().split())
+                    if 120 <= word_count <= 140:
+                        logger.info(f"Breaking news script generated via Gemini (attempt {attempt+1}) with {word_count} words.")
+                        return result
+                    else:
+                        logger.warning(f"Gemini script word count {word_count} out of range (120-140). Retrying...")
+                        attempt_prompt = prompt + f"\n\nSTRICT REQUIREMENT: Your previous attempt was {word_count} words. You MUST write longer, more detailed descriptions in each segment's text to reach a total word count of between 120 and 140 words. Make each of the 4 segments contain exactly 2-3 long, descriptive sentences!"
 
-        if self.gemini_keys:
-            result = self._try_gemini(prompt)
-            if result:
-                return result
+        # Fallback to the last generated script even if it was outside target range
+        logger.warning("Could not hit exact 120-140 word count range after 3 attempts. Returning last attempt.")
+        if data:
+            return data
+        if result:
+            return result
 
         logger.error("Breaking news script generation failed on all providers.")
         return None

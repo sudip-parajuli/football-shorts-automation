@@ -170,14 +170,25 @@ class BreakingNewsPipeline:
     # EVENT EXTRACTION
     # ─────────────────────────────────────────────────────────
 
-    def _extract_newsworthy_events(self, match: dict, api_football_events: list) -> list:
+    def _extract_newsworthy_events(self, match: dict, api_football_events: list | dict) -> list:
         """
         Determines which events from a finished match are worth a Short.
-
-        NOTE: football-data.org free tier coverage for in-match events (goal scorers,
-        bookings) should be verified via WorldCupData.check_coverage() before the
-        tournament. If not available, this falls back to API-Football event data.
         """
+        # Normalize events
+        if isinstance(api_football_events, list):
+            api_football_events = {
+                "timeline": api_football_events,
+                "stats": {}
+            }
+        elif not isinstance(api_football_events, dict):
+            api_football_events = {
+                "timeline": [],
+                "stats": {}
+            }
+
+        timeline = api_football_events.get("timeline", [])
+        stats = api_football_events.get("stats", {})
+
         events = []
         home = match.get("homeTeam", {}).get("name", "Home")
         away = match.get("awayTeam", {}).get("name", "Away")
@@ -192,7 +203,8 @@ class BreakingNewsPipeline:
             "home_score": home_score,
             "away_score": away_score,
             "match": match,
-            "api_events": api_football_events,
+            "api_events": timeline,
+            "stats": stats,
             "priority": 1,
         })
 
@@ -205,13 +217,13 @@ class BreakingNewsPipeline:
                 "home_score": home_score,
                 "away_score": away_score,
                 "match": match,
-                "api_events": api_football_events,
+                "api_events": timeline,
                 "priority": 0,
             })
 
-        # From API-Football events: hat tricks and red cards
+        # From events: hat tricks and red cards
         goal_counts = {}
-        for ev in api_football_events:
+        for ev in timeline:
             ev_type = ev.get("type", "")
             player_name = ev.get("player", {}).get("name", "")
 
@@ -309,8 +321,9 @@ class BreakingNewsPipeline:
             for seg in script.get("segments", []):
                 kw = seg.get("visual_keyword", topic) if isinstance(seg, dict) else topic
                 if match_context:
-                    kw = f"{kw} {match_context}"
-                segment_media.append(self.media_sourcer.get_media(kw, count=2))
+                    if not any(word.lower() in kw.lower() for word in match_context.split()[:2]):
+                        kw = f"{kw} {match_context}"
+                segment_media.append(self.media_sourcer.get_media(kw, count=2, prefer_real_match=True))
 
             visual_assets = {
                 "title_card": title_card,

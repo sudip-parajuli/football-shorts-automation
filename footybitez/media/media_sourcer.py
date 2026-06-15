@@ -257,6 +257,15 @@ class MediaSourcer:
         """
         print(f"Sourcing title card image for: {topic}")
 
+        # If AI is disabled (e.g., breaking news), try finding real match photos first
+        if not allow_ai:
+            path = self._fetch_ddg_image(
+                f"{topic} match action portrait",
+                suffix=f"title_real_{hash(topic)}"
+            )
+            if path:
+                return path
+
         # 1. DuckDuckGo portrait search
         path = self._fetch_ddg_image(
             f"football {topic} stadium crowd action portrait",
@@ -344,14 +353,22 @@ class MediaSourcer:
         # 6. DDG fallback (filtered)
         return self._fetch_ddg_image(f"{entity_query} soccer portrait", suffix=f"profile_{hash(entity_query)}")
 
-    def get_media(self, visual_keyword: str, count: int = 3) -> list:
+    def get_media(self, visual_keyword: str, count: int = 3, prefer_real_match: bool = False) -> list:
         """
         Fetches a list of image paths for a given visual keyword.
         Used by Shorts pipeline for segment visuals.
-        Priority: Wikipedia entity → TheSportsDB → Wikimedia → Unsplash → Pixabay → DDG
+        Priority: (DDG if prefer_real_match) → Wikipedia entity → TheSportsDB → Wikimedia → Unsplash → Pixabay → DDG
         All queries are filtered to men's association football only.
         """
         results = []
+
+        if prefer_real_match:
+            print(f"Prioritizing real match visuals from DDG for: {visual_keyword}")
+            ddg_paths = self._fetch_ddg_images(visual_keyword, suffix=f"real_{hash(visual_keyword)}", count=count)
+            results.extend(ddg_paths)
+            if len(results) >= count:
+                return results[:count]
+
         safe_query = self._make_football_query(visual_keyword)
 
         # 1. If the keyword looks like a named entity, try Wikipedia + TheSportsDB first
@@ -381,7 +398,7 @@ class MediaSourcer:
             results.extend(pix_paths)
 
         # 5. DDG fallback (filtered)
-        if not results:
+        if len(results) < count:
             path = self._fetch_ddg_image(safe_query, suffix=f"seg_{hash(visual_keyword)}")
             if path:
                 results.append(path)
@@ -856,6 +873,41 @@ class MediaSourcer:
         except Exception as e:
             print(f"DDG Fallback error: {e}")
         return None
+
+    def _fetch_ddg_images(self, query, suffix, count=3):
+        """Fetches multiple images using DuckDuckGo."""
+        if DDGS is None:
+            print("[DDG] Neither 'ddgs' nor 'duckduckgo_search' is installed. Skipping.")
+            return []
+        paths = []
+        try:
+            safe_query = self._make_football_query(query)
+            ddg_query = f"{safe_query} {self._FOOTBALL_NEG_SUFFIX}"
+            with DDGS() as ddgs:
+                results = list(ddgs.images(ddg_query, max_results=25))
+                if results:
+                    for result in results:
+                        if len(paths) >= count:
+                            break
+                        image_url = result.get('image', '')
+                        title = result.get('title', '')
+                        if not image_url or image_url in self.used_urls:
+                            continue
+                        # Filter: reject bad-sport URLs and titles
+                        if self._is_bad_image(url=image_url, title=title):
+                            continue
+                        ext = image_url.split('.')[-1].split('?')[0][:3]
+                        filename = f"ddg_{suffix}_{len(paths)}_{hash(query)}.{ext}"
+                        if len(ext) > 4 or not ext.isalpha():
+                            filename = f"ddg_{suffix}_{len(paths)}_{hash(query)}.jpg"
+                        filepath = os.path.join(self.download_dir, filename)
+                        self._download_file(image_url, filepath)
+                        if os.path.exists(filepath):
+                            self.used_urls.add(image_url)
+                            paths.append(filepath)
+        except Exception as e:
+            print(f"DDG Multi Fallback error: {e}")
+        return paths
 
     def _fetch_pollinations_image(self, prompt: str, output_path: str) -> bool:
         """

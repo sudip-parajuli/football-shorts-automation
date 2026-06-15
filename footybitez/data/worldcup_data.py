@@ -283,7 +283,11 @@ class WorldCupData:
                             client = genai.Client(api_key=key)
                             
                             # Step 1: Search match details
-                            search_prompt = f"Find the goals (scorers and minute) and red cards (player, team, minute) for the World Cup match {home_team} vs {away_team} on {date_str}."
+                            search_prompt = (
+                                f"Find the goals (scorers and minute), red cards (player, team, minute), and full match statistics "
+                                f"(possession %, shots, shots on target, corner kicks, offsides, fouls, yellow cards) "
+                                f"for the World Cup match {home_team} vs {away_team} on {date_str}."
+                            )
                             r1 = client.models.generate_content(
                                 model=model_name,
                                 contents=search_prompt,
@@ -295,15 +299,16 @@ class WorldCupData:
                             # Space out calls to avoid hitting free-tier 15 RPM limits
                             time.sleep(4)
                             
-                            # Step 2: Parse to JSON list of events
+                            # Step 2: Parse to JSON list of events and match statistics
                             parse_prompt = (
-                                "Parse the following match information into a JSON list of events. "
-                                "Each event should have keys:\n"
-                                "- type: 'Goal' or 'Card'\n"
-                                "- detail: 'Red Card', 'Yellow Card', or null\n"
-                                "- player: dict with key 'name'\n"
-                                "- team: dict with key 'name'\n"
-                                "- time: dict with key 'elapsed' (integer, or null if unknown)\n\n"
+                                "Parse the following match information into a JSON object with two keys:\n"
+                                "1. 'timeline': a list of events, where each event has keys: 'type' ('Goal' or 'Card'), "
+                                "'detail' ('Red Card', 'Yellow Card', or null), 'player' (dict with 'name'), "
+                                "'team' (dict with 'name'), 'time' (dict with 'elapsed' integer).\n"
+                                "2. 'stats': a dict with keys: 'possession' (dict with 'home' and 'away' strings/percentages), "
+                                "'shots' (dict with 'home' and 'away' integers or 'N/A'), 'shots_on_target' (dict with 'home' and 'away' integers or 'N/A'), "
+                                "'fouls' (dict with 'home' and 'away' integers or 'N/A'), 'corners' (dict with 'home' and 'away' integers or 'N/A'), "
+                                "'offsides' (dict with 'home' and 'away' integers or 'N/A'), 'yellow_cards' (dict with 'home' and 'away' integers or 'N/A').\n\n"
                                 f"Match info:\n{r1.text}"
                             )
                             r2 = client.models.generate_content(
@@ -313,10 +318,10 @@ class WorldCupData:
                                     response_mime_type="application/json"
                                 )
                             )
-                            parsed_events = json.loads(r2.text)
-                            if isinstance(parsed_events, list):
-                                logger.info(f"Successfully retrieved {len(parsed_events)} events via Gemini Search ({model_name}).")
-                                return parsed_events
+                            parsed_data = json.loads(r2.text)
+                            if isinstance(parsed_data, dict) and "timeline" in parsed_data:
+                                logger.info(f"Successfully retrieved match data via Gemini Search ({model_name}).")
+                                return parsed_data
                         except Exception as e:
                             logger.warning(f"Gemini events search failed (model={model_name}, attempt={attempt+1}): {e}")
                             time.sleep(5)
