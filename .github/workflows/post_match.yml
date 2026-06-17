@@ -4,6 +4,9 @@ on:
     - cron: '15 */1 * * *'   # runs every hour (offset by 15m), checks if any match finished ~2hr ago
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   run:
     runs-on: ubuntu-latest

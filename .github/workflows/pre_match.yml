@@ -4,6 +4,9 @@ on:
     - cron: '0 */1 * * *'   # runs every hour, checks if any match is ~6hr away
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   run:
     runs-on: ubuntu-latest
