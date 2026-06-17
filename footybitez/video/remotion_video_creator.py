@@ -85,8 +85,11 @@ class RemotionVideoCreator:
             if chunk["is_title"]:
                 media_files = [remotion_props["title_card"]] if remotion_props["title_card"] else []
             elif chunk["type"] == "outro":
-                # Outro always reuses title card for clean branding finish
-                media_files = [remotion_props["title_card"]] if remotion_props["title_card"] else []
+                # Use custom outro image if provided, otherwise reuse title card
+                if visual_assets.get("outro_image"):
+                    media_files = [self._copy_to_public(visual_assets.get("outro_image"))]
+                else:
+                    media_files = [remotion_props["title_card"]] if remotion_props["title_card"] else []
             else:
                 segment_media_pool = visual_assets.get('segment_media', [])
                 if segment_media_pool:

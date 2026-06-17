@@ -1,0 +1,13 @@
+{
+  "matches": {
+    "HAI_SCO_20260614": {
+      "id": 537340,
+      "home": "Haiti",
+      "away": "Scotland",
+      "datetime_utc": "2026-06-14T01:00:00Z",
+      "status": "FINISHED",
+      "pre_match_done": false,
+      "post_match_done": true
+    }
+  }
+}

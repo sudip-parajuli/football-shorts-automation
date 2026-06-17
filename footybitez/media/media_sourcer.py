@@ -163,9 +163,31 @@ class MediaSourcer:
 
     def _is_bad_image(self, url: str = "", title: str = "", tags: str = "") -> bool:
         """
-        Returns True if this image should be rejected (wrong sport / wrong gender).
+        Returns True if this image should be rejected (wrong sport / wrong gender / adult content).
         Checks URL, filename, title, and tags strings.
         """
+        # 1. Check for adult/NSFW domains or keywords in the URL
+        url_lower = url.lower()
+        adult_domains = [
+            "xhcdn", "xhamster", "pornhub", "xvideos", "xnxx", "redtube",
+            "youporn", "onlyfans", "phncdn", "xv-cdn", "naughty", "playboy"
+        ]
+        for domain in adult_domains:
+            if domain in url_lower:
+                print(f"[Filter] Rejected image — matched adult domain/URL pattern '{domain}' in: {url[:120]}")
+                return True
+
+        # 2. Check for adult/NSFW keywords in the title and tags (using word boundaries to avoid false positives)
+        title_lower = title.lower() if title else ""
+        tags_lower = tags.lower() if tags else ""
+        
+        adult_keywords_pattern = r"\b(porn|pornography|sex|nude|nudity|adult|erotic|erotica|nsfw|hentai|naked|nakedness|sexy|sensual|busty|milf|xxx|hardcore|softcore|blowjob|fuck|vagina|penis|boob|boobs|pussy|dick|pornstar|playboy|escort)\b"
+        
+        if re.search(adult_keywords_pattern, title_lower) or re.search(adult_keywords_pattern, tags_lower):
+            print(f"[Filter] Rejected image — matched adult keyword in title or tags: Title='{title_lower[:100]}', Tags='{tags_lower[:100]}'")
+            return True
+
+        # 3. Check existing wrong-sport / wrong-gender keywords
         combined = f"{url} {title} {tags}".lower()
         # Normalize underscores to spaces for better matching
         combined = combined.replace("_", " ").replace("-", " ")
@@ -814,6 +836,7 @@ class MediaSourcer:
                 "q": safe_query,
                 "image_type": "photo",
                 "category": "sports",  # Restrict to sports category
+                "safesearch": "true",
                 "per_page": count * 4,  # Fetch more to filter
             }
             res = requests.get(url, params=params, timeout=10)
@@ -851,7 +874,7 @@ class MediaSourcer:
             # Append negative terms in the query string (DDG supports them)
             ddg_query = f"{safe_query} {self._FOOTBALL_NEG_SUFFIX}"
             with DDGS() as ddgs:
-                results = list(ddgs.images(ddg_query, max_results=25))
+                results = list(ddgs.images(ddg_query, safesearch='on', max_results=25))
                 if results:
                     for result in results:
                         image_url = result.get('image', '')
@@ -884,7 +907,7 @@ class MediaSourcer:
             safe_query = self._make_football_query(query)
             ddg_query = f"{safe_query} {self._FOOTBALL_NEG_SUFFIX}"
             with DDGS() as ddgs:
-                results = list(ddgs.images(ddg_query, max_results=25))
+                results = list(ddgs.images(ddg_query, safesearch='on', max_results=25))
                 if results:
                     for result in results:
                         if len(paths) >= count:

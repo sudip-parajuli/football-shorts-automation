@@ -23,8 +23,38 @@ class ScriptGenerator:
     def __init__(self):
         self.gemini_keys = _get_keys("GEMINI_API_KEY")
         self.groq_api_key = os.getenv("GROQ_API_KEY")
+        self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
         if not self.gemini_keys:
             logger.warning("No GEMINI_API_KEY found. Will rely on Groq or Wikipedia fallback.")
+
+    def _try_claude(self, prompt: str) -> dict | None:
+        """Try Claude using the Anthropic API key."""
+        if not self.anthropic_api_key:
+            return None
+        try:
+            import anthropic
+            client = anthropic.Anthropic(api_key=self.anthropic_api_key)
+            logger.info("Generating script with Claude (claude-3-5-sonnet-20241022)...")
+            message = client.messages.create(
+                model="claude-3-5-sonnet-20241022",
+                max_tokens=1500,
+                messages=[
+                    {"role": "user", "content": prompt}
+                ]
+            )
+            text = message.content[0].text.strip()
+            # Strip markdown code fences if present
+            if text.startswith("```"):
+                text = text.split("\n", 1)[-1]
+            if text.endswith("```"):
+                text = text.rsplit("```", 1)[0]
+            data = json.loads(text.strip())
+            if self._validate_script_data(data):
+                logger.info("Claude script generation successful.")
+                return data
+        except Exception as e:
+            logger.error(f"Claude script generation failed: {e}")
+        return None
 
     def _try_gemini(self, prompt: str) -> dict | None:
         """Try all Gemini keys in order using new google-genai SDK."""
@@ -80,6 +110,12 @@ class ScriptGenerator:
             logger.info("Using provided custom grounding context.")
 
         prompt = self._get_prompt(topic, category, context=context)
+
+        # Try Claude first (preferred for premium/high-quality script writing)
+        if self.anthropic_api_key:
+            result = self._try_claude(prompt)
+            if result:
+                return self._sanitize_visual_keywords(result)
 
         # 1. Try Groq (preferred for factual accuracy)
         if self.groq_api_key:
@@ -278,6 +314,34 @@ class ScriptGenerator:
                 "2. Winning probabilities or prediction statistics from the context.\n"
                 "3. Key players or recent form indicators.\n"
                 "End with an engaging question inviting predictions in the comments."
+            )
+        elif category == "wc_pre_match":
+            base_style = "High-energy World Cup commentator, fast-paced, prediction-focused."
+            extra_instructions = (
+                "Write a punchy 55-second script (approx 140 words) for a pre-match prediction video.\n"
+                "You MUST base the script entirely on the provided match context.\n"
+                "Structure requirements:\n"
+                "- Hook: One shocking/exciting sentence about this match.\n"
+                "- Segment 1: Quick form summary and what's at stake.\n"
+                "- Segment 2: Key stat from their head-to-head history.\n"
+                "- Segment 3: Win probability breakdown and why each team could win.\n"
+                "- Segment 4: Player spotlight (the players who will decide the game).\n"
+                "- Outro: Bold prediction call + comment prompt.\n"
+                "Highlighting rules: Enclose player/team names and numbers in asterisks (*)."
+            )
+        elif category == "wc_post_match":
+            base_style = "High-energy World Cup commentator, fast-paced, match recap-focused."
+            extra_instructions = (
+                "Write a punchy 60-second script (approx 150 words) for a post-match recap video.\n"
+                "You MUST base the script entirely on the provided match context.\n"
+                "Structure requirements:\n"
+                "- Hook: Lead with the most shocking/exciting thing about the result.\n"
+                "- Segment 1: Detail the goals, scorers, and key moments.\n"
+                "- Segment 2: Match statistics comparison (possession, shots, xG).\n"
+                "- Segment 3: Man of the Match spotlight and rating.\n"
+                "- Segment 4: Standings impact (what this means for the group).\n"
+                "- Outro: Tease next fixture + subscribe CTA.\n"
+                "Highlighting rules: Enclose player/team/match names and numbers in asterisks (*)."
             )
 
         import datetime
@@ -591,6 +655,20 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
         result = None
         
         for attempt in range(3):
+            if self.anthropic_api_key:
+                result = self._try_claude(attempt_prompt)
+                if result:
+                    hook = result.get("hook", "")
+                    segments_text = " ".join([seg.get("text", "") for seg in result.get("segments", []) if isinstance(seg, dict)])
+                    outro = result.get("outro", "")
+                    word_count = len(f"{hook} {segments_text} {outro}".strip().split())
+                    if 120 <= word_count <= 140:
+                        logger.info(f"Breaking news script generated via Claude (attempt {attempt+1}) with {word_count} words.")
+                        return result
+                    else:
+                        logger.warning(f"Claude script word count {word_count} out of range (120-140). Retrying...")
+                        attempt_prompt = prompt + f"\n\nSTRICT REQUIREMENT: Your previous attempt was {word_count} words. You MUST write longer, more detailed descriptions in each segment's text to reach a total word count of between 120 and 140 words. Make each of the 4 segments contain exactly 2-3 long, descriptive sentences!"
+
             if self.groq_api_key:
                 try:
                     from groq import Groq
