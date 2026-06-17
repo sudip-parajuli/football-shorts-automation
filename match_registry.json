@@ -17,6 +17,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "UZB_COL_20260618": {
+      "id": 537404,
+      "home": "Uzbekistan",
+      "away": "Colombia",
+      "datetime_utc": "2026-06-18T02:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
