@@ -29,8 +29,68 @@ class RemotionVideoCreator:
         shutil.copy2(filepath, dest)
         return filename
 
+    def cleanup_public_assets(self):
+        """
+        Deletes old generated or copied images, audios, and temporary files from the public folder.
+        Preserves static assets like fonts and necessary templates.
+        """
+        logger.info("Cleaning up old assets in remotion public folder...")
+        
+        # 1. Clean public root
+        if os.path.exists(self.remotion_public):
+            for filename in os.listdir(self.remotion_public):
+                file_path = os.path.join(self.remotion_public, filename)
+                if os.path.isfile(file_path):
+                    # Preserved files
+                    if filename in ["dummy.jpg", "dummy_verif.jpg", "metadata.json"]:
+                        continue
+                    # Delete old jpg, mp3, mp4, json
+                    if filename.endswith((".jpg", ".mp3", ".mp4", ".json")):
+                        try:
+                            os.remove(file_path)
+                        except Exception as e:
+                            logger.warning(f"Failed to delete {filename}: {e}")
+                            
+        # 2. Clean assets/images
+        images_dir = os.path.join(self.remotion_public, "assets", "images")
+        if os.path.exists(images_dir):
+            for filename in os.listdir(images_dir):
+                file_path = os.path.join(images_dir, filename)
+                if os.path.isfile(file_path):
+                    try:
+                        os.remove(file_path)
+                    except Exception as e:
+                        logger.warning(f"Failed to delete {filename} in assets/images: {e}")
+
+        # 3. Clean assets/audio
+        audio_dir = os.path.join(self.remotion_public, "assets", "audio")
+        if os.path.exists(audio_dir):
+            for filename in os.listdir(audio_dir):
+                if filename in ["hook.json", "outro.json", "segment_0.json", "segment_1.json"]:
+                    continue
+                file_path = os.path.join(audio_dir, filename)
+                if os.path.isfile(file_path):
+                    try:
+                        os.remove(file_path)
+                    except Exception as e:
+                        logger.warning(f"Failed to delete {filename} in assets/audio: {e}")
+
+        # 4. Clean public/music
+        music_dir = os.path.join(self.remotion_public, "music")
+        if os.path.exists(music_dir):
+            for filename in os.listdir(music_dir):
+                file_path = os.path.join(music_dir, filename)
+                if os.path.isfile(file_path):
+                    try:
+                        os.remove(file_path)
+                    except Exception as e:
+                        logger.warning(f"Failed to delete {filename} in public/music: {e}")
+
     def create_video(self, script_data, visual_assets, background_music_path=None):
         logger.info("Starting Remotion Video Creation...")
+        
+        # Clean public directory first to ensure no stale cached assets are reused
+        self.cleanup_public_assets()
         
         # 1. Flatten Script chunks (Hook, Segments, Outro)
         chunks = []
