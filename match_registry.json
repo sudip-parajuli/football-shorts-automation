@@ -44,6 +44,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "CAN_QAT_20260618": {
+      "id": 537336,
+      "home": "Canada",
+      "away": "Qatar",
+      "datetime_utc": "2026-06-18T22:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
