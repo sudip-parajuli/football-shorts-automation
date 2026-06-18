@@ -225,19 +225,40 @@ def draw_pre_match_card_4_probability(home: str, away: str, prob_a: float, prob_
     font_pct = _get_font(90, bold=True)
     font_lbl = _get_font(34, bold=True)
     
-    # Left Box
+    # Safe float conversion
+    try:
+        f_a = float(prob_a)
+    except (ValueError, TypeError):
+        f_a = 33.0
+    try:
+        f_draw = float(prob_draw)
+    except (ValueError, TypeError):
+        f_draw = 34.0
+    try:
+        f_b = float(prob_b)
+    except (ValueError, TypeError):
+        f_b = 33.0
+
+    if f_a < 0: f_a = 0.0
+    if f_draw < 0: f_draw = 0.0
+    if f_b < 0: f_b = 0.0
+
+    total_prob = f_a + f_draw + f_b
+    if total_prob <= 0:
+        f_a, f_draw, f_b = 33.0, 34.0, 33.0
+        total_prob = 100.0
+
+    # Draw Boxes
     draw.rounded_rectangle([120, 580, 390, 820], radius=15, fill=(14, 18, 36, 200))
-    draw.text((255, 660), f"{int(prob_a)}%", font=font_pct, fill=COLOR_GREEN, anchor="mm")
+    draw.text((255, 660), f"{int(f_a)}%", font=font_pct, fill=COLOR_GREEN, anchor="mm")
     draw.text((255, 750), home.upper(), font=font_lbl, fill=COLOR_WHITE, anchor="mm")
     
-    # Center Box
     draw.rounded_rectangle([425, 580, 655, 820], radius=15, fill=(14, 18, 36, 200))
-    draw.text((540, 660), f"{int(prob_draw)}%", font=font_pct, fill=COLOR_YELLOW, anchor="mm")
+    draw.text((540, 660), f"{int(f_draw)}%", font=font_pct, fill=COLOR_YELLOW, anchor="mm")
     draw.text((540, 750), "DRAW", font=font_lbl, fill=COLOR_WHITE, anchor="mm")
     
-    # Right Box
     draw.rounded_rectangle([690, 580, 960, 820], radius=15, fill=(14, 18, 36, 200))
-    draw.text((825, 660), f"{int(prob_b)}%", font=font_pct, fill=ACCENT_AMBER, anchor="mm")
+    draw.text((825, 660), f"{int(f_b)}%", font=font_pct, fill=ACCENT_AMBER, anchor="mm")
     draw.text((825, 750), away.upper(), font=font_lbl, fill=COLOR_WHITE, anchor="mm")
     
     # Draw continuous horizontal bar representing the splits
@@ -245,8 +266,8 @@ def draw_pre_match_card_4_probability(home: str, away: str, prob_a: float, prob_
     total_w = bar_x2 - bar_x1
     
     # Calculations
-    w_a = int(total_w * (prob_a / 100))
-    w_draw = int(total_w * (prob_draw / 100))
+    w_a = int(total_w * (f_a / total_prob))
+    w_draw = int(total_w * (f_draw / total_prob))
     w_b = total_w - w_a - w_draw
     
     # Team A bar (green)

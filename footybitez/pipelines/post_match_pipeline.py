@@ -145,7 +145,7 @@ def get_fallback_post_match_data(home, away, hs, as_):
         "standout_moment": "An intense battle on the pitch with both teams fighting hard.",
         "standings": [
             {"pos": 1, "team": home, "played": 1, "gd": f"{hs-as_:+}", "pts": 3 if hs > as_ else (1 if hs == as_ else 0)},
-            {"pos": 2, "team": away, "played": 1, "gd": f"{as_-hs_:+}", "pts": 3 if as_ > hs_ else (1 if hs == as_ else 0)}
+            {"pos": 2, "team": away, "played": 1, "gd": f"{as_-hs:+}", "pts": 3 if as_ > hs else (1 if hs == as_ else 0)}
         ],
         "next_a": "Check schedule for upcoming matchday details.",
         "next_b": "Check schedule for upcoming matchday details."
