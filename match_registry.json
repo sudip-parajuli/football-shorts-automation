@@ -53,6 +53,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "MEX_KOR_20260619": {
+      "id": 537330,
+      "home": "Mexico",
+      "away": "South Korea",
+      "datetime_utc": "2026-06-19T01:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
