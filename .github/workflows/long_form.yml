@@ -1,9 +1,6 @@
 name: FootyBitez Long-form Documentary Automation
 
 on:
-  push:
-    branches:
-      - main
   schedule:
     # Sunday and Wednesday at 16:00 UTC
     # 16:00 UTC = 11:00 AM EST (USA/Canada), 4:00 PM GMT (UK)

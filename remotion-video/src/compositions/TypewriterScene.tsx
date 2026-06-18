@@ -59,16 +59,15 @@ export const TypewriterScene: React.FC<TypewriterSceneProps> = ({
 }) => {
   const frame = useCurrentFrame();
 
-  // Find all words that have started displaying
-  const activeWordIndices: number[] = [];
-  word_timestamps.forEach((wt, idx) => {
-    if (frame >= wt.startFrame) {
-      activeWordIndices.push(idx);
+  // Find the last active spoken word index
+  let lastActiveIdx = -1;
+  typewriter_words.forEach((_, idx) => {
+    const wt = word_timestamps[idx];
+    const startFrame = wt ? wt.startFrame : 0;
+    if (frame >= startFrame) {
+      lastActiveIdx = idx;
     }
   });
-
-  // Limit to rolling window of the last 10 active words
-  const visibleIndices = activeWordIndices.slice(-10);
 
   return (
     <AbsoluteFill
@@ -93,47 +92,66 @@ export const TypewriterScene: React.FC<TypewriterSceneProps> = ({
           zIndex: 1,
         }}
       >
-        {visibleIndices.map((idx) => {
+        {lastActiveIdx === -1 && (
+          <span
+            style={{
+              fontSize: 52,
+              color: '#F5A623',
+              opacity: Math.floor(frame / 12) % 2 === 0 ? 1 : 0,
+              display: 'inline-block',
+            }}
+          >
+            ▍
+          </span>
+        )}
+        {typewriter_words.map((wordInfo, idx) => {
           const wt = word_timestamps[idx];
-          const wordInfo = typewriter_words[idx] || { word: wt.word, weight: 'md' };
           const style = WEIGHT_STYLES[wordInfo.weight] || WEIGHT_STYLES.md;
-          
+
+          // If timing exists, use it; otherwise, fade in sequentially after the last timed word
+          const startFrame = wt
+            ? wt.startFrame
+            : (word_timestamps.length > 0
+                ? word_timestamps[word_timestamps.length - 1].startFrame + (idx - word_timestamps.length + 1) * 3
+                : 0);
+
           // Animate word fade-in over 4 frames starting from startFrame
           const opacity = interpolate(
             frame,
-            [wt.startFrame, wt.startFrame + 4],
+            [startFrame, startFrame + 4],
             [0, 1],
             { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' }
           );
 
           return (
-            <span
-              key={`word-${idx}`}
-              style={{
-                ...style,
-                opacity,
-                marginRight: '15px',
-                display: 'inline-block',
-                textTransform: 'uppercase',
-              }}
-            >
-              {wordInfo.word}
-            </span>
+            <React.Fragment key={`word-frag-${idx}`}>
+              <span
+                style={{
+                  ...style,
+                  opacity,
+                  marginRight: '15px',
+                  display: 'inline-block',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {wordInfo.word}
+              </span>
+              {idx === lastActiveIdx && (
+                <span
+                  style={{
+                    fontSize: style.fontSize,
+                    color: '#F5A623',
+                    opacity: Math.floor(frame / 12) % 2 === 0 ? 1 : 0,
+                    marginRight: '15px',
+                    display: 'inline-block',
+                  }}
+                >
+                  ▍
+                </span>
+              )}
+            </React.Fragment>
           );
         })}
-{/* Blinking amber cursor */}
-         <span
-           style={{
-             fontSize: visibleIndices.length > 0 
-               ? 38 
-               : 52,
-             color: '#F5A623',
-             opacity: Math.floor(frame / 12) % 2 === 0 ? 1 : 0,
-             marginLeft: '2px',
-           }}
-         >
-           ▍
-         </span>
       </div>
     </AbsoluteFill>
   );

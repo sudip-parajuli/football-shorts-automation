@@ -266,6 +266,10 @@ def run_pipeline(force_match_id=None, skip_upload=False):
         return
         
     # 4. Draw broadcast card images
+    # Initialize MediaSourcer first so it cleans the downloads directory before we write cards
+    from footybitez.media.media_sourcer import MediaSourcer
+    media_sourcer = MediaSourcer()
+    
     temp_dir = "footybitez/media/downloads"
     os.makedirs(temp_dir, exist_ok=True)
     
@@ -284,15 +288,36 @@ def run_pipeline(force_match_id=None, skip_upload=False):
     card_generator.draw_post_match_card_6_next(home, away, f"{home}: {details['next_a']} | {away}: {details['next_b']}", card6)
     
     # Map visual assets
+    match_context = f"{home} {away} World Cup 2026"
+    segment_media = []
+    
+    for i, seg in enumerate(script.get("segments", [])):
+        kw = seg.get("visual_keyword", f"{home} vs {away} World Cup 2026")
+        if match_context not in kw:
+            kw = f"{kw} {match_context}"
+            
+        logger.info(f"Sourcing real match image for keyword: '{kw}'")
+        fetched_images = media_sourcer.get_media(kw, count=1, prefer_real_match=True)
+        
+        # Match segment index to card
+        if i == 0:
+            card = card2
+        elif i == 1:
+            card = card3
+        elif i == 2:
+            card = card4
+        else:
+            card = card5
+            
+        if fetched_images:
+            segment_media.append([card, fetched_images[0]])
+        else:
+            segment_media.append([card])
+            
     visual_assets = {
         "title_card": card1,
         "profile_image": card4,
-        "segment_media": [
-            [card2], # Timeline
-            [card3], # Stats
-            [card4], # MOTM
-            [card5], # Standings
-        ],
+        "segment_media": segment_media,
         "outro_image": card6 # Next Match Teaser Outro
     }
     
@@ -308,6 +333,12 @@ def run_pipeline(force_match_id=None, skip_upload=False):
     video_creator = RemotionVideoCreator()
     video_path = video_creator.create_video(script, visual_assets, background_music_path=bg_music)
     logger.info(f"Post-match video generated successfully: {video_path}")
+    
+    # Clean up MediaSourcer downloads
+    try:
+        media_sourcer.cleanup()
+    except Exception as ce:
+        logger.warning(f"Error cleaning MediaSourcer downloads: {ce}")
     
     # 6. Upload
     if not skip_upload:

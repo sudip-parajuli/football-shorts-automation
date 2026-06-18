@@ -174,7 +174,13 @@ const KenBurnsMedia: React.FC<{ src: string | null, durationInFrames: number, in
   
   const progress = Math.min(1, frame / Math.max(1, durationInFrames));
   
-  if (motion === 'zoom-in') {
+  const isCard = /^(pre_card\d|post_card\d|card_-?\d+|placeholder)/i.test(src);
+  
+  if (isCard) {
+     scale = 1.0;
+     moveX = 0;
+     moveY = 0;
+  } else if (motion === 'zoom-in') {
      scale = interpolate(progress, [0, 1], [1.1, 1.3]);
   } else if (motion === 'zoom-out') {
      scale = interpolate(progress, [0, 1], [1.3, 1.1]);
