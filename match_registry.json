@@ -26,6 +26,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": true
+    },
+    "CZE_RSA_20260618": {
+      "id": 537329,
+      "home": "Czechia",
+      "away": "South Africa",
+      "datetime_utc": "2026-06-18T16:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
