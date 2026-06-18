@@ -35,6 +35,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "SUI_BIH_20260618": {
+      "id": 537335,
+      "home": "Switzerland",
+      "away": "Bosnia-Herzegovina",
+      "datetime_utc": "2026-06-18T19:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
