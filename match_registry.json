@@ -43,7 +43,7 @@
       "datetime_utc": "2026-06-18T19:00:00Z",
       "status": "TIMED",
       "pre_match_done": true,
-      "post_match_done": false
+      "post_match_done": true
     },
     "CAN_QAT_20260618": {
       "id": 537336,
