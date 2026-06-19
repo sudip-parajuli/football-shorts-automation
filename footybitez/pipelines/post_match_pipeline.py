@@ -36,16 +36,282 @@ def get_match_key(home_tla, away_tla, date_str):
     clean_date = date_str.split("T")[0].replace("-", "")
     return f"{home_tla}_{away_tla}_{clean_date}"
 
+def fetch_api_football_data(home_name, away_name, date_str, api_key):
+    import requests
+    
+    match_date = date_str.split("T")[0]
+    headers = {"x-apisports-key": api_key}
+    
+    url = "https://v3.football.api-sports.io/fixtures"
+    params = {
+        "date": match_date
+    }
+    
+    try:
+        resp = requests.get(url, headers=headers, params=params, timeout=15)
+        resp.raise_for_status()
+        fixtures = resp.json().get("response", [])
+    except Exception as e:
+        logger.error(f"Error fetching fixtures from API-Football: {e}")
+        return None
+        
+    fixture_id = None
+    home_id = None
+    away_id = None
+    
+    def clean_name(name):
+        if not name:
+            return ""
+        return name.lower().replace("-", " ").replace("&", "and").strip()
+        
+    clean_home = clean_name(home_name)
+    clean_away = clean_name(away_name)
+    
+    home_words = set(clean_home.split())
+    away_words = set(clean_away.split())
+    
+    for f in fixtures:
+        if f.get("league", {}).get("id") != 1:
+            continue
+            
+        f_home = clean_name(f["teams"]["home"]["name"])
+        f_away = clean_name(f["teams"]["away"]["name"])
+        f_home_words = set(f_home.split())
+        f_away_words = set(f_away.split())
+        
+        ignored_words = {"and", "republic", "of", "islands", "new", "st", "united"}
+        sig_home = home_words - ignored_words
+        sig_away = away_words - ignored_words
+        sig_f_home = f_home_words - ignored_words
+        sig_f_away = f_away_words - ignored_words
+        
+        home_match = (clean_home in f_home) or (f_home in clean_home) or (bool(sig_home & sig_f_home))
+        away_match = (clean_away in f_away) or (f_away in clean_away) or (bool(sig_away & sig_f_away))
+        
+        if home_match and away_match:
+            fixture_id = f["fixture"]["id"]
+            home_id = f["teams"]["home"]["id"]
+            away_id = f["teams"]["away"]["id"]
+            break
+            
+    if not fixture_id:
+        logger.warning(f"No matching fixture found in API-Football for {home_name} vs {away_name} on {match_date}")
+        return None
+        
+    logger.info(f"Found API-Football fixture {fixture_id} for {home_name} vs {away_name}")
+    
+    # Fetch events
+    events = []
+    try:
+        events_resp = requests.get(f"https://v3.football.api-sports.io/fixtures/events", 
+                                   headers=headers, params={"fixture": fixture_id}, timeout=15)
+        events_resp.raise_for_status()
+        events = events_resp.json().get("response", [])
+    except Exception as e:
+        logger.error(f"Error fetching events from API-Football: {e}")
+        
+    scorers = []
+    for e in events:
+        if e.get("type") == "Goal":
+            player_name = e.get("player", {}).get("name", "Unknown Player")
+            elapsed = e.get("time", {}).get("elapsed", 0)
+            extra = e.get("time", {}).get("extra")
+            minute_str = f"{elapsed}"
+            if extra:
+                minute_str += f"+{extra}"
+            try:
+                minute_val = int(elapsed)
+            except ValueError:
+                minute_val = elapsed
+                
+            team_type = "Home" if e.get("team", {}).get("id") == home_id else "Away"
+            goal_type = e.get("detail", "Goal")
+            
+            scorers.append({
+                "player": player_name,
+                "minute": minute_val,
+                "team": team_type,
+                "type": "Goal",
+                "detail": goal_type
+            })
+            
+    # Fetch statistics
+    stats = {}
+    try:
+        stats_resp = requests.get(f"https://v3.football.api-sports.io/fixtures/statistics", 
+                                  headers=headers, params={"fixture": fixture_id}, timeout=15)
+        stats_resp.raise_for_status()
+        stats_data = stats_resp.json().get("response", [])
+        
+        home_stats = {}
+        away_stats = {}
+        
+        for team_stat in stats_data:
+            t_id = team_stat["team"]["id"]
+            stat_dict = {}
+            for s in team_stat["statistics"]:
+                stat_dict[s["type"]] = s["value"]
+                
+            if t_id == home_id:
+                home_stats = stat_dict
+            elif t_id == away_id:
+                away_stats = stat_dict
+                
+        stats = {
+            "possession": {
+                "home": str(home_stats.get("Ball Possession", "50%")),
+                "away": str(away_stats.get("Ball Possession", "50%"))
+            },
+            "shots": {
+                "home": home_stats.get("Total Shots", 10) or 10,
+                "away": away_stats.get("Total Shots", 10) or 10
+            },
+            "shots_on_target": {
+                "home": home_stats.get("Shots on Goal", 4) or 4,
+                "away": away_stats.get("Shots on Goal", 4) or 4
+            },
+            "corners": {
+                "home": home_stats.get("Corner Kicks", 5) or 5,
+                "away": away_stats.get("Corner Kicks", 5) or 5
+            },
+            "xg": {
+                "home": str(home_stats.get("expected_goals") or "1.0"),
+                "away": str(away_stats.get("expected_goals") or "1.0")
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error fetching statistics from API-Football: {e}")
+        
+    return {
+        "scorers": scorers,
+        "stats": stats
+    }
+
 def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
     import json
     from google import genai
     from google.genai import types
     
+    # 1. Try to fetch real scorers & stats from API-Football first
+    api_football_key = os.getenv("API_FOOTBALL_KEY")
+    real_data = None
+    if api_football_key:
+        try:
+            logger.info(f"Attempting to fetch real match stats from API-Football for {home} vs {away}...")
+            real_data = fetch_api_football_data(home, away, date_str, api_football_key)
+        except Exception as e:
+            logger.error(f"Error in API-Football fetch block: {e}")
+            
     keys = []
     for suffix in ["", "2", "3"]:
         val = os.getenv(f"GEMINI_API_KEY{suffix}")
         if val:
             keys.append(val)
+            
+    # If we have real data, we can call Gemini or Groq directly without search grounding to write the narrative
+    if real_data:
+        prompt = f"""
+        Analyze the finished FIFA World Cup 2026 match between {home} and {away} played on {date_str} at {venue}.
+        The final score was {home} {hs} - {as_} {away}.
+        
+        The actual match statistics are:
+        {json.dumps(real_data['stats'], indent=2)}
+        
+        The goals scored are:
+        {json.dumps(real_data['scorers'], indent=2)}
+        
+        Task:
+        1. Select a Man of the Match (MOTM) from the players involved. Provide their name, a rating (out of 10), and their main stat.
+        2. Write a brief standout moment or talking point from the match (1-2 sentences).
+        3. Generate a standings table for this group (positions 1 to 4: team, played, gd, pts). Note that {home} and {away} have just played, so update their GD (goal difference) and PTS (points) accordingly. Assume this is the group stage.
+        4. Generate next match details for both teams.
+        
+        Provide the output strictly as a JSON object with these keys:
+        {{
+            "motm": {{
+                "player": "Player Name",
+                "rating": 8.7,
+                "stat": "Text describing their main stat"
+            }},
+            "standout_moment": "Text describing the key standout moment",
+            "standings": [
+                {{"pos": 1, "team": "Team Name", "played": 2, "gd": "+2", "pts": 4}},
+                {{"pos": 2, "team": "Team Name", "played": 2, "gd": "+0", "pts": 3}},
+                {{"pos": 3, "team": "Team Name", "played": 2, "gd": "-1", "pts": 2}},
+                {{"pos": 4, "team": "Team Name", "played": 2, "gd": "-1", "pts": 1}}
+            ],
+            "next_a": "Next opponent and date for home team",
+            "next_b": "Next opponent and date for away team"
+        }}
+        """
+        for key in keys:
+            for model in ["gemini-2.0-flash", "gemini-1.5-flash"]:
+                try:
+                    logger.info(f"[Gemini] Generating post-match script details via model={model}...")
+                    client = genai.Client(api_key=key)
+                    r = client.models.generate_content(
+                        model=model,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json"
+                        )
+                    )
+                    data = json.loads(r.text)
+                    required = ["motm", "standout_moment", "standings", "next_a", "next_b"]
+                    if all(k in data for k in required):
+                        logger.info("[Gemini] Narrative details generation succeeded.")
+                        # Inject real scorers and stats
+                        data["scorers"] = real_data["scorers"]
+                        data["stats"] = real_data["stats"]
+                        return data
+                except Exception as e:
+                    logger.warning(f"Gemini narrative generation failed on {model}: {e}")
+                    time.sleep(2)
+                    continue
+                    
+        # 2. Try Groq (fallback)
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if groq_api_key:
+            try:
+                logger.info("Attempting Groq (Llama-3.3-70b) fallback for post-match narrative generation...")
+                from groq import Groq
+                client = Groq(api_key=groq_api_key)
+                completion = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
+                    temperature=0.7,
+                    max_tokens=1024,
+                    response_format={"type": "json_object"}
+                )
+                text = completion.choices[0].message.content
+                data = json.loads(text)
+                required = ["motm", "standout_moment", "standings", "next_a", "next_b"]
+                if all(k in data for k in required):
+                    logger.info("Groq post-match narrative fallback generation succeeded.")
+                    data["scorers"] = real_data["scorers"]
+                    data["stats"] = real_data["stats"]
+                    return data
+            except Exception as e:
+                logger.error(f"Groq fallback generation failed: {e}")
+                
+        # 3. Fallback to templates with real data if both Gemini and Groq fail
+        logger.warning("Both Gemini and Groq narrative generation failed. Using template fallback with real stats.")
+        return {
+            "scorers": real_data["scorers"],
+            "stats": real_data["stats"],
+            "motm": {
+                "player": real_data["scorers"][0]["player"] if real_data["scorers"] else "Star Player",
+                "rating": 8.0,
+                "stat": "Scored the opening goal" if real_data["scorers"] else "Great defensive performance"
+            },
+            "standout_moment": f"An exciting clash between {home} and {away} finished {hs}-{as_}.",
+            "standings": [
+                {"pos": 1, "team": home, "played": 1, "gd": f"{hs-as_:+}", "pts": 3 if hs > as_ else (1 if hs == as_ else 0)},
+                {"pos": 2, "team": away, "played": 1, "gd": f"{as_-hs:+}", "pts": 3 if as_ > hs else (1 if hs == as_ else 0)}
+            ],
+            "next_a": "Check schedule for upcoming matchday details.",
+            "next_b": "Check schedule for upcoming matchday details."
+        }
             
     if not keys:
         logger.warning("No GEMINI_API_KEY available for search grounding. Using fallbacks.")
@@ -96,7 +362,7 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
     """
     
     for key in keys:
-        for model in ["gemini-2.5-flash", "gemini-1.5-flash"]:
+        for model in ["gemini-2.0-flash", "gemini-1.5-flash"]:
             try:
                 logger.info(f"[GeminiSearch] Fetching post-match details via model={model}...")
                 client = genai.Client(api_key=key)
