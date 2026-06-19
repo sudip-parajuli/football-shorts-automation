@@ -166,22 +166,38 @@ class MediaSourcer:
         Returns True if this image should be rejected (wrong sport / wrong gender / adult content).
         Checks URL, filename, title, and tags strings.
         """
-        # 1. Check for adult/NSFW domains or keywords in the URL
+        # 1. Check for adult/NSFW substrings in the URL (case-insensitive)
         url_lower = url.lower()
-        adult_domains = [
-            "xhcdn", "xhamster", "pornhub", "xvideos", "xnxx", "redtube",
-            "youporn", "onlyfans", "phncdn", "xv-cdn", "naughty", "playboy"
+        nsfw_url_substrings = [
+            "porn", "xxx", "nsfw", "erotic", "nude", "nudit", "onlyfans", 
+            "xvideo", "xhamster", "redtube", "youporn", "hentai", "milf", "blowjob", 
+            "vagina", "penis", "pussy", "boobs", "naughty", "playboy", 
+            "sensual", "softcore", "orgasm", "ejaculat", "semen",
+            "fuck", "boob", "naked", "busty", "camgirl", "chaturbate"
         ]
-        for domain in adult_domains:
-            if domain in url_lower:
-                print(f"[Filter] Rejected image — matched adult domain/URL pattern '{domain}' in: {url[:120]}")
+        for sub in nsfw_url_substrings:
+            if sub in url_lower:
+                print(f"[Filter] Rejected image — matched adult substring '{sub}' in URL: {url[:120]}")
+                return True
+                
+        # Special check for 'sex' in the URL (excluding geographic / names false positives)
+        if "sex" in url_lower:
+            is_false_positive = False
+            for fp in ["sussex", "essex", "middlesex", "sexton", "sexsmith"]:
+                if fp in url_lower:
+                    is_false_positive = True
+                    break
+            if not is_false_positive:
+                print(f"[Filter] Rejected image — matched 'sex' (non-geographic) in URL: {url[:120]}")
                 return True
 
         # 2. Check for adult/NSFW keywords in the title and tags (using word boundaries to avoid false positives)
         title_lower = title.lower() if title else ""
         tags_lower = tags.lower() if tags else ""
         
-        adult_keywords_pattern = r"\b(porn|pornography|sex|nude|nudity|adult|erotic|erotica|nsfw|hentai|naked|nakedness|sexy|sensual|busty|milf|xxx|hardcore|softcore|blowjob|fuck|vagina|penis|boob|boobs|pussy|dick|pornstar|playboy|escort)\b"
+        # Removed 'adult' (conflicts with adult/senior team), 'hardcore' (conflicts with hardcore fans),
+        # 'escort' (conflicts with player/child escorts), and 'dick' (conflicts with names like Dick Advocaat)
+        adult_keywords_pattern = r"\b(porn|pornography|sex|nude|nudity|erotic|erotica|nsfw|hentai|naked|nakedness|sexy|sensual|busty|milf|xxx|softcore|blowjob|fuck|vagina|penis|boob|boobs|pussy|pornstar|playboy)\b"
         
         if re.search(adult_keywords_pattern, title_lower) or re.search(adult_keywords_pattern, tags_lower):
             print(f"[Filter] Rejected image — matched adult keyword in title or tags: Title='{title_lower[:100]}', Tags='{tags_lower[:100]}'")
