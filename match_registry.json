@@ -89,6 +89,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "TUR_PAR_20260620": {
+      "id": 537347,
+      "home": "Turkey",
+      "away": "Paraguay",
+      "datetime_utc": "2026-06-20T03:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
