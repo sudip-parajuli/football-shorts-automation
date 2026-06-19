@@ -80,6 +80,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "BRA_HAI_20260620": {
+      "id": 537341,
+      "home": "Brazil",
+      "away": "Haiti",
+      "datetime_utc": "2026-06-20T00:30:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
