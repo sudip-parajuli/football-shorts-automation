@@ -5,7 +5,10 @@ import random
 import re
 import warnings
 import json
+import logging
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # Suppress the ddgs package rename warning from duckduckgo_search
 warnings.filterwarnings("ignore", category=RuntimeWarning, message=".*duckduckgo_search.*ddgs.*")
