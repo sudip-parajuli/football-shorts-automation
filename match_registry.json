@@ -62,6 +62,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "USA_AUS_20260619": {
+      "id": 537348,
+      "home": "United States",
+      "away": "Australia",
+      "datetime_utc": "2026-06-19T19:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
