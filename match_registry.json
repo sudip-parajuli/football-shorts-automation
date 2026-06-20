@@ -115,7 +115,7 @@
       "datetime_utc": "2026-06-20T20:00:00Z",
       "status": "TIMED",
       "pre_match_done": true,
-      "post_match_done": false
+      "post_match_done": true
     },
     "ECU_CUW_20260621": {
       "id": 537354,
