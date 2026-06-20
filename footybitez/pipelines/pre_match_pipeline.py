@@ -403,7 +403,7 @@ def run_pipeline(force_match_id=None, skip_upload=False):
         should_publish_socials = os.getenv("ENABLE_SOCIAL_PUBLISHING", "false").lower() == "true"
         if should_publish_socials:
             logger.info("Publishing pre-match short to Facebook, Instagram Reels...")
-            socials = SocialOrchestrator()
+            socials = SocialOrchestrator(use_footybitez=True)
             socials.publish_to_all(video_path, title, description)
             
     # 7. Update Registry

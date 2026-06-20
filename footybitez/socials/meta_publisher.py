@@ -6,11 +6,17 @@ import requests
 logger = logging.getLogger(__name__)
 
 class MetaPublisher:
-    def __init__(self):
-        self.access_token = os.getenv("META_ACCESS_TOKEN")
-        self.page_id = os.getenv("FACEBOOK_PAGE_ID")
-        self.page_ids_filter = os.getenv("FACEBOOK_PAGE_IDS")  # Comma-separated Page IDs
-        self.instagram_id = os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID")
+    def __init__(self, use_footybitez=False):
+        if use_footybitez:
+            self.access_token = os.getenv("FOOTYBITEZ_META_ACCESS_TOKEN") or os.getenv("META_ACCESS_TOKEN")
+            self.page_id = os.getenv("FOOTYBITEZ_FACEBOOK_PAGE_ID") or os.getenv("FACEBOOK_PAGE_ID")
+            self.page_ids_filter = os.getenv("FOOTYBITEZ_FACEBOOK_PAGE_IDS") or os.getenv("FACEBOOK_PAGE_IDS")
+            self.instagram_id = os.getenv("FOOTYBITEZ_INSTAGRAM_BUSINESS_ACCOUNT_ID") or os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID")
+        else:
+            self.access_token = os.getenv("META_ACCESS_TOKEN")
+            self.page_id = os.getenv("FACEBOOK_PAGE_ID")
+            self.page_ids_filter = os.getenv("FACEBOOK_PAGE_IDS")  # Comma-separated Page IDs
+            self.instagram_id = os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID")
         self.api_version = "v19.0"
         self.base_url = "https://graph.facebook.com"
         self.dry_run = os.getenv("DRY_RUN", "false").lower() == "true"

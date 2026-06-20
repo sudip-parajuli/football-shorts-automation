@@ -8,8 +8,9 @@ from footybitez.socials.tiktok_publisher import TikTokPublisher
 logger = logging.getLogger(__name__)
 
 class SocialOrchestrator:
-    def __init__(self):
-        self.meta = MetaPublisher()
+    def __init__(self, use_footybitez=False):
+        self.use_footybitez = use_footybitez
+        self.meta = MetaPublisher(use_footybitez=use_footybitez)
         self.tiktok = TikTokPublisher()
         self.dry_run = os.getenv("DRY_RUN", "false").lower() == "true"
         self.is_ci = os.getenv("GITHUB_ACTIONS") == "true"
@@ -129,9 +130,13 @@ class SocialOrchestrator:
                 results["instagram"] = None
 
         # 3. Publish to TikTok
-        logger.info("--- Publishing to TikTok ---")
-        tt_id = self.tiktok.publish_video(local_video_path, title)
-        results["tiktok"] = tt_id
+        if not self.use_footybitez:
+            logger.info("--- Publishing to TikTok ---")
+            tt_id = self.tiktok.publish_video(local_video_path, title)
+            results["tiktok"] = tt_id
+        else:
+            logger.info("Skipping TikTok publishing for FootyBitez channel.")
+            results["tiktok"] = None
 
         logger.info("=== Cross-Platform Social Publishing Completed ===")
         logger.info(f"Publishing Results: {results}")
