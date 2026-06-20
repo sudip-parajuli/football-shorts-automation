@@ -106,7 +106,7 @@
       "datetime_utc": "2026-06-20T17:00:00Z",
       "status": "TIMED",
       "pre_match_done": true,
-      "post_match_done": false
+      "post_match_done": true
     },
     "GER_CIV_20260620": {
       "id": 537353,
