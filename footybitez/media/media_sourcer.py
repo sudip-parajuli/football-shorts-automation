@@ -140,7 +140,15 @@ class MediaSourcer:
                 if os.path.getsize(filepath) < 100:
                     os.remove(filepath)
                 else:
-                    print(f"DEBUG MEDIA: Downloaded {os.path.basename(filepath)} FROM {url}")
+                    # Run post-download visual safety check
+                    if not self._check_image_safety_and_relevance(filepath):
+                        print(f"[Filter] Visual safety check failed for: {os.path.basename(filepath)}. Deleting.")
+                        try:
+                            os.remove(filepath)
+                        except Exception:
+                            pass
+                    else:
+                        print(f"DEBUG MEDIA: Downloaded {os.path.basename(filepath)} FROM {url}")
 
         except Exception as e:
             print(f"Download failed {url}: {e}")
@@ -176,7 +184,8 @@ class MediaSourcer:
             "xvideo", "xhamster", "redtube", "youporn", "hentai", "milf", "blowjob", 
             "vagina", "penis", "pussy", "boobs", "naughty", "playboy", 
             "sensual", "softcore", "orgasm", "ejaculat", "semen",
-            "fuck", "boob", "naked", "busty", "camgirl", "chaturbate"
+            "fuck", "boob", "naked", "busty", "camgirl", "chaturbate",
+            "xhcdn", "pornhub", "xvideos", "xnxx", "phncdn", "xv-cdn"
         ]
         for sub in nsfw_url_substrings:
             if sub in url_lower:
@@ -215,6 +224,95 @@ class MediaSourcer:
                 print(f"[Filter] Rejected image — matched bad keyword '{bk}' in: {url[:80]}")
                 return True
         return False
+
+    def _check_image_safety_and_relevance(self, filepath: str) -> bool:
+        """
+        Uses Gemini multimodal API to inspect the downloaded image file.
+        Returns False if the image is sexually explicit/NSFW or completely irrelevant to football/soccer.
+        """
+        filename = os.path.basename(filepath)
+        
+        # Only perform Gemini visual safety checks on open web fallbacks (DDG and Wikimedia)
+        # to preserve API quota for curated stock directories (Unsplash/Pixabay/TheSportsDB)
+        is_high_risk = filename.startswith("ddg_") or "fallback" in filename or "real" in filename
+        if not is_high_risk:
+            return True
+
+        if not self.gemini_keys:
+            print("[Safety] No GEMINI_API_KEY available for visual safety check. Relying on text filter.")
+            return True
+
+        from PIL import Image
+        try:
+            img = Image.open(filepath)
+            img.verify()
+            img = Image.open(filepath)
+        except Exception as e:
+            print(f"[Safety] Failed to open image for visual check {filepath}: {e}")
+            return False
+
+        from google import genai
+        from google.genai import types
+
+        prompt = (
+            "Analyze this image. You must answer two questions: \n"
+            "1. Is there any nudity, pornography, sexually suggestive poses, or NSFW content? \n"
+            "2. Is this image related to association football (soccer), sports stadium, fans, players, jerseys, or match action? \n"
+            "Respond strictly in JSON format with two keys: \n"
+            "'is_nsfw' (boolean: true if NSFW/nudity, false otherwise) and \n"
+            "'is_football_related' (boolean: true if related to football/sports, false otherwise)."
+        )
+
+        safety_settings = [
+            types.SafetySetting(
+                category=types.HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                threshold=types.HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+            )
+        ]
+
+        for key in self.gemini_keys:
+            for model in ["gemini-2.5-flash", "gemini-2.0-flash"]:
+                try:
+                    client = genai.Client(api_key=key)
+                    response = client.models.generate_content(
+                        model=model,
+                        contents=[img, prompt],
+                        config=types.GenerateContentConfig(
+                            safety_settings=safety_settings,
+                            response_mime_type="application/json"
+                        )
+                    )
+                    
+                    if not response.text:
+                        print(f"[Safety] Image blocked by Gemini safety filters for {filename}.")
+                        return False
+                        
+                    import json
+                    data = json.loads(response.text)
+                    is_nsfw = data.get("is_nsfw", False)
+                    is_football = data.get("is_football_related", True)
+                    
+                    if is_nsfw:
+                        print(f"[Safety] Gemini classified image {filename} as NSFW.")
+                        return False
+                        
+                    if not is_football:
+                        print(f"[Safety] Gemini classified image {filename} as not football-related.")
+                        return False
+                        
+                    print(f"[Safety] Image {filename} passed Gemini safety check.")
+                    return True
+                except Exception as e:
+                    err_str = str(e).lower()
+                    if "safety" in err_str or "blocked" in err_str:
+                        print(f"[Safety] Image blocked during API call for {filename}: {e}")
+                        return False
+                    print(f"[Safety] Gemini visual check failed on key/model {model}: {e}")
+                    time.sleep(1)
+                    continue
+
+        print(f"[Safety] Gemini API rate limited or offline. Falling back to text check for {filename}.")
+        return True
 
     def _fetch_thesportsdb_image(self, entity_name: str) -> str | None:
         """
