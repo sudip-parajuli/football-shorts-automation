@@ -397,8 +397,7 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
         }
             
     if not keys:
-        logger.warning("No GEMINI_API_KEY available for search grounding. Using fallbacks.")
-        return get_fallback_post_match_data(home, away, hs, as_)
+        logger.warning("No GEMINI_API_KEY available for search grounding. Skipping Gemini checks.")
         
     prompt = f"""
     Search for the finished FIFA World Cup 2026 match between {home} and {away} played on {date_str} at {venue}. The final score was {home} {hs} - {as_} {away}.
@@ -474,6 +473,116 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
                 time.sleep(2)
                 continue
                 
+    # ── Groq + DuckDuckGo Search Fallback ──────────────────────────────────
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if groq_api_key:
+        try:
+            logger.info("[GroqSearch] Attempting Groq + DuckDuckGo fallback for post-match details...")
+            search_context = ""
+            try:
+                from ddgs import DDGS
+            except ImportError:
+                try:
+                    from duckduckgo_search import DDGS
+                except ImportError:
+                    DDGS = None
+
+            if DDGS:
+                queries = [
+                    f"{home} vs {away}",
+                    f"{home} {away}",
+                    f"{home} vs {away} World Cup"
+                ]
+                search_results = []
+                for query in queries:
+                    try:
+                        logger.info(f"[GroqSearch] Searching DuckDuckGo for: '{query}'")
+                        with DDGS() as ddgs:
+                            res = list(ddgs.text(query, max_results=5))
+                            if res:
+                                search_results = res
+                                break
+                    except Exception as se:
+                        logger.warning(f"DuckDuckGo search failed for query '{query}': {se}")
+                        time.sleep(1)
+                
+                if search_results:
+                    for r in search_results:
+                        search_context += f"Title: {r.get('title')}\nSnippet: {r.get('body')}\nURL: {r.get('href')}\n\n"
+                else:
+                    logger.warning("[GroqSearch] No DuckDuckGo search results found.")
+            else:
+                logger.warning("[GroqSearch] DuckDuckGo search module (DDGS) is not available.")
+
+            prompt = f"""
+            Search Grounding Context:
+            {search_context}
+
+            Based on the context above (or your knowledge if the context is empty/insufficient), gather details for the finished FIFA World Cup 2026 match between {home} and {away} played on {date_str} at {venue}. The final score was {home} {hs} - {as_} {away}.
+            CRITICAL RULES:
+            - {home} is the Home team (scored {hs} goals).
+            - {away} is the Away team (scored {as_} goals).
+            - Make sure that home vs away statistics are not inverted. Pay close attention to match events: if {home} dominated possession but lost {hs}-{as_}, then {home}'s possession must be the higher value (e.g. 77% vs 23%). Do not assume the winning team had higher possession or more shots.
+            Gather:
+            1. Scorers list (names of players who scored goals and their corresponding minutes). Make sure to extract actual scorers from the context if present (e.g. Matías Galarza 1').
+            2. Detailed match statistics:
+               - Possession percentage for home and away (e.g., 77% for home, 23% for away).
+               - Total shots for home and away.
+               - Shots on target for home and away.
+               - Corner kicks for home and away.
+               - Expected goals (xG) for home and away (e.g. 1.84 and 0.92, or 'N/A' if not found).
+            3. Man of the match (MOTM) name, rating (out of 10), and their main stat.
+            4. Key standout moment or talking point from the match.
+            5. Standings table for this group (positions 1 to 4: team, played, gd, pts). Note that {home} and {away} have just played, so update their GD (goal difference) and PTS (points) accordingly. Assume this is the group stage.
+            6. Next match details for both teams.
+            
+            Provide the output strictly as a JSON object with these keys:
+            {{
+                "scorers": [
+                    {{"player": "Scorer name", "minute": 24, "team": "Home"/"Away", "type": "Goal", "detail": null}}
+                ],
+                "stats": {{
+                    "possession": {{"home": "60%", "away": "40%"}},
+                    "shots": {{"home": 12, "away": 8}},
+                    "shots_on_target": {{"home": 5, "away": 3}},
+                    "corners": {{"home": 6, "away": 4}},
+                    "xg": {{"home": "1.8", "away": "0.9"}}
+                }},
+                "motm": {{
+                    "player": "Player Name",
+                    "rating": 8.7,
+                    "stat": "2 assists, 4 chances created"
+                }},
+                "standout_moment": "Text describing the key standout moment",
+                "standings": [
+                    {{"pos": 1, "team": "Team Name", "played": 3, "gd": "+4", "pts": 7}},
+                    {{"pos": 2, "team": "Team Name", "played": 3, "gd": "+1", "pts": 5}},
+                    {{"pos": 3, "team": "Team Name", "played": 3, "gd": "-2", "pts": 3}},
+                    {{"pos": 4, "team": "Team Name", "played": 3, "gd": "-3", "pts": 1}}
+                ],
+                "next_a": "Next opponent and date for home team",
+                "next_b": "Next opponent and date for away team"
+            }}
+            """
+
+            from groq import Groq
+            client = Groq(api_key=groq_api_key)
+            completion = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
+                temperature=0.7,
+                max_tokens=1024,
+                response_format={"type": "json_object"}
+            )
+            text = completion.choices[0].message.content
+            data = json.loads(text)
+            required = ["scorers", "stats", "motm", "standout_moment", "standings", "next_a", "next_b"]
+            if all(k in data for k in required):
+                logger.info("[GroqSearch] Post-match grounding fallback succeeded.")
+                return data
+        except Exception as e:
+            logger.error(f"[GroqSearch] Groq fallback failed for post-match details: {e}")
+
     return get_fallback_post_match_data(home, away, hs, as_)
 
 def get_fallback_post_match_data(home, away, hs, as_):

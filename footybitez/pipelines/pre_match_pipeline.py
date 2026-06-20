@@ -49,8 +49,7 @@ def get_gemini_pre_match_details(home, away, kickoff_str, venue):
             keys.append(val)
             
     if not keys:
-        logger.warning("No GEMINI_API_KEY available for search grounding. Using fallbacks.")
-        return get_fallback_pre_match_data(home, away)
+        logger.warning("No GEMINI_API_KEY available for search grounding. Skipping Gemini checks.")
         
     prompt = f"""
     Search for the upcoming FIFA World Cup 2026 match between {home} and {away} on {kickoff_str} at {venue}.
@@ -107,6 +106,93 @@ def get_gemini_pre_match_details(home, away, kickoff_str, venue):
                 time.sleep(2)
                 continue
                 
+    # ── Groq + DuckDuckGo Search Fallback ──────────────────────────────────
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if groq_api_key:
+        try:
+            logger.info("[GroqSearch] Attempting Groq + DuckDuckGo fallback for pre-match details...")
+            search_context = ""
+            try:
+                from ddgs import DDGS
+            except ImportError:
+                try:
+                    from duckduckgo_search import DDGS
+                except ImportError:
+                    DDGS = None
+
+            if DDGS:
+                queries = [
+                    f"{home} vs {away}",
+                    f"{home} {away}",
+                    f"{home} vs {away} World Cup"
+                ]
+                search_results = []
+                for query in queries:
+                    try:
+                        logger.info(f"[GroqSearch] Searching DuckDuckGo for: '{query}'")
+                        with DDGS() as ddgs:
+                            res = list(ddgs.text(query, max_results=5))
+                            if res:
+                                search_results = res
+                                break
+                    except Exception as se:
+                        logger.warning(f"DuckDuckGo search failed for query '{query}': {se}")
+                        time.sleep(1)
+                
+                if search_results:
+                    for r in search_results:
+                        search_context += f"Title: {r.get('title')}\nSnippet: {r.get('body')}\nURL: {r.get('href')}\n\n"
+                else:
+                    logger.warning("[GroqSearch] No DuckDuckGo search results found.")
+            else:
+                logger.warning("[GroqSearch] DuckDuckGo search module (DDGS) is not available.")
+
+            prompt = f"""
+            Search Grounding Context:
+            {search_context}
+
+            Based on the context above (or your knowledge if the context is empty/insufficient), gather details for the upcoming FIFA World Cup 2026 match between {home} and {away} on {kickoff_str} at {venue}.
+            Gather:
+            1. Head-to-head history (wins for {home}, draws, wins for {away}).
+            2. Recent form (last 5 matches) for both {home} and {away}.
+            3. Prediction statistics / winning probabilities (e.g. {home} win %, draw %, {away} win %).
+            4. Key player to watch for {home} and their key stat, and key player to watch for {away} and their key stat.
+            5. A short key storyline or talking point for this match.
+            
+            Provide the output strictly as a JSON object with these keys:
+            {{
+                "h2h": "e.g. 2 Wins, 1 Draw, 0 Losses",
+                "form_a": "e.g. W D W L W",
+                "form_b": "e.g. L D W W L",
+                "prob_a": 45.0,
+                "prob_draw": 25.0,
+                "prob_b": 30.0,
+                "player_a": "Player name",
+                "player_a_stats": "e.g. 4 goals in qualifying",
+                "player_b": "Player name",
+                "player_b_stats": "e.g. 3 clean sheets",
+                "storyline": "Short text detailing the main storyline"
+            }}
+            """
+
+            from groq import Groq
+            client = Groq(api_key=groq_api_key)
+            completion = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
+                temperature=0.7,
+                max_tokens=1024,
+                response_format={"type": "json_object"}
+            )
+            text = completion.choices[0].message.content
+            data = json.loads(text)
+            required = ["h2h", "form_a", "form_b", "prob_a", "prob_draw", "prob_b", "player_a", "player_a_stats", "player_b", "player_b_stats", "storyline"]
+            if all(k in data for k in required):
+                logger.info("[GroqSearch] Pre-match grounding fallback succeeded.")
+                return data
+        except Exception as e:
+            logger.error(f"[GroqSearch] Groq fallback failed for pre-match details: {e}")
+
     return get_fallback_pre_match_data(home, away)
 
 def get_fallback_pre_match_data(home, away):
