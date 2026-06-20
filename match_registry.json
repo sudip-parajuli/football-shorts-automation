@@ -107,6 +107,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "GER_CIV_20260620": {
+      "id": 537353,
+      "home": "Germany",
+      "away": "Ivory Coast",
+      "datetime_utc": "2026-06-20T20:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
