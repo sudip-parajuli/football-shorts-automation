@@ -116,6 +116,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "ECU_CUW_20260621": {
+      "id": 537354,
+      "home": "Ecuador",
+      "away": "Cura\u00e7ao",
+      "datetime_utc": "2026-06-21T00:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
