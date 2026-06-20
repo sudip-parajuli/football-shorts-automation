@@ -78,7 +78,7 @@ def get_gemini_pre_match_details(home, away, kickoff_str, venue):
     """
     
     for key in keys:
-        for model in ["gemini-2.5-flash", "gemini-1.5-flash"]:
+        for model in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"]:
             try:
                 logger.info(f"[GeminiSearch] Fetching pre-match details via model={model}...")
                 client = genai.Client(api_key=key)

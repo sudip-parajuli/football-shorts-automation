@@ -226,13 +226,38 @@ class WorldCupData:
                 fixtures_resp.raise_for_status()
                 fixtures = fixtures_resp.json().get("response", [])
 
+                def clean_name(name):
+                    if not name:
+                        return ""
+                    name_lower = name.lower().strip()
+                    aliases = {
+                        "united states": "usa",
+                        "korea republic": "south korea",
+                        "korea dpr": "north korea",
+                        "cote d'ivoire": "ivory coast",
+                        "côte d'ivoire": "ivory coast",
+                        "congo dr": "dr congo",
+                        "democratic republic of cobi": "dr congo",
+                        "democratic republic of the congo": "dr congo",
+                        "cabo verde": "cape verde",
+                        "czechia": "czech republic",
+                        "republic of ireland": "ireland",
+                    }
+                    for k, v in aliases.items():
+                        if k in name_lower or name_lower in k:
+                            return v
+                    return name_lower.replace("-", " ").replace("&", "and").strip()
+
+                clean_home_target = clean_name(home_team)
+                clean_away_target = clean_name(away_team)
+
                 # Match by team names
                 fixture_id = None
                 for f in fixtures:
-                    f_home = f.get("teams", {}).get("home", {}).get("name", "").lower()
-                    f_away = f.get("teams", {}).get("away", {}).get("name", "").lower()
-                    if (home_team.lower() in f_home or f_home in home_team.lower()) and \
-                       (away_team.lower() in f_away or f_away in away_team.lower()):
+                    f_home = clean_name(f.get("teams", {}).get("home", {}).get("name", ""))
+                    f_away = clean_name(f.get("teams", {}).get("away", {}).get("name", ""))
+                    if (clean_home_target in f_home or f_home in clean_home_target) and \
+                       (clean_away_target in f_away or f_away in clean_away_target):
                         fixture_id = f["fixture"]["id"]
                         break
 

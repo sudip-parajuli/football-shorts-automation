@@ -93,7 +93,13 @@ class YouTubeUploader:
             return response['id']
             
         except googleapiclient.errors.HttpError as e:
-            print(f"An HTTP error %d occurred:\n%s" % (e.resp.status, e.content))
+            print(f"An HTTP error {e.resp.status} occurred:\n{e.content}")
+            if e.resp.status == 403:
+                print("\n--- YouTube API 403 Forbidden Diagnostics ---")
+                print("1. If your Google Cloud project is in 'Testing' mode, make sure your YouTube channel's Google account is listed as a 'Test user' in the OAuth Consent Screen in the GCP Console.")
+                print("2. Video uploading via API requires YouTube Channel 'Advanced features'. Enable them in YouTube Creator Studio (Settings > Channel > Feature eligibility).")
+                print("3. Ensure the OAuth scopes authorized in your token match the required scopes: https://www.googleapis.com/auth/youtube and https://www.googleapis.com/auth/youtube.force-ssl.")
+                print("---------------------------------------------\n")
             return None
         except Exception as e:
             print(f"Upload failed: {e}")
