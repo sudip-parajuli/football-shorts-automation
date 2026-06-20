@@ -125,6 +125,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "TUN_JPN_20260621": {
+      "id": 537360,
+      "home": "Tunisia",
+      "away": "Japan",
+      "datetime_utc": "2026-06-21T04:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
