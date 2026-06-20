@@ -98,6 +98,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": true
+    },
+    "NED_SWE_20260620": {
+      "id": 537359,
+      "home": "Netherlands",
+      "away": "Sweden",
+      "datetime_utc": "2026-06-20T17:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
