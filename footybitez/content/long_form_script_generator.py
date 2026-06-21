@@ -9,14 +9,22 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
+
+def _get_keys(prefix: str) -> list:
+    """Collect all non-empty env vars named PREFIX, PREFIX2, PREFIX3 …"""
+    keys = []
+    for suffix in ["", "2", "3"]:
+        val = os.getenv(f"{prefix}{suffix}")
+        if val:
+            keys.append(val)
+    return keys
+
+
 class LongFormScriptGenerator:
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
-        self.groq_api_key = os.getenv("GROQ_API_KEY")
-        if self.api_key:
-            genai.configure(api_key=self.api_key)
-            
-        self.models = ["models/gemini-2.5-flash", "models/gemini-1.5-pro"]
+        self.gemini_keys = _get_keys("GEMINI_API_KEY")
+        self.groq_keys = _get_keys("GROQ_API_KEY")
+        self.models = ["models/gemini-2.5-flash", "models/gemini-2.5-pro", "models/gemini-2.0-flash"]
 
     def generate_long_script(self, topic, method="compilation"):
         """
@@ -101,39 +109,42 @@ class LongFormScriptGenerator:
         - Avoid copyrighted references. Avoid Wikipedia tone. Tell a dynamic story.
         """
 
-        if self.groq_api_key:
-            try:
-                from groq import Groq
-                client = Groq(api_key=self.groq_api_key)
-                logger.info("Generating long-form script with Groq...")
-                completion = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.7,
-                    max_tokens=4096,
-                    response_format={"type": "json_object"}
-                )
-                data = json.loads(completion.choices[0].message.content)
-                if self._validate_long_script(data):
-                    return data
-            except Exception as e:
-                logger.error(f"Groq long-script generation failed: {e}")
-
-        # Fallback to Gemini
-        if self.api_key:
-            for model_name in self.models:
+        if self.groq_keys:
+            for j, gkey in enumerate(self.groq_keys):
                 try:
-                    logger.info(f"Trying Gemini ({model_name}) for long-form script...")
-                    model = genai.GenerativeModel(model_name)
-                    response = model.generate_content(prompt)
-                    text = response.text.strip()
-                    if text.startswith('```json'): text = text[7:]
-                    if text.endswith('```'): text = text[:-3]
-                    data = json.loads(text.strip())
+                    from groq import Groq
+                    client = Groq(api_key=gkey)
+                    logger.info(f"Generating long-form script with Groq key #{j+1}...")
+                    completion = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.7,
+                        max_tokens=4096,
+                        response_format={"type": "json_object"}
+                    )
+                    data = json.loads(completion.choices[0].message.content)
                     if self._validate_long_script(data):
                         return data
                 except Exception as e:
-                    logger.error(f"Gemini {model_name} failed for long-form: {e}")
+                    logger.error(f"Groq key #{j+1} long-script generation failed: {e}")
+
+        # Fallback to Gemini
+        if self.gemini_keys:
+            for i, key in enumerate(self.gemini_keys):
+                for model_name in self.models:
+                    try:
+                        logger.info(f"Trying Gemini key #{i+1} ({model_name}) for long-form script...")
+                        genai.configure(api_key=key)
+                        model = genai.GenerativeModel(model_name)
+                        response = model.generate_content(prompt)
+                        text = response.text.strip()
+                        if text.startswith('```json'): text = text[7:]
+                        if text.endswith('```'): text = text[:-3]
+                        data = json.loads(text.strip())
+                        if self._validate_long_script(data):
+                            return data
+                    except Exception as e:
+                        logger.error(f"Gemini key #{i+1} ({model_name}) failed for long-form: {e}")
 
         return None
 

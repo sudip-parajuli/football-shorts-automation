@@ -353,29 +353,35 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
                     continue
                     
         # 2. Try Groq (fallback)
-        groq_api_key = os.getenv("GROQ_API_KEY")
-        if groq_api_key:
-            try:
-                logger.info("Attempting Groq (Llama-3.3-70b) fallback for post-match narrative generation...")
-                from groq import Groq
-                client = Groq(api_key=groq_api_key)
-                completion = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
-                    temperature=0.7,
-                    max_tokens=1024,
-                    response_format={"type": "json_object"}
-                )
-                text = completion.choices[0].message.content
-                data = json.loads(text)
-                required = ["motm", "standout_moment", "standings", "next_a", "next_b"]
-                if all(k in data for k in required):
-                    logger.info("Groq post-match narrative fallback generation succeeded.")
-                    data["scorers"] = real_data["scorers"]
-                    data["stats"] = real_data["stats"]
-                    return data
-            except Exception as e:
-                logger.error(f"Groq fallback generation failed: {e}")
+        groq_keys = []
+        for suffix in ["", "2", "3"]:
+            val = os.getenv(f"GROQ_API_KEY{suffix}")
+            if val:
+                groq_keys.append(val)
+
+        if groq_keys:
+            for j, gkey in enumerate(groq_keys):
+                try:
+                    logger.info(f"Attempting Groq key #{j+1} (Llama-3.3-70b) fallback for post-match narrative generation...")
+                    from groq import Groq
+                    client = Groq(api_key=gkey)
+                    completion = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
+                        temperature=0.7,
+                        max_tokens=1024,
+                        response_format={"type": "json_object"}
+                    )
+                    text = completion.choices[0].message.content
+                    data = json.loads(text)
+                    required = ["motm", "standout_moment", "standings", "next_a", "next_b"]
+                    if all(k in data for k in required):
+                        logger.info(f"Groq key #{j+1} post-match narrative fallback generation succeeded.")
+                        data["scorers"] = real_data["scorers"]
+                        data["stats"] = real_data["stats"]
+                        return data
+                except Exception as e:
+                    logger.error(f"Groq key #{j+1} fallback generation failed: {e}")
                 
         # 3. Fallback to templates with real data if both Gemini and Groq fail
         logger.warning("Both Gemini and Groq narrative generation failed. Using template fallback with real stats.")
@@ -474,8 +480,13 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
                 continue
                 
     # ── Groq + DuckDuckGo Search Fallback ──────────────────────────────────
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if groq_api_key:
+    groq_keys = []
+    for suffix in ["", "2", "3"]:
+        val = os.getenv(f"GROQ_API_KEY{suffix}")
+        if val:
+            groq_keys.append(val)
+
+    if groq_keys:
         try:
             logger.info("[GroqSearch] Attempting Groq + DuckDuckGo fallback for post-match details...")
             search_context = ""
@@ -526,11 +537,11 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
             Gather:
             1. Scorers list (names of players who scored goals and their corresponding minutes). Make sure to extract actual scorers from the context if present (e.g. Matías Galarza 1').
             2. Detailed match statistics:
-               - Possession percentage for home and away (e.g., 77% for home, 23% for away).
-               - Total shots for home and away.
-               - Shots on target for home and away.
-               - Corner kicks for home and away.
-               - Expected goals (xG) for home and away (e.g. 1.84 and 0.92, or 'N/A' if not found).
+            - Possession percentage for home and away (e.g., 77% for home, 23% for away).
+            - Total shots for home and away.
+            - Shots on target for home and away.
+            - Corner kicks for home and away.
+            - Expected goals (xG) for home and away (e.g. 1.84 and 0.92, or 'N/A' if not found).
             3. Man of the match (MOTM) name, rating (out of 10), and their main stat.
             4. Key standout moment or talking point from the match.
             5. Standings table for this group (positions 1 to 4: team, played, gd, pts). Note that {home} and {away} have just played, so update their GD (goal difference) and PTS (points) accordingly. Assume this is the group stage.
@@ -565,21 +576,26 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
             }}
             """
 
-            from groq import Groq
-            client = Groq(api_key=groq_api_key)
-            completion = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
-                temperature=0.7,
-                max_tokens=1024,
-                response_format={"type": "json_object"}
-            )
-            text = completion.choices[0].message.content
-            data = json.loads(text)
-            required = ["scorers", "stats", "motm", "standout_moment", "standings", "next_a", "next_b"]
-            if all(k in data for k in required):
-                logger.info("[GroqSearch] Post-match grounding fallback succeeded.")
-                return data
+            for j, gkey in enumerate(groq_keys):
+                try:
+                    logger.info(f"[GroqSearch] Trying Groq key #{j+1}...")
+                    from groq import Groq
+                    client = Groq(api_key=gkey)
+                    completion = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
+                        temperature=0.7,
+                        max_tokens=1024,
+                        response_format={"type": "json_object"}
+                    )
+                    text = completion.choices[0].message.content
+                    data = json.loads(text)
+                    required = ["scorers", "stats", "motm", "standout_moment", "standings", "next_a", "next_b"]
+                    if all(k in data for k in required):
+                        logger.info(f"[GroqSearch] Post-match grounding fallback succeeded with key #{j+1}.")
+                        return data
+                except Exception as ke:
+                    logger.error(f"[GroqSearch] Groq key #{j+1} failed: {ke}")
         except Exception as e:
             logger.error(f"[GroqSearch] Groq fallback failed for post-match details: {e}")
 

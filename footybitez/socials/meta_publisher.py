@@ -68,21 +68,23 @@ class MetaPublisher:
         # 1. Fetch all authorized pages dynamically
         pages = self._get_authorized_pages()
         
-        # 2. Filter pages if FACEBOOK_PAGE_IDS is specified
+        # 2. Filter pages if filter or page_id is set
         filtered_pages = []
-        filter_ids = []
+        target_ids = []
         if self.page_ids_filter:
-            filter_ids = [pid.strip() for pid in self.page_ids_filter.split(",") if pid.strip()]
+            target_ids = [pid.strip() for pid in self.page_ids_filter.split(",") if pid.strip()]
+        elif self.page_id:
+            target_ids = [self.page_id.strip()]
 
         for p in pages:
             pid = p.get("id")
-            if filter_ids:
-                if pid in filter_ids:
+            if target_ids:
+                if pid in target_ids:
                     filtered_pages.append(p)
             else:
                 filtered_pages.append(p)
 
-        # Fallback to default page_id if no pages were dynamically fetched but we have a single ID
+        # Fallback to default page_id if no pages were dynamically fetched/matched but we have a single ID
         if not filtered_pages and self.page_id:
             logger.info("Using fallback single FACEBOOK_PAGE_ID and default User Token.")
             filtered_pages.append({

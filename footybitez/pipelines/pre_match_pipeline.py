@@ -107,8 +107,13 @@ def get_gemini_pre_match_details(home, away, kickoff_str, venue):
                 continue
                 
     # ── Groq + DuckDuckGo Search Fallback ──────────────────────────────────
-    groq_api_key = os.getenv("GROQ_API_KEY")
-    if groq_api_key:
+    groq_keys = []
+    for suffix in ["", "2", "3"]:
+        val = os.getenv(f"GROQ_API_KEY{suffix}")
+        if val:
+            groq_keys.append(val)
+
+    if groq_keys:
         try:
             logger.info("[GroqSearch] Attempting Groq + DuckDuckGo fallback for pre-match details...")
             search_context = ""
@@ -175,21 +180,26 @@ def get_gemini_pre_match_details(home, away, kickoff_str, venue):
             }}
             """
 
-            from groq import Groq
-            client = Groq(api_key=groq_api_key)
-            completion = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
-                temperature=0.7,
-                max_tokens=1024,
-                response_format={"type": "json_object"}
-            )
-            text = completion.choices[0].message.content
-            data = json.loads(text)
-            required = ["h2h", "form_a", "form_b", "prob_a", "prob_draw", "prob_b", "player_a", "player_a_stats", "player_b", "player_b_stats", "storyline"]
-            if all(k in data for k in required):
-                logger.info("[GroqSearch] Pre-match grounding fallback succeeded.")
-                return data
+            for j, gkey in enumerate(groq_keys):
+                try:
+                    logger.info(f"[GroqSearch] Trying Groq key #{j+1}...")
+                    from groq import Groq
+                    client = Groq(api_key=gkey)
+                    completion = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
+                        temperature=0.7,
+                        max_tokens=1024,
+                        response_format={"type": "json_object"}
+                    )
+                    text = completion.choices[0].message.content
+                    data = json.loads(text)
+                    required = ["h2h", "form_a", "form_b", "prob_a", "prob_draw", "prob_b", "player_a", "player_a_stats", "player_b", "player_b_stats", "storyline"]
+                    if all(k in data for k in required):
+                        logger.info(f"[GroqSearch] Pre-match grounding fallback succeeded with key #{j+1}.")
+                        return data
+                except Exception as ke:
+                    logger.error(f"[GroqSearch] Groq key #{j+1} failed: {ke}")
         except Exception as e:
             logger.error(f"[GroqSearch] Groq fallback failed for pre-match details: {e}")
 

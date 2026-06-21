@@ -22,7 +22,7 @@ def _get_keys(prefix: str) -> list:
 class ScriptGenerator:
     def __init__(self):
         self.gemini_keys = _get_keys("GEMINI_API_KEY")
-        self.groq_api_key = os.getenv("GROQ_API_KEY")
+        self.groq_keys = _get_keys("GROQ_API_KEY")
         self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
         if not self.gemini_keys:
             logger.warning("No GEMINI_API_KEY found. Will rely on Groq or Wikipedia fallback.")
@@ -118,25 +118,26 @@ class ScriptGenerator:
                 return self._sanitize_visual_keywords(result)
 
         # 1. Try Groq (preferred for factual accuracy)
-        if self.groq_api_key:
-            try:
-                from groq import Groq
-                client = Groq(api_key=self.groq_api_key)
-                logger.info(f"Generating script with Groq (Llama3) for category: {category}...")
-                completion = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[{"role": "user", "content": prompt}],
-                    temperature=0.7,
-                    max_tokens=1024,
-                    response_format={"type": "json_object"}
-                )
-                text = completion.choices[0].message.content
-                data = json.loads(text)
-                if self._validate_script_data(data):
-                    logger.info("Groq generation successful.")
-                    return self._sanitize_visual_keywords(data)
-            except Exception as e:
-                logger.error(f"Groq generation failed: {e}")
+        if self.groq_keys:
+            for j, gkey in enumerate(self.groq_keys):
+                try:
+                    from groq import Groq
+                    client = Groq(api_key=gkey)
+                    logger.info(f"Generating script with Groq key #{j+1} (Llama3) for category: {category}...")
+                    completion = client.chat.completions.create(
+                        model="llama-3.3-70b-versatile",
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.7,
+                        max_tokens=1024,
+                        response_format={"type": "json_object"}
+                    )
+                    text = completion.choices[0].message.content
+                    data = json.loads(text)
+                    if self._validate_script_data(data):
+                        logger.info(f"Groq key #{j+1} generation successful.")
+                        return self._sanitize_visual_keywords(data)
+                except Exception as e:
+                    logger.error(f"Groq key #{j+1} generation failed: {e}")
 
         # 2. Try Gemini (new SDK)
         if self.gemini_keys:
@@ -783,32 +784,34 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
                         logger.warning(f"Claude script word count {word_count} out of range (120-140). Retrying...")
                         attempt_prompt = prompt + f"\n\nSTRICT REQUIREMENT: Your previous attempt was {word_count} words. You MUST write longer, more detailed descriptions in each segment's text to reach a total word count of between 120 and 140 words. Make each of the 4 segments contain exactly 2-3 long, descriptive sentences!"
 
-            if self.groq_api_key:
-                try:
-                    from groq import Groq
-                    client = Groq(api_key=self.groq_api_key)
-                    completion = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
-                        messages=[{"role": "user", "content": attempt_prompt}],
-                        temperature=0.3,
-                        max_tokens=1024,
-                        response_format={"type": "json_object"}
-                    )
-                    data = json.loads(completion.choices[0].message.content)
-                    if self._validate_script_data(data):
-                        hook = data.get("hook", "")
-                        segments_text = " ".join([seg.get("text", "") for seg in data.get("segments", []) if isinstance(seg, dict)])
-                        outro = data.get("outro", "")
-                        word_count = len(f"{hook} {segments_text} {outro}".strip().split())
-                        
-                        if 120 <= word_count <= 140:
-                            logger.info(f"Breaking news script generated via Groq (attempt {attempt+1}) with {word_count} words.")
-                            return data
-                        else:
-                            logger.warning(f"Groq script word count {word_count} out of range (120-140). Retrying...")
-                            attempt_prompt = prompt + f"\n\nSTRICT REQUIREMENT: Your previous attempt was {word_count} words. You MUST write longer, more detailed descriptions in each segment's text to reach a total word count of between 120 and 140 words. Make each of the 4 segments contain exactly 2-3 long, descriptive sentences!"
-                except Exception as e:
-                    logger.error(f"Breaking news Groq generation failed: {e}")
+            if self.groq_keys:
+                for j, gkey in enumerate(self.groq_keys):
+                    try:
+                        from groq import Groq
+                        client = Groq(api_key=gkey)
+                        completion = client.chat.completions.create(
+                            model="llama-3.3-70b-versatile",
+                            messages=[{"role": "user", "content": attempt_prompt}],
+                            temperature=0.3,
+                            max_tokens=1024,
+                            response_format={"type": "json_object"}
+                        )
+                        data = json.loads(completion.choices[0].message.content)
+                        if self._validate_script_data(data):
+                            hook = data.get("hook", "")
+                            segments_text = " ".join([seg.get("text", "") for seg in data.get("segments", []) if isinstance(seg, dict)])
+                            outro = data.get("outro", "")
+                            word_count = len(f"{hook} {segments_text} {outro}".strip().split())
+                            
+                            if 120 <= word_count <= 140:
+                                logger.info(f"Breaking news script generated via Groq key #{j+1} (attempt {attempt+1}) with {word_count} words.")
+                                return data
+                            else:
+                                logger.warning(f"Groq key #{j+1} script word count {word_count} out of range (120-140). Retrying...")
+                                attempt_prompt = prompt + f"\n\nSTRICT REQUIREMENT: Your previous attempt was {word_count} words. You MUST write longer, more detailed descriptions in each segment's text to reach a total word count of between 120 and 140 words. Make each of the 4 segments contain exactly 2-3 long, descriptive sentences!"
+                                break # break keys loop to run next attempt
+                    except Exception as e:
+                        logger.error(f"Breaking news Groq key #{j+1} generation failed: {e}")
 
             if self.gemini_keys:
                 result = self._try_gemini(attempt_prompt)
