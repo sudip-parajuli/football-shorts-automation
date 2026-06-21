@@ -151,7 +151,7 @@
       "datetime_utc": "2026-06-21T19:00:00Z",
       "status": "TIMED",
       "pre_match_done": true,
-      "post_match_done": false
+      "post_match_done": true
     },
     "URU_CPV_20260621": {
       "id": 537372,
