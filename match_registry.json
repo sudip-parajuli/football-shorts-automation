@@ -143,6 +143,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "BEL_IRN_20260621": {
+      "id": 537365,
+      "home": "Belgium",
+      "away": "Iran",
+      "datetime_utc": "2026-06-21T19:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
