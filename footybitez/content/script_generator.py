@@ -66,7 +66,7 @@ class ScriptGenerator:
             return None
 
         for i, key in enumerate(self.gemini_keys):
-            for model_name in ["gemini-2.5-flash", "gemini-1.5-pro"]:
+            for model_name in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"]:
                 try:
                     logger.info(f"Trying Gemini key #{i+1} model={model_name}...")
                     client = genai.Client(api_key=key)
@@ -145,7 +145,23 @@ class ScriptGenerator:
             if result:
                 return self._sanitize_visual_keywords(result)
 
-        # 3. Fallback: Wikipedia
+        # 3. Fallback: Local Grounded Fallback (if context exists) or Wikipedia
+        if category in ["wc_pre_match", "wc_post_match"] and context:
+            try:
+                details = json.loads(context)
+                teams = topic.split(" World Cup 2026")[0].split(" vs ")
+                home = teams[0].strip()
+                away = teams[1].strip() if len(teams) > 1 else "Away"
+                if category == "wc_pre_match":
+                    logger.info("All AI models failed. Using local pre-match grounded fallback.")
+                    return self._generate_local_pre_match_fallback(home, away, details)
+                else:
+                    logger.info("All AI models failed. Using local post-match grounded fallback.")
+                    return self._generate_local_post_match_fallback(home, away, details)
+            except Exception as fe:
+                logger.error(f"Local grounded fallback failed: {fe}")
+
+        # 4. Fallback: Wikipedia
         logger.warning("All AI models failed. Converting to Wikipedia Mode.")
         return self._get_wikipedia_script(topic)
 
@@ -565,6 +581,104 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
                 "full_text": f"Here is a crazy fact about {topic}!"
             }
 
+    def _generate_local_pre_match_fallback(self, home, away, details):
+        h2h = details.get("h2h", "First meeting in World Cup history")
+        form_a = details.get("form_a", "W D W L W")
+        form_b = details.get("form_b", "L D W W L")
+        prob_a = details.get("prob_a", 40.0)
+        prob_b = details.get("prob_b", 30.0)
+        prob_draw = details.get("prob_draw", 30.0)
+        player_a = details.get("player_a", f"{home} Captain")
+        player_a_stats = details.get("player_a_stats", "key playmaker")
+        player_b = details.get("player_b", f"{away} Captain")
+        player_b_stats = details.get("player_b_stats", "defensive rock")
+
+        hook = f"Get ready for a massive World Cup clash between *{home}* and *{away}*!"
+        
+        segments = [
+            {
+                "text": f"What is at stake? *{home}* enters with form {form_a}, while *{away}* shows {form_b}.",
+                "visual_keyword": f"{home} vs {away} 2026 football match action"
+            },
+            {
+                "text": f"Looking at head-to-head history, we see *{h2h}*.",
+                "visual_keyword": f"{home} vs {away} head to head history soccer"
+            },
+            {
+                "text": f"Win probabilities are set at *{prob_a}%* for *{home}*, *{prob_b}%* for *{away}*, and *{prob_draw}%* for a draw.",
+                "visual_keyword": f"{home} vs {away} 2026 World Cup prediction soccer"
+            },
+            {
+                "text": f"Keep an eye on *{player_a}* with *{player_a_stats}*, and *{player_b}* with *{player_b_stats}*.",
+                "visual_keyword": f"{player_a} {home} soccer player action"
+            }
+        ]
+        
+        outro = f"Will *{home}* or *{away}* take the win? Let us know your predictions below!"
+        
+        full_text = f"{hook} " + " ".join([s["text"] for s in segments]) + f" {outro}"
+        
+        return {
+            "hook": hook,
+            "primary_entity": home,
+            "segments": segments,
+            "outro": outro,
+            "full_text": full_text
+        }
+
+    def _generate_local_post_match_fallback(self, home, away, details):
+        scorers_list = details.get("scorers", [])
+        stats = details.get("stats", {})
+        possession = stats.get("possession", {"home": "50%", "away": "50%"})
+        shots = stats.get("shots", {"home": 10, "away": 10})
+        shots_ot = stats.get("shots_on_target", {"home": 4, "away": 4})
+        xg = stats.get("xg", {"home": "1.0", "away": "1.0"})
+        
+        motm = details.get("motm", {})
+        motm_player = motm.get("player", "Star player")
+        motm_rating = motm.get("rating", 7.5)
+        motm_stat = motm.get("stat", "controlled the game")
+        
+        standout_moment = details.get("standout_moment", f"An intense match between {home} and {away} has ended.")
+        
+        home_scorers = [f"{s['player']} ({s['minute']}')" for s in scorers_list if s.get("team") == "Home"]
+        away_scorers = [f"{s['player']} ({s['minute']}')" for s in scorers_list if s.get("team") == "Away"]
+        
+        home_score_str = f"Goals for *{home}*: " + ", ".join(home_scorers) if home_scorers else f"No goals for *{home}*."
+        away_score_str = f"Goals for *{away}*: " + ", ".join(away_scorers) if away_scorers else f"No goals for *{away}*."
+
+        hook = f"The final whistle has blown! *{home}* vs *{away}* ended in an epic showdown!"
+        
+        segments = [
+            {
+                "text": f"Here are the scorers: {home_score_str} {away_score_str}",
+                "visual_keyword": f"{home} vs {away} goal scorers celebration football"
+            },
+            {
+                "text": f"Let us check the stats. *{home}* had *{possession.get('home', '50%')}* possession and *{shots.get('home', 10)}* shots, compared to *{possession.get('away', '50%')}* possession and *{shots.get('away', 10)}* shots for *{away}*.",
+                "visual_keyword": f"{home} vs {away} match statistics comparison soccer"
+            },
+            {
+                "text": f"Expected goals finished at *{xg.get('home', '1.0')}* to *{xg.get('away', '1.0')}*. The standout moment: {standout_moment}",
+                "visual_keyword": f"{home} vs {away} 2026 match action soccer"
+            },
+            {
+                "text": f"Man of the Match honors go to *{motm_player}* with an outstanding rating of *{motm_rating}* for *{motm_stat}*.",
+                "visual_keyword": f"{motm_player} football player match action"
+            }
+        ]
+        
+        outro = f"What did you think of this result? Subscribe for more World Cup updates!"
+        
+        full_text = f"{hook} " + " ".join([s["text"] for s in segments]) + f" {outro}"
+        
+        return {
+            "hook": hook,
+            "primary_entity": home,
+            "segments": segments,
+            "outro": outro,
+            "full_text": full_text
+        }
 
     def generate_breaking_news_script(self, topic: str, event: dict) -> dict | None:
         """

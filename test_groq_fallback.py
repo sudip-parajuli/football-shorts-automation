@@ -30,9 +30,29 @@ def main():
             gemini_keys_backup[key_name] = os.environ[key_name]
             del os.environ[key_name]
 
+    from unittest.mock import MagicMock, patch
+    mock_ddgs_instance = MagicMock()
+    mock_results = [
+        {
+            "title": "Turkey vs Paraguay 2026 FIFA World Cup Match Report",
+            "body": "Paraguay defeated Turkey 1-0 in their 2026 FIFA World Cup Group D match. Matías Galarza scored the fastest goal of the tournament just 64 seconds (1st minute) into the game. Ball Possession: Turkey 77%, Paraguay 23%. Total Shots: Turkey 20, Paraguay 5. Shots on Target: Turkey 2, Paraguay 3. Corners: Turkey 5, Paraguay 0. Miguel Almirón was sent off in the 45th minute.",
+            "href": "https://example.com/match-report"
+        }
+    ]
+    mock_ddgs_instance.text.return_value = mock_results
+    mock_ddgs_instance.__enter__.return_value.text.return_value = mock_results
+    mock_ddgs_class = MagicMock(return_value=mock_ddgs_instance)
+
     try:
-        print("Testing get_gemini_post_match_details with GEMINI keys disabled (forcing Groq+DDG fallback)...")
-        details = get_gemini_post_match_details(home, away, date_str, venue, hs, as_)
+        import ddgs
+        target_path = "ddgs.DDGS"
+    except ImportError:
+        target_path = "duckduckgo_search.DDGS"
+
+    try:
+        print(f"Testing get_gemini_post_match_details with GEMINI keys disabled (forcing Groq+DDG fallback via {target_path})...")
+        with patch(target_path, mock_ddgs_class):
+            details = get_gemini_post_match_details(home, away, date_str, venue, hs, as_)
         
         print("\n--- FALLBACK MATCH DETAILS RESULT ---")
         import pprint
