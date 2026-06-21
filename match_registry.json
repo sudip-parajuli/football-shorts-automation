@@ -161,6 +161,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "URY_CPV_20260621": {
+      "id": 537372,
+      "home": "Uruguay",
+      "away": "Cape Verde Islands",
+      "datetime_utc": "2026-06-21T22:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
