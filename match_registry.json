@@ -170,6 +170,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "NZL_EGY_20260622": {
+      "id": 537366,
+      "home": "New Zealand",
+      "away": "Egypt",
+      "datetime_utc": "2026-06-22T01:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
