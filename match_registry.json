@@ -179,6 +179,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": true
+    },
+    "ARG_AUT_20260622": {
+      "id": 537399,
+      "home": "Argentina",
+      "away": "Austria",
+      "datetime_utc": "2026-06-22T17:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
