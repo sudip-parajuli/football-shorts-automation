@@ -206,6 +206,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "JOR_ALG_20260623": {
+      "id": 537400,
+      "home": "Jordan",
+      "away": "Algeria",
+      "datetime_utc": "2026-06-23T03:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
