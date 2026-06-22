@@ -197,6 +197,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "NOR_SEN_20260623": {
+      "id": 537394,
+      "home": "Norway",
+      "away": "Senegal",
+      "datetime_utc": "2026-06-23T00:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
