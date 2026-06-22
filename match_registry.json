@@ -188,6 +188,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "FRA_IRQ_20260622": {
+      "id": 537393,
+      "home": "France",
+      "away": "Iraq",
+      "datetime_utc": "2026-06-22T21:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
