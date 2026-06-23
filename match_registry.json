@@ -242,6 +242,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "COL_COD_20260624": {
+      "id": 537406,
+      "home": "Colombia",
+      "away": "Congo DR",
+      "datetime_utc": "2026-06-24T02:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
