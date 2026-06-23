@@ -224,6 +224,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "ENG_GHA_20260623": {
+      "id": 537411,
+      "home": "England",
+      "away": "Ghana",
+      "datetime_utc": "2026-06-23T20:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
