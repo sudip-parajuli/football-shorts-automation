@@ -232,7 +232,7 @@
       "datetime_utc": "2026-06-23T20:00:00Z",
       "status": "TIMED",
       "pre_match_done": true,
-      "post_match_done": false
+      "post_match_done": true
     },
     "PAN_CRO_20260623": {
       "id": 537412,
