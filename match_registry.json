@@ -215,6 +215,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": true
+    },
+    "POR_UZB_20260623": {
+      "id": 537405,
+      "home": "Portugal",
+      "away": "Uzbekistan",
+      "datetime_utc": "2026-06-23T17:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
