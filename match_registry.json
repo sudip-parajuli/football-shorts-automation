@@ -223,7 +223,7 @@
       "datetime_utc": "2026-06-23T17:00:00Z",
       "status": "TIMED",
       "pre_match_done": true,
-      "post_match_done": false
+      "post_match_done": true
     },
     "ENG_GHA_20260623": {
       "id": 537411,
