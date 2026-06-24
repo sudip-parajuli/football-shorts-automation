@@ -269,6 +269,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "MAR_HAI_20260624": {
+      "id": 537344,
+      "home": "Morocco",
+      "away": "Haiti",
+      "datetime_utc": "2026-06-24T22:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
