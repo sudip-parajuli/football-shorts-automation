@@ -251,6 +251,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "SUI_CAN_20260624": {
+      "id": 537337,
+      "home": "Switzerland",
+      "away": "Canada",
+      "datetime_utc": "2026-06-24T19:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
