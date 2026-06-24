@@ -278,6 +278,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "SCO_BRA_20260624": {
+      "id": 537343,
+      "home": "Scotland",
+      "away": "Brazil",
+      "datetime_utc": "2026-06-24T22:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
