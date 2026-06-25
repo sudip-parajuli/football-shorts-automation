@@ -323,6 +323,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "TUN_NED_20260625": {
+      "id": 537361,
+      "home": "Tunisia",
+      "away": "Netherlands",
+      "datetime_utc": "2026-06-25T23:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
