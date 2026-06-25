@@ -314,6 +314,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "CUW_CIV_20260625": {
+      "id": 537356,
+      "home": "Cura\u00e7ao",
+      "away": "Ivory Coast",
+      "datetime_utc": "2026-06-25T20:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
