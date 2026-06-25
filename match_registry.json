@@ -341,6 +341,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "TUR_USA_20260626": {
+      "id": 537349,
+      "home": "Turkey",
+      "away": "United States",
+      "datetime_utc": "2026-06-26T02:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
