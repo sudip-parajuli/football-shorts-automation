@@ -296,6 +296,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "RSA_KOR_20260625": {
+      "id": 537332,
+      "home": "South Africa",
+      "away": "South Korea",
+      "datetime_utc": "2026-06-25T01:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
