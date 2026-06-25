@@ -305,6 +305,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "ECU_GER_20260625": {
+      "id": 537355,
+      "home": "Ecuador",
+      "away": "Germany",
+      "datetime_utc": "2026-06-25T20:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
