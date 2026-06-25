@@ -332,6 +332,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "JPN_SWE_20260625": {
+      "id": 537362,
+      "home": "Japan",
+      "away": "Sweden",
+      "datetime_utc": "2026-06-25T23:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
