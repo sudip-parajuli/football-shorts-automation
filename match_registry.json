@@ -386,6 +386,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "NZL_BEL_20260627": {
+      "id": 537367,
+      "home": "New Zealand",
+      "away": "Belgium",
+      "datetime_utc": "2026-06-27T03:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
