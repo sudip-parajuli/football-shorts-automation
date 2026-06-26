@@ -350,6 +350,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "NOR_FRA_20260626": {
+      "id": 537395,
+      "home": "Norway",
+      "away": "France",
+      "datetime_utc": "2026-06-26T19:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
