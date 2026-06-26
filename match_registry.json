@@ -368,6 +368,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "URU_ESP_20260627": {
+      "id": 537373,
+      "home": "Uruguay",
+      "away": "Spain",
+      "datetime_utc": "2026-06-27T00:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
