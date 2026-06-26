@@ -359,6 +359,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "SEN_IRQ_20260626": {
+      "id": 537396,
+      "home": "Senegal",
+      "away": "Iraq",
+      "datetime_utc": "2026-06-26T19:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
