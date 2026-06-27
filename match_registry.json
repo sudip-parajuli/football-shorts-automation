@@ -431,6 +431,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "COD_UZB_20260627": {
+      "id": 537408,
+      "home": "Congo DR",
+      "away": "Uzbekistan",
+      "datetime_utc": "2026-06-27T23:30:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
