@@ -404,6 +404,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "PAN_ENG_20260627": {
+      "id": 537413,
+      "home": "Panama",
+      "away": "England",
+      "datetime_utc": "2026-06-27T21:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
