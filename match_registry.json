@@ -376,7 +376,7 @@
       "datetime_utc": "2026-06-27T00:00:00Z",
       "status": "TIMED",
       "pre_match_done": true,
-      "post_match_done": false
+      "post_match_done": true
     },
     "CPV_KSA_20260627": {
       "id": 537374,
