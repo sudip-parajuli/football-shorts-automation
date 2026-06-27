@@ -413,6 +413,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "CRO_GHA_20260627": {
+      "id": 537414,
+      "home": "Croatia",
+      "away": "Ghana",
+      "datetime_utc": "2026-06-27T21:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
