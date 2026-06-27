@@ -395,6 +395,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "EGY_IRN_20260627": {
+      "id": 537368,
+      "home": "Egypt",
+      "away": "Iran",
+      "datetime_utc": "2026-06-27T03:00:00Z",
+      "status": "TIMED",
+      "pre_match_done": true,
+      "post_match_done": false
     }
   }
 }
