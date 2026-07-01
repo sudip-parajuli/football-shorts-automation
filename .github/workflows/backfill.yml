@@ -119,5 +119,7 @@ jobs:
       run: |
         git config --global user.email "bot@footybitez.com"
         git config --global user.name "WC2026 Bot"
-        git add match_registry.json
+        # Resolve any leftover merge conflicts before committing
+        git checkout --theirs . 2>/dev/null || true
+        git add -A
         git diff --quiet && git diff --staged --quiet || (git commit -m "Backfill match registry [skip ci]" && git push)

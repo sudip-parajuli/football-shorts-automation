@@ -37,7 +37,28 @@ def get_match_key(home_tla, away_tla, date_str):
     clean_date = date_str.split("T")[0].replace("-", "")
     return f"{home_tla}_{away_tla}_{clean_date}"
 
-def get_gemini_pre_match_details(home, away, kickoff_str, venue):
+STAGE_DISPLAY_MAP = {
+    "GROUP_STAGE": None,
+    "ROUND_OF_32": "Round of 32",
+    "ROUND_OF_16": "Round of 16",
+    "QUARTER_FINALS": "Quarter-finals",
+    "QUARTER_FINAL": "Quarter-finals",
+    "SEMI_FINALS": "Semi-finals",
+    "SEMI_FINAL": "Semi-finals",
+    "THIRD_PLACE": "Third Place Match",
+    "FINAL": "Final",
+}
+
+def get_match_stage_name(target_match):
+    stage = (target_match.get("stage") or "").strip()
+    group = target_match.get("group")
+    if stage and stage != "GROUP_STAGE" and stage in STAGE_DISPLAY_MAP:
+        return STAGE_DISPLAY_MAP[stage]
+    if group:
+        return group.replace("_", " ")
+    return "GROUP STAGE"
+
+def get_gemini_pre_match_details(home, away, kickoff_str, venue, stage_name="GROUP STAGE"):
     import json
     from google import genai
     from google.genai import types
@@ -203,9 +224,9 @@ def get_gemini_pre_match_details(home, away, kickoff_str, venue):
         except Exception as e:
             logger.error(f"[GroqSearch] Groq fallback failed for pre-match details: {e}")
 
-    return get_fallback_pre_match_data(home, away)
+    return get_fallback_pre_match_data(home, away, stage_name)
 
-def get_fallback_pre_match_data(home, away):
+def get_fallback_pre_match_data(home, away, stage_name="GROUP STAGE"):
     return {
         "h2h": "First meeting in World Cup history",
         "form_a": "W D W L W",
@@ -217,7 +238,7 @@ def get_fallback_pre_match_data(home, away):
         "player_a_stats": "Key playmaker",
         "player_b": f"{away} Captain",
         "player_b_stats": "Defensive rock",
-        "storyline": f"A highly anticipated clash in the World Cup group stages between {home} and {away}."
+        "storyline": f"A highly anticipated {stage_name} clash between {home} and {away}."
     }
 
 def run_pipeline(force_match_id=None, skip_upload=False):
@@ -297,16 +318,16 @@ def run_pipeline(force_match_id=None, skip_upload=False):
     home_tla = target_match.get("homeTeam", {}).get("tla", home[:3].upper())
     away_tla = target_match.get("awayTeam", {}).get("tla", away[:3].upper())
     kickoff_raw = target_match.get("utcDate", "")
-    group = target_match.get("group", "GROUP STAGE").replace("_", " ")
+    stage_name = get_match_stage_name(target_match)
     
     # Simple venue parsing
     venue = "World Cup Stadium"
     
     m_key = get_match_key(home_tla, away_tla, kickoff_raw)
-    logger.info(f"Processing target match: {home} vs {away} (Key: {m_key})")
+    logger.info(f"Processing target match: {home} vs {away} ({stage_name}) (Key: {m_key})")
     
     # 2. Gather pre-match details via Gemini Grounding
-    details = get_gemini_pre_match_details(home, away, kickoff_raw, venue)
+    details = get_gemini_pre_match_details(home, away, kickoff_raw, venue, stage_name)
     
     # 3. Draft commentary script
     script_gen = ScriptGenerator()
@@ -335,7 +356,7 @@ def run_pipeline(force_match_id=None, skip_upload=False):
     card5 = os.path.abspath(os.path.join(temp_dir, f"pre_card5_{m_key}.jpg"))
     card6 = os.path.abspath(os.path.join(temp_dir, f"pre_card6_{m_key}.jpg"))
     
-    card_generator.draw_pre_match_card_1_hook(home, away, group, venue, card1)
+    card_generator.draw_pre_match_card_1_hook(home, away, stage_name, venue, card1)
     card_generator.draw_pre_match_card_2_form(home, away, details["form_a"], details["form_b"], card2)
     card_generator.draw_pre_match_card_3_h2h(home, away, details["h2h"], card3)
     card_generator.draw_pre_match_card_4_probability(home, away, details["prob_a"], details["prob_draw"], details["prob_b"], card4)

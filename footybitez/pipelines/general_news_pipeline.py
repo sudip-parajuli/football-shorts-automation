@@ -145,10 +145,10 @@ class GeneralNewsPipeline:
 
         # Query LLM
         selected_data = None
-        if self.script_gen.groq_api_key:
+        if self.script_gen.groq_keys:
             try:
                 from groq import Groq
-                client = Groq(api_key=self.script_gen.groq_api_key)
+                client = Groq(api_key=self.script_gen.groq_keys[0])
                 completion = client.chat.completions.create(
                     model="llama-3.3-70b-versatile",
                     messages=[{"role": "user", "content": prompt}],

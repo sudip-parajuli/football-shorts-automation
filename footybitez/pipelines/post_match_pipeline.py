@@ -36,6 +36,31 @@ def get_match_key(home_tla, away_tla, date_str):
     clean_date = date_str.split("T")[0].replace("-", "")
     return f"{home_tla}_{away_tla}_{clean_date}"
 
+STAGE_DISPLAY_MAP = {
+    "GROUP_STAGE": None,
+    "ROUND_OF_32": "Round of 32",
+    "ROUND_OF_16": "Round of 16",
+    "QUARTER_FINALS": "Quarter-finals",
+    "QUARTER_FINAL": "Quarter-finals",
+    "SEMI_FINALS": "Semi-finals",
+    "SEMI_FINAL": "Semi-finals",
+    "THIRD_PLACE": "Third Place Match",
+    "FINAL": "Final",
+}
+
+def get_match_stage_name(target_match):
+    stage = (target_match.get("stage") or "").strip()
+    group = target_match.get("group")
+    if stage and stage != "GROUP_STAGE" and stage in STAGE_DISPLAY_MAP:
+        return STAGE_DISPLAY_MAP[stage]
+    if group:
+        return group.replace("_", " ")
+    return "GROUP STAGE"
+
+def is_knockout_match(target_match):
+    stage = (target_match.get("stage") or "").strip()
+    return bool(stage and stage != "GROUP_STAGE")
+
 def fetch_api_football_data(home_name, away_name, date_str, api_key):
     import requests
     
@@ -204,7 +229,7 @@ def fetch_api_football_data(home_name, away_name, date_str, api_key):
         "stats": stats
     }
 
-def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
+def get_gemini_post_match_details(home, away, date_str, venue, hs, as_, is_knockout=False):
     # Check for static match fallbacks to handle rate-limiting and offline test environments
     # Map Swiss vs Bosnia (SWI vs BOS / SWI vs BIH / etc.)
     home_key = "SWI" if "switzerland" in home.lower() else ("USA" if "united states" in home.lower() else home[:3].upper())
@@ -293,6 +318,15 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
             
     # If we have real data, we can call Gemini or Groq directly without search grounding to write the narrative
     if real_data:
+        if not is_knockout:
+            standings_task = "3. Generate a standings table for this group (positions 1 to 4: team, played, gd, pts). Note that {home} and {away} have just played, so update their GD (goal difference) and PTS (points) accordingly. Assume this is the group stage.\n        4."
+            standings_schema = '"standings": [{"pos": 1, "team": "Team Name", "played": 2, "gd": "+2", "pts": 4}, {"pos": 2, "team": "Team Name", "played": 2, "gd": "+0", "pts": 3}, {"pos": 3, "team": "Team Name", "played": 2, "gd": "-1", "pts": 2}, {"pos": 4, "team": "Team Name", "played": 2, "gd": "-1", "pts": 1}],'
+            required_standings = True
+        else:
+            standings_task = "3. (No group standings for knockout matches. Set standings to an empty list.)\n        4."
+            standings_schema = '"standings": [],'
+            required_standings = False
+
         prompt = f"""
         Analyze the finished FIFA World Cup 2026 match between {home} and {away} played on {date_str} at {venue}.
         The final score was {home} {hs} - {as_} {away}.
@@ -306,8 +340,8 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
         Task:
         1. Select a Man of the Match (MOTM) from the players involved. Provide their name, a rating (out of 10), and their main stat.
         2. Write a brief standout moment or talking point from the match (1-2 sentences).
-        3. Generate a standings table for this group (positions 1 to 4: team, played, gd, pts). Note that {home} and {away} have just played, so update their GD (goal difference) and PTS (points) accordingly. Assume this is the group stage.
-        4. Generate next match details for both teams.
+        {standings_task}
+        Generate next match details for both teams.
         
         Provide the output strictly as a JSON object with these keys:
         {{
@@ -317,12 +351,7 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
                 "stat": "Text describing their main stat"
             }},
             "standout_moment": "Text describing the key standout moment",
-            "standings": [
-                {{"pos": 1, "team": "Team Name", "played": 2, "gd": "+2", "pts": 4}},
-                {{"pos": 2, "team": "Team Name", "played": 2, "gd": "+0", "pts": 3}},
-                {{"pos": 3, "team": "Team Name", "played": 2, "gd": "-1", "pts": 2}},
-                {{"pos": 4, "team": "Team Name", "played": 2, "gd": "-1", "pts": 1}}
-            ],
+            {standings_schema}
             "next_a": "Next opponent and date for home team",
             "next_b": "Next opponent and date for away team"
         }}
@@ -340,7 +369,9 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
                         )
                     )
                     data = json.loads(r.text)
-                    required = ["motm", "standout_moment", "standings", "next_a", "next_b"]
+                    required = ["motm", "standout_moment", "next_a", "next_b"]
+                    if not is_knockout:
+                        required.append("standings")
                     if all(k in data for k in required):
                         logger.info("[Gemini] Narrative details generation succeeded.")
                         # Inject real scorers and stats
@@ -374,7 +405,9 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
                     )
                     text = completion.choices[0].message.content
                     data = json.loads(text)
-                    required = ["motm", "standout_moment", "standings", "next_a", "next_b"]
+                    required = ["motm", "standout_moment", "next_a", "next_b"]
+                    if not is_knockout:
+                        required.append("standings")
                     if all(k in data for k in required):
                         logger.info(f"Groq key #{j+1} post-match narrative fallback generation succeeded.")
                         data["scorers"] = real_data["scorers"]
@@ -397,13 +430,20 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
             "standings": [
                 {"pos": 1, "team": home, "played": 1, "gd": f"{hs-as_:+}", "pts": 3 if hs > as_ else (1 if hs == as_ else 0)},
                 {"pos": 2, "team": away, "played": 1, "gd": f"{as_-hs:+}", "pts": 3 if as_ > hs else (1 if hs == as_ else 0)}
-            ],
+            ] if not is_knockout else [],
             "next_a": "Check schedule for upcoming matchday details.",
             "next_b": "Check schedule for upcoming matchday details."
         }
             
     if not keys:
         logger.warning("No GEMINI_API_KEY available for search grounding. Skipping Gemini checks.")
+
+    if not is_knockout:
+        standings_task = "5. Standings table for this group (positions 1 to 4: team, played, gd, pts).\n    6."
+        standings_schema = '"standings": [{"pos": 1, "team": "Team Name", "played": 3, "gd": "+4", "pts": 7}, {"pos": 2, "team": "Team Name", "played": 3, "gd": "+1", "pts": 5}, {"pos": 3, "team": "Team Name", "played": 3, "gd": "-2", "pts": 3}, {"pos": 4, "team": "Team Name", "played": 3, "gd": "-3", "pts": 1}],'
+    else:
+        standings_task = "5. (No group standings for knockout matches. Set standings to an empty list.)\n    6."
+        standings_schema = '"standings": [],'
         
     prompt = f"""
     Search for the finished FIFA World Cup 2026 match between {home} and {away} played on {date_str} at {venue}. The final score was {home} {hs} - {as_} {away}.
@@ -417,8 +457,8 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
        - Expected goals (xG) for home and away (e.g. 1.84 and 0.92, or 'N/A' if not found).
     3. Man of the match (MOTM) name, rating (out of 10), and their main stat.
     4. Key standout moment or talking point from the match.
-    5. Standings table for this group (positions 1 to 4: team, played, gd, pts).
-    6. Next match details for both teams.
+    {standings_task}
+    Next match details for both teams.
     
     Provide the output strictly as a JSON object with these keys:
     {{
@@ -438,12 +478,7 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
             "stat": "2 assists, 4 chances created"
         }},
         "standout_moment": "Text describing the key standout moment",
-        "standings": [
-            {{"pos": 1, "team": "Team Name", "played": 3, "gd": "+4", "pts": 7}},
-            {{"pos": 2, "team": "Team Name", "played": 3, "gd": "+1", "pts": 5}},
-            {{"pos": 3, "team": "Team Name", "played": 3, "gd": "-2", "pts": 3}},
-            {{"pos": 4, "team": "Team Name", "played": 3, "gd": "-3", "pts": 1}}
-        ],
+        {standings_schema}
         "next_a": "Next opponent and date for home team",
         "next_b": "Next opponent and date for away team"
     }}
@@ -470,7 +505,9 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
                     )
                 )
                 data = json.loads(r2.text)
-                required = ["scorers", "stats", "motm", "standout_moment", "standings", "next_a", "next_b"]
+                required = ["scorers", "stats", "motm", "standout_moment", "next_a", "next_b"]
+                if not is_knockout:
+                    required.append("standings")
                 if all(k in data for k in required):
                     logger.info("[GeminiSearch] Post-match grounding succeeded.")
                     return data
@@ -525,6 +562,13 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
             else:
                 logger.warning("[GroqSearch] DuckDuckGo search module (DDGS) is not available.")
 
+            if not is_knockout:
+                standings_task = "5. Standings table for this group (positions 1 to 4: team, played, gd, pts). Note that {home} and {away} have just played, so update their GD (goal difference) and PTS (points) accordingly. Assume this is the group stage.\n            6."
+                standings_schema = '"standings": [{"pos": 1, "team": "Team Name", "played": 3, "gd": "+4", "pts": 7}, {"pos": 2, "team": "Team Name", "played": 3, "gd": "+1", "pts": 5}, {"pos": 3, "team": "Team Name", "played": 3, "gd": "-2", "pts": 3}, {"pos": 4, "team": "Team Name", "played": 3, "gd": "-3", "pts": 1}],'
+            else:
+                standings_task = "5. (No group standings for knockout matches. Set standings to an empty list.)\n            6."
+                standings_schema = '"standings": [],'
+
             prompt = f"""
             Search Grounding Context:
             {search_context}
@@ -544,8 +588,8 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
             - Expected goals (xG) for home and away (e.g. 1.84 and 0.92, or 'N/A' if not found).
             3. Man of the match (MOTM) name, rating (out of 10), and their main stat.
             4. Key standout moment or talking point from the match.
-            5. Standings table for this group (positions 1 to 4: team, played, gd, pts). Note that {home} and {away} have just played, so update their GD (goal difference) and PTS (points) accordingly. Assume this is the group stage.
-            6. Next match details for both teams.
+            {standings_task}
+            Next match details for both teams.
             
             Provide the output strictly as a JSON object with these keys:
             {{
@@ -565,12 +609,7 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
                     "stat": "2 assists, 4 chances created"
                 }},
                 "standout_moment": "Text describing the key standout moment",
-                "standings": [
-                    {{"pos": 1, "team": "Team Name", "played": 3, "gd": "+4", "pts": 7}},
-                    {{"pos": 2, "team": "Team Name", "played": 3, "gd": "+1", "pts": 5}},
-                    {{"pos": 3, "team": "Team Name", "played": 3, "gd": "-2", "pts": 3}},
-                    {{"pos": 4, "team": "Team Name", "played": 3, "gd": "-3", "pts": 1}}
-                ],
+                {standings_schema}
                 "next_a": "Next opponent and date for home team",
                 "next_b": "Next opponent and date for away team"
             }}
@@ -590,7 +629,9 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
                     )
                     text = completion.choices[0].message.content
                     data = json.loads(text)
-                    required = ["scorers", "stats", "motm", "standout_moment", "standings", "next_a", "next_b"]
+                    required = ["scorers", "stats", "motm", "standout_moment", "next_a", "next_b"]
+                    if not is_knockout:
+                        required.append("standings")
                     if all(k in data for k in required):
                         logger.info(f"[GroqSearch] Post-match grounding fallback succeeded with key #{j+1}.")
                         return data
@@ -599,9 +640,9 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_):
         except Exception as e:
             logger.error(f"[GroqSearch] Groq fallback failed for post-match details: {e}")
 
-    return get_fallback_post_match_data(home, away, hs, as_)
+    return get_fallback_post_match_data(home, away, hs, as_, is_knockout)
 
-def get_fallback_post_match_data(home, away, hs, as_):
+def get_fallback_post_match_data(home, away, hs, as_, is_knockout=False):
     return {
         "scorers": [],
         "stats": {
@@ -620,7 +661,7 @@ def get_fallback_post_match_data(home, away, hs, as_):
         "standings": [
             {"pos": 1, "team": home, "played": 1, "gd": f"{hs-as_:+}", "pts": 3 if hs > as_ else (1 if hs == as_ else 0)},
             {"pos": 2, "team": away, "played": 1, "gd": f"{as_-hs:+}", "pts": 3 if as_ > hs else (1 if hs == as_ else 0)}
-        ],
+        ] if not is_knockout else [],
         "next_a": "Check schedule for upcoming matchday details.",
         "next_b": "Check schedule for upcoming matchday details."
     }
@@ -713,7 +754,8 @@ def run_pipeline(force_match_id=None, skip_upload=False):
     home_tla = target_match.get("homeTeam", {}).get("tla", home[:3].upper())
     away_tla = target_match.get("awayTeam", {}).get("tla", away[:3].upper())
     kickoff_raw = target_match.get("utcDate", "")
-    group = target_match.get("group", "GROUP STAGE").replace("_", " ")
+    stage_name = get_match_stage_name(target_match)
+    knockout = is_knockout_match(target_match)
     
     score_data = target_match.get("score", {})
     hs = score_data.get("fullTime", {}).get("home", 0)
@@ -722,10 +764,10 @@ def run_pipeline(force_match_id=None, skip_upload=False):
     venue = "World Cup Stadium"
     
     m_key = get_match_key(home_tla, away_tla, kickoff_raw)
-    logger.info(f"Processing finished match: {home} {hs}-{as_} {away} (Key: {m_key})")
+    logger.info(f"Processing finished match: {home} {hs}-{as_} {away} ({stage_name}) (Key: {m_key})")
     
     # 2. Fetch match timeline & stats via Gemini Search Grounding
-    details = get_gemini_post_match_details(home, away, kickoff_raw, venue, hs, as_)
+    details = get_gemini_post_match_details(home, away, kickoff_raw, venue, hs, as_, is_knockout=knockout)
     
     # 3. Draft commentary script
     script_gen = ScriptGenerator()
@@ -754,12 +796,13 @@ def run_pipeline(force_match_id=None, skip_upload=False):
     card5 = os.path.abspath(os.path.join(temp_dir, f"post_card5_{m_key}.jpg"))
     card6 = os.path.abspath(os.path.join(temp_dir, f"post_card6_{m_key}.jpg"))
     
-    card_generator.draw_post_match_card_1_score(home, away, hs, as_, group, card1)
-    card_generator.draw_post_match_card_2_timeline(home, away, details["scorers"], card2)
-    card_generator.draw_post_match_card_3_stats(home, away, details["stats"], card3)
-    card_generator.draw_post_match_card_4_motm(details["motm"]["player"], home if hs >= as_ else away, details["motm"]["rating"], details["motm"]["stat"], card4)
-    card_generator.draw_post_match_card_5_standings(group, details["standings"], card5)
-    card_generator.draw_post_match_card_6_next(home, away, f"{home}: {details['next_a']} | {away}: {details['next_b']}", card6)
+    card_generator.draw_post_match_card_1_score(home, away, hs, as_, stage_name, card1)
+    card_generator.draw_post_match_card_2_timeline(home, away, details.get("scorers", []), card2)
+    card_generator.draw_post_match_card_3_stats(home, away, details.get("stats", {}), card3)
+    card_generator.draw_post_match_card_4_motm(details.get("motm", {}).get("player", "Star Player"), home if hs >= as_ else away, details.get("motm", {}).get("rating", 7.5), details.get("motm", {}).get("stat", "Great performance"), card4)
+    if not knockout:
+        card_generator.draw_post_match_card_5_standings(stage_name, details.get("standings", []), card5)
+    card_generator.draw_post_match_card_6_next(home, away, f"{home}: {details.get('next_a', '')} | {away}: {details.get('next_b', '')}", card6)
     
     # Map visual assets
     match_context = f"{home} {away} World Cup 2026"
@@ -780,8 +823,10 @@ def run_pipeline(force_match_id=None, skip_upload=False):
             card = card3
         elif i == 2:
             card = card4
-        else:
+        elif not knockout:
             card = card5
+        else:
+            card = card4
             
         if fetched_images:
             segment_media.append([card, fetched_images[0]])
