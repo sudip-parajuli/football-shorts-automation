@@ -640,6 +640,80 @@ def get_gemini_post_match_details(home, away, date_str, venue, hs, as_, is_knock
         except Exception as e:
             logger.error(f"[GroqSearch] Groq fallback failed for post-match details: {e}")
 
+    # ── OpenRouter Fallback ──────────────────────────────────
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    if openrouter_key:
+        try:
+            logger.info("[OpenRouter] Attempting OpenRouter fallback for post-match details...")
+            openrouter_models = [
+                "qwen/qwen2.5-7b-instruct",
+                "meta-llama/meta-llama-3-70b-instruct",
+                "google/gemma-2-9b-it"
+            ]
+
+            for model in openrouter_models:
+                try:
+                    logger.info(f"[OpenRouter] Trying model {model}...")
+                    response = requests.post(
+                        "https://openrouter.ai/api/v1/chat/completions",
+                        headers={
+                            "Authorization": f"Bearer {openrouter_key}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": model,
+                            "messages": [{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
+                            "max_tokens": 1024
+                        },
+                        timeout=60
+                    )
+                    if response.status_code == 200:
+                        text = response.json()["choices"][0]["message"]["content"]
+                        data = json.loads(text)
+                        required = ["scorers", "stats", "motm", "standout_moment", "next_a", "next_b"]
+                        if not is_knockout:
+                            required.append("standings")
+                        if all(k in data for k in required):
+                            logger.info(f"[OpenRouter] Success with {model}")
+                            return data
+                    else:
+                        logger.warning(f"[OpenRouter] {model} failed: {response.status_code} - {response.text[:200]}")
+                except Exception as me:
+                    logger.warning(f"[OpenRouter] Model {model} error: {me}")
+                time.sleep(1)
+        except Exception as e:
+            logger.error(f"[OpenRouter] Fallback failed: {e}")
+
+    # ── Mistral Fallback ──────────────────────────────────
+    mistral_key = os.getenv("MISTRAL_API_KEY")
+    if mistral_key:
+        try:
+            logger.info("[Mistral] Attempting Mistral fallback for post-match details...")
+            response = requests.post(
+                "https://api.mistral.ai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {mistral_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "mistral-large-latest",
+                    "messages": [{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
+                    "max_tokens": 1024
+                },
+                timeout=60
+            )
+            if response.status_code == 200:
+                text = response.json()["choices"][0]["message"]["content"]
+                data = json.loads(text)
+                required = ["scorers", "stats", "motm", "standout_moment", "next_a", "next_b"]
+                if not is_knockout:
+                    required.append("standings")
+                if all(k in data for k in required):
+                    logger.info("[Mistral] Fallback succeeded")
+                    return data
+        except Exception as e:
+            logger.error(f"[Mistral] Fallback failed: {e}")
+
     return get_fallback_post_match_data(home, away, hs, as_, is_knockout)
 
 def get_fallback_post_match_data(home, away, hs, as_, is_knockout=False):

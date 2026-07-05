@@ -119,7 +119,6 @@ jobs:
       run: |
         git config --global user.email "bot@footybitez.com"
         git config --global user.name "WC2026 Bot"
-        # Resolve any leftover merge conflicts before committing
-        git checkout --theirs . 2>/dev/null || true
+        git config --global http.postBuffer 524288000
         git add -A
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Backfill match registry [skip ci]" && git push)
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Backfill match registry [skip ci]" && git push origin HEAD)
