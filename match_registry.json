@@ -458,6 +458,15 @@
       "status": "TIMED",
       "pre_match_done": true,
       "post_match_done": false
+    },
+    "MEX_RSA_20260611": {
+      "id": 537327,
+      "home": "Mexico",
+      "away": "South Africa",
+      "datetime_utc": "2026-06-11T19:00:00Z",
+      "status": "FINISHED",
+      "pre_match_done": false,
+      "post_match_done": true
     }
   }
 }

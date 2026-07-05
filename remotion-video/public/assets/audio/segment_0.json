@@ -1,87 +1,102 @@
 [
   {
-    "word": "The",
+    "word": "Mexico",
     "start": 0.0,
-    "duration": 0.4055294117647059
+    "duration": 0.3843
   },
   {
-    "word": "Canada",
-    "start": 0.4505882352941177,
-    "duration": 0.4055294117647059
+    "word": "secured",
+    "start": 0.42699999999999994,
+    "duration": 0.3843
   },
   {
-    "word": "national",
-    "start": 0.9011764705882354,
-    "duration": 0.4055294117647059
+    "word": "a",
+    "start": 0.8539999999999999,
+    "duration": 0.3843
   },
   {
-    "word": "team",
-    "start": 1.351764705882353,
-    "duration": 0.4055294117647059
+    "word": "2-0",
+    "start": 1.2809999999999997,
+    "duration": 0.3843
   },
   {
-    "word": "faces",
-    "start": 1.8023529411764707,
-    "duration": 0.4055294117647059
+    "word": "win",
+    "start": 1.7079999999999997,
+    "duration": 0.3843
   },
   {
-    "word": "Bosnia-Herzegovina",
-    "start": 2.2529411764705882,
-    "duration": 0.4055294117647059
+    "word": "over",
+    "start": 2.135,
+    "duration": 0.3843
   },
   {
-    "word": "on",
-    "start": 2.703529411764706,
-    "duration": 0.4055294117647059
+    "word": "South",
+    "start": 2.5619999999999994,
+    "duration": 0.3843
   },
   {
-    "word": "June",
-    "start": 3.1541176470588237,
-    "duration": 0.4055294117647059
-  },
-  {
-    "word": "12,",
-    "start": 3.6047058823529414,
-    "duration": 0.4055294117647059
-  },
-  {
-    "word": "2026,",
-    "start": 4.055294117647059,
-    "duration": 0.4055294117647059
+    "word": "Africa",
+    "start": 2.9889999999999994,
+    "duration": 0.3843
   },
   {
     "word": "with",
-    "start": 4.5058823529411764,
-    "duration": 0.4055294117647059
+    "start": 3.4159999999999995,
+    "duration": 0.3843
   },
   {
-    "word": "no",
-    "start": 4.956470588235295,
-    "duration": 0.4055294117647059
+    "word": "two",
+    "start": 3.8429999999999995,
+    "duration": 0.3843
   },
   {
-    "word": "prior",
-    "start": 5.407058823529412,
-    "duration": 0.4055294117647059
+    "word": "goals",
+    "start": 4.27,
+    "duration": 0.3843
   },
   {
-    "word": "head-to-head",
-    "start": 5.85764705882353,
-    "duration": 0.4055294117647059
+    "word": "from",
+    "start": 4.696999999999999,
+    "duration": 0.3843
   },
   {
-    "word": "history",
-    "start": 6.308235294117647,
-    "duration": 0.4055294117647059
+    "word": "unknown",
+    "start": 5.123999999999999,
+    "duration": 0.3843
   },
   {
-    "word": "to",
-    "start": 6.758823529411766,
-    "duration": 0.4055294117647059
+    "word": "players",
+    "start": 5.550999999999999,
+    "duration": 0.3843
   },
   {
-    "word": "report.",
-    "start": 7.209411764705883,
-    "duration": 0.4055294117647059
+    "word": "in",
+    "start": 5.977999999999999,
+    "duration": 0.3843
+  },
+  {
+    "word": "the",
+    "start": 6.404999999999999,
+    "duration": 0.3843
+  },
+  {
+    "word": "2026",
+    "start": 6.831999999999999,
+    "duration": 0.3843
+  },
+  {
+    "word": "FIFA",
+    "start": 7.258999999999999,
+    "duration": 0.3843
+  },
+  {
+    "word": "World",
+    "start": 7.685999999999999,
+    "duration": 0.3843
+  },
+  {
+    "word": "Cup",
+    "start": 8.113,
+    "duration": 0.3843
   }
 ]
