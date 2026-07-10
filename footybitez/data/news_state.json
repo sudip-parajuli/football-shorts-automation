@@ -10,5 +10,8 @@
   "537357": {
     "processed_at": "2026-06-14T22:52:53.768504+00:00",
     "events": 1
+  },
+  "537384": {
+    "error": "'NoneType' object has no attribute 'get'"
   }
 }
