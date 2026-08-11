@@ -1,11 +1,20 @@
 """
-World Cup 2026 Daily Content Pipeline.
+FIFA World Cup Daily Content Pipeline.
 
 5 content categories: wc_quiz, wc_fact, wc_group_preview, wc_player_spotlight, wc_history
 
-DATE GATE: Python checks if today is within June 11 - July 19, 2026.
-The GitHub Actions workflow does NOT date-gate (GitHub expressions can't compare dates).
-The script exits cleanly (exit code 0, not failure) outside the window.
+DATE GATE: `run()` checks whether today falls within [WC_START, WC_END] and exits
+cleanly (no content generated, no upload) outside that window — see the check at the
+top of `run()`. The 2026 tournament (USA/Canada/Mexico) finished July 19, 2026; the
+next FIFA World Cup is in 2030 (Morocco/Portugal/Spain, plus centenary matches in
+Uruguay/Argentina/Paraguay). Official 2030 match dates have not been announced yet, so
+WC_START/WC_END below are a placeholder window that should be tightened once FIFA
+confirms the schedule (expect it roughly a year or two before kickoff).
+
+The GitHub Actions workflow's own `schedule:` cron trigger is disabled between World
+Cups (see .github/workflows/worldcup.yml) so CI minutes aren't wasted running this
+pipeline for years with nothing to do — `workflow_dispatch` still works for manual
+testing via --force.
 """
 
 import os
@@ -20,8 +29,10 @@ from dotenv import load_dotenv
 load_dotenv()
 logger = logging.getLogger(__name__)
 
-WC_START = date(2026, 6, 11)
-WC_END = date(2026, 7, 19)
+# Next FIFA World Cup: 2030 (Morocco/Portugal/Spain + Uruguay/Argentina/Paraguay).
+# Placeholder window — narrow this down once FIFA announces the exact match dates.
+WC_START = date(2030, 6, 8)
+WC_END = date(2030, 7, 21)
 
 CONTENT_CATEGORIES = [
     "wc_quiz", "wc_fact", "wc_group_preview", "wc_player_spotlight", "wc_history", "wc_upcoming"
@@ -163,7 +174,7 @@ class WorldCupPipeline:
         self.video_creator = RemotionVideoCreator()
         self.uploader = YouTubeUploader()
         self.voice_gen = VoiceGenerator(key_pool="shorts")
-        self.socials = SocialOrchestrator()
+        self.socials = SocialOrchestrator(use_footybitez=True, skip_tiktok=False)
 
         fd_key = os.getenv("FOOTBALL_DATA_API_KEY", "")
         af_key = os.getenv("API_FOOTBALL_KEY", "")
@@ -171,6 +182,16 @@ class WorldCupPipeline:
 
 
     def run(self, category: str, skip_upload: bool = False):
+        today = date.today()
+        if not (WC_START <= today <= WC_END):
+            logger.info(
+                f"WorldCupPipeline: today ({today}) is outside the World Cup content "
+                f"window ({WC_START} to {WC_END}). No tournament is active — the next "
+                f"FIFA World Cup is in 2030. Exiting cleanly without generating "
+                f"content. Use --force to bypass this gate for testing."
+            )
+            return None
+
         logger.info(f"WorldCupPipeline: category={category}")
         dispatch = {
             "wc_quiz": self._run_quiz,

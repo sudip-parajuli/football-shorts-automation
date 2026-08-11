@@ -8,8 +8,13 @@ from footybitez.socials.tiktok_publisher import TikTokPublisher
 logger = logging.getLogger(__name__)
 
 class SocialOrchestrator:
-    def __init__(self, use_footybitez=False):
+    def __init__(self, use_footybitez=False, skip_tiktok=False):
+        # `use_footybitez` ONLY controls which Meta (Facebook/Instagram) page/credentials
+        # are targeted — it is intentionally decoupled from TikTok publishing so that
+        # routing a pipeline's Facebook/Instagram posts to the Footybitez page doesn't
+        # silently also disable its TikTok uploads (a previous version conflated the two).
         self.use_footybitez = use_footybitez
+        self.skip_tiktok = skip_tiktok
         self.meta = MetaPublisher(use_footybitez=use_footybitez)
         self.tiktok = TikTokPublisher()
         self.dry_run = os.getenv("DRY_RUN", "false").lower() == "true"
@@ -130,12 +135,12 @@ class SocialOrchestrator:
                 results["instagram"] = None
 
         # 3. Publish to TikTok
-        if not self.use_footybitez:
+        if not self.skip_tiktok:
             logger.info("--- Publishing to TikTok ---")
             tt_id = self.tiktok.publish_video(local_video_path, title)
             results["tiktok"] = tt_id
         else:
-            logger.info("Skipping TikTok publishing for FootyBitez channel.")
+            logger.info("Skipping TikTok publishing (skip_tiktok=True).")
             results["tiktok"] = None
 
         logger.info("=== Cross-Platform Social Publishing Completed ===")

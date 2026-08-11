@@ -75,6 +75,8 @@ jobs:
         GROQ_API_KEY3: ${{ secrets.GROQ_API_KEY3 }}
         
         # Audio (Hume)
+        GOOGLE_CLOUD_TTS_API_KEY: ${{ secrets.GOOGLE_CLOUD_TTS_API_KEY }}
+        GOOGLE_CLOUD_TTS_API_KEY2: ${{ secrets.GOOGLE_CLOUD_TTS_API_KEY2 }}
         HUME_API_KEY_LONG_1: ${{ secrets.HUME_API_KEY_LONG_1 }}
         HUME_API_KEY_LONG_2: ${{ secrets.HUME_API_KEY_LONG_2 }}
         HUME_API_KEY_LONG_3: ${{ secrets.HUME_API_KEY_LONG_3 }}
@@ -92,6 +94,7 @@ jobs:
         # Media Sourcing
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+        RAPIDAPI_FOOTBALL_KEY: ${{ secrets.RAPIDAPI_FOOTBALL_KEY }}
         UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
         
         # YouTube

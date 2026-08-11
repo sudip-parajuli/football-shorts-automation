@@ -42,7 +42,7 @@ class GeneralNewsPipeline:
         self.media_sourcer = MediaSourcer()
         self.video_creator = RemotionVideoCreator()
         self.uploader = YouTubeUploader()
-        self.socials = SocialOrchestrator()
+        self.socials = SocialOrchestrator(use_footybitez=True, skip_tiktok=False)
 
         os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
         self.state = self._load_state()

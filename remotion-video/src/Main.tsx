@@ -89,8 +89,14 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
 
   return (
     <div style={{
+      // Raised from 15% -> 28% from the bottom. YouTube Shorts overlays its own UI
+      // (channel handle, description/title text, sound name, and the like/comment/
+      // share/remix button column on the right) across roughly the bottom ~25% and
+      // right ~80-100px of the frame. At 15% our captions were sitting directly
+      // behind that text. 28% clears it while still reading as a "bottom third"
+      // caption position.
       position: 'absolute',
-      bottom: '15%',
+      bottom: '28%',
       left: 0,
       right: 0,
       display: 'flex',
@@ -98,7 +104,7 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
       justifyContent: 'center',
       alignItems: 'center',
       gap: '12px 20px',
-      padding: '0 60px',
+      padding: '0 70px',
       textAlign: 'center',
       fontFamily: 'Montserrat, Impact, sans-serif',
       zIndex: 20,

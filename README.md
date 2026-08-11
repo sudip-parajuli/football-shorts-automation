@@ -35,6 +35,17 @@ npm install
 ```
 GEMINI_API_KEY=your_gemini_key_here
 ENABLE_UPLOAD=true
+
+# Text-to-speech, tried in this order: Google Cloud TTS -> Hume -> Edge TTS -> gTTS.
+# GOOGLE_CLOUD_TTS_API_KEY is the first choice. Get one at
+# console.cloud.google.com -> enable "Cloud Text-to-Speech API" -> Credentials -> API key.
+# Free tier covers ~1M characters/month per voice type (Neural2 included).
+GOOGLE_CLOUD_TTS_API_KEY=your_google_cloud_tts_key_here
+# Optional 2nd key for rotation once the first is exhausted.
+GOOGLE_CLOUD_TTS_API_KEY2=
+# Defaults to en-US-Neural2-D (deep, energetic male voice suited to sports narration).
+# Any MALE voice name from cloud.google.com/text-to-speech/docs/voices works here.
+GOOGLE_CLOUD_TTS_VOICE=en-US-Neural2-D
 ```
 
 ## Running Locally
