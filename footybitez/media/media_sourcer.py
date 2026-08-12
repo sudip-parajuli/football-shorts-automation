@@ -38,6 +38,12 @@ class MediaSourcer:
         # In-memory cache so the same entity isn't looked up twice against
         # API-Football's tight daily quota (100 req/day) within one pipeline run.
         self._api_football_cache = {}
+        # (api_key, model) pairs known to be quota-exhausted or unavailable for the
+        # rest of THIS run. Without this, a 429 (quota) or 404 (model retired) on the
+        # very first image check gets rediscovered from scratch on every subsequent
+        # image — observed burning 5+ minutes per image once the free-tier daily
+        # quota was hit, because every candidate re-tried the same dead combination.
+        self._gemini_unusable = set()
         
         # Clean directory at startup to ensure no stale cached assets are reused
         self.startup_cleanup()
@@ -324,8 +330,20 @@ class MediaSourcer:
             )
         ]
 
+        # gemini-2.0-flash was retired (returns 404 NOT_FOUND) — gemini-2.5-flash-lite
+        # is a separate model with its own quota pool, giving a real second attempt
+        # instead of a guaranteed-dead one.
+        candidate_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
+
+        attempted_any = False
         for key in self.gemini_keys:
-            for model in ["gemini-2.5-flash", "gemini-2.0-flash"]:
+            for model in candidate_models:
+                combo = (key, model)
+                if combo in self._gemini_unusable:
+                    # Already known dead/exhausted this run — skip straight past it
+                    # instead of re-discovering the same 429/404 on every image.
+                    continue
+                attempted_any = True
                 try:
                     client = genai.Client(api_key=key)
                     response = client.models.generate_content(
@@ -365,9 +383,26 @@ class MediaSourcer:
                     if "safety" in err_str or "blocked" in err_str:
                         print(f"[Safety] Image blocked during API call for {filename}: {e}. Rejecting.")
                         return False
+                    is_quota_or_missing = (
+                        "429" in err_str or "resource_exhausted" in err_str or "quota" in err_str
+                        or "404" in err_str or "not_found" in err_str
+                    )
+                    if is_quota_or_missing:
+                        # Daily/rate quota exceeded, or the model no longer exists —
+                        # neither recovers within this run. Mark it dead and move on
+                        # immediately (no sleep — a 1s pause does nothing for a daily
+                        # quota and just adds latency across every remaining image).
+                        self._gemini_unusable.add(combo)
+                        print(f"[Safety] Marking {model} on this key as unusable for the rest of this run: {e}")
+                        continue
+                    # Genuinely transient (network blip, 503 momentarily overloaded) —
+                    # worth a brief pause before the next key/model attempt.
                     print(f"[Safety] Gemini visual check failed on key/model {model}: {e}")
                     time.sleep(1)
                     continue
+
+        if not attempted_any:
+            print(f"[Safety] All Gemini key/model combinations are marked unusable this run — skipping API call for '{filename}'.")
 
         if strict:
             print(f"[Safety] Gemini API rate limited/offline on ALL keys — cannot verify '{filename}' from an uncurated source. Rejecting (fail-safe).")
@@ -1080,7 +1115,15 @@ class MediaSourcer:
 
                     fname = f"wiki_{hash(url)}.jpg"
                     fpath = os.path.join(self.download_dir, fname)
-                    self._download_file(url, fpath, context_query=query, strict=True)
+                    # strict=False: Wikimedia Commons has its own community
+                    # moderation/deletion policy against NSFW content (unlike raw DDG
+                    # web search, which is the actual high-risk source). Fail-closed
+                    # here meant that once the small free-tier Gemini quota was
+                    # exhausted mid-run, every remaining Commons candidate got
+                    # auto-rejected too, cascading all the way down to blank solid-
+                    # color fallback cards instead of a real (still text-filtered)
+                    # image.
+                    self._download_file(url, fpath, context_query=query, strict=False)
 
                     if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
                         self.used_urls.add(url)
