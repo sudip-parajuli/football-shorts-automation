@@ -362,6 +362,48 @@ class ScriptGenerator:
         elif category == "World Cup & Stats":
             base_style = "Informative, epic, data-driven."
             extra_instructions = "Use impressive numbers. Highlight the scale of the event. Connect history to modern day."
+        elif category == "Money & Transfers":
+            base_style = "Insider gossip, dramatic numbers, high-stakes deal-making."
+            extra_instructions = (
+                "Do NOT just state a transfer fee — that's a number, not a story. Explain WHY the deal "
+                "mattered: what record it broke or matched, what rival club missed out, what release clause "
+                "or bidding war was involved, and how it turned out (bargain, flop, or vindicated). "
+                "If exact fees are uncertain, say so descriptively rather than guessing a number."
+            )
+        elif category == "Referees, Rules & Weird Laws":
+            base_style = "Explainer, mildly incredulous 'wait, that's actually the rule?' tone."
+            extra_instructions = (
+                "You are explaining a RULE, so the script must contain the actual rule mechanic in plain "
+                "language (not just 'there's a weird rule about X'). Give ONE specific real match where it "
+                "caused controversy or decided a result, and correct the common misconception about it if "
+                "there is one. A viewer must finish the video able to explain the rule to someone else."
+            )
+        elif category == "Psychology & Mental Side":
+            base_style = "Insightful, science-meets-sport — 'here's what's actually happening in their head'."
+            extra_instructions = (
+                "CRITICAL: A player's stat (goals, penalties taken, a famous miss) is EVIDENCE, not an "
+                "EXPLANATION — citing that Messi missed a penalty is not the same as explaining why pressure "
+                "causes misses. You MUST name the actual psychological mechanism (e.g. choking under pressure, "
+                "decision paralysis/overthinking, the goalkeeper's gamesmanship delaying the kick, crowd noise "
+                "and 'social facilitation', sudden-death shootout order effects) and connect it explicitly to "
+                "the real example. If you cannot state the mechanism, do not use the stat as if it proves one."
+            )
+        elif category == "Football Explained Simply":
+            base_style = "Patient teacher energy — simple, plain-language, beginner-friendly."
+            extra_instructions = (
+                "Assume the viewer has never heard this term before. Use ONE concrete, everyday analogy to "
+                "explain the concept before naming it formally. Structure: what it is -> why it matters in a "
+                "real match -> one memorable example. Avoid jargon unless you immediately explain it in plain "
+                "words in the same sentence."
+            )
+        elif category == "Rivalries & Wars":
+            base_style = "Tribal, high-tension derby energy."
+            extra_instructions = (
+                "Do NOT just say 'these two clubs hate each other' — explain the actual ORIGIN of the "
+                "rivalry (historical, political, geographic, or a specific flashpoint transfer/match/incident) "
+                "and then give ONE specific match or moment that defines it. The viewer should understand WHY "
+                "the rivalry exists, not just that it does."
+            )
         elif category == "wc_upcoming":
             base_style = "Pre-match preview, high anticipation, data-driven."
             extra_instructions = (
@@ -483,7 +525,22 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
         }}
 
         Rules:
-        1. "hook": Must be shocking/intriguing but FACTUALLY ACCURATE.
+        1. "hook": Must be shocking/intriguing but FACTUALLY ACCURATE. A flat, obvious
+           statement of the topic (e.g. "Penalties decide matches") is a FAILED hook —
+           it must be a bold claim, a surprising number, or a direct question that makes
+           someone stop scrolling in the first second.
+           BAD: "Penalties decide matches." (states the obvious, no tension)
+           GOOD: "Why do the world's best players CHOKE from 12 yards?"
+        1b. THE SCRIPT MUST ANSWER ITS OWN TOPIC. If the topic is phrased as "Why X" or
+           "How X", the segments must state the actual cause/mechanism — a statistic or
+           anecdote is EVIDENCE for a claim, not a substitute for explaining it. A script
+           that only cites a stat ("Ronaldo has scored ~40 penalties") without ever
+           explaining what the topic asked ("why penalties are psychological") has failed
+           regardless of how accurate the stat is.
+        1c. "outro": Must be a SPECIFIC call-to-action tied to this exact topic, not a
+           generic sign-off. Ask a pointed question or invite a concrete reaction.
+           BAD: "Like and subscribe for more football psychology content"
+           GOOD: "Would YOU have the nerve to take that kick? Comment your pick 👇"
         2. "primary_entity": EXTRACT the exact name of the main subject.
         3. "segments": Split whenever the VISUAL SUBJECT changes. NO FICTION.
         4. "visual_keyword": Specific search term. 
