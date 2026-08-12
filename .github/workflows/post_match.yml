@@ -85,5 +85,9 @@ jobs:
           git config --global user.email "bot@footybitez.com"
           git config --global user.name "WC2026 Bot"
           git checkout --theirs . 2>/dev/null || true
-          git add -A
+          # Scoped to just the registry file — this used to be `git add -A`, which
+          # also swept up that run's leftover downloaded/rendered assets sitting in
+          # remotion-video/public/ (mis-extensioned files like .web/.com/.img that
+          # cleanup_public_assets() didn't recognize) straight into commits on main.
+          git add match_registry.json
           git diff --quiet && git diff --staged --quiet || (git commit -m "Update match registry [skip ci]" && git push)

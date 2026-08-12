@@ -55,6 +55,23 @@ remotion-video/public/assets/temp/
 remotion-video/props.json
 props.json
 
+# Transient per-run downloaded/generated media copied into remotion-video/public/ for
+# rendering (see media_sourcer.py / remotion_video_creator.py). Source URLs sometimes
+# produce mis-extensioned filenames (e.g. ".web", ".com", ".img" instead of a real
+# image extension), which the *.jpg/*.mp3/*.mp4 patterns above don't catch — this is a
+# safety net so a broad `git add -A` in a workflow can never commit them again, even
+# if cleanup_public_assets() doesn't run first.
+remotion-video/public/ddg_*
+remotion-video/public/poll_*
+remotion-video/public/wiki_*
+remotion-video/public/unsplash_*
+remotion-video/public/pixabay_*
+remotion-video/public/tsdb_*
+remotion-video/public/apifootball_*
+remotion-video/public/openverse_*
+remotion-video/public/card_*
+remotion-video/public/ai_title_*
+
 # Test artifacts and media
 test_downloads/
 test_trash/

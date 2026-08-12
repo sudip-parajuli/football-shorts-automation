@@ -36,6 +36,17 @@ class RemotionVideoCreator:
         """
         logger.info("Cleaning up old assets in remotion public folder...")
         
+        # Prefixes used by MediaSourcer/RemotionVideoCreator for every transient,
+        # per-run downloaded/generated/copied asset. Matching on prefix (regardless
+        # of extension) catches files whose extension came out non-standard — e.g. a
+        # source URL ending in a fragment like ".webp"/".com" used to leave behind
+        # ".web"/".com" files that the old extension-only filter below never matched,
+        # so they piled up as permanent debris instead of being cleaned each run.
+        _TRANSIENT_PREFIXES = (
+            "ddg_", "poll_", "wiki_", "unsplash_", "pixabay_", "tsdb_",
+            "apifootball_", "openverse_", "card_", "ai_title_", "hook", "segment_", "outro",
+        )
+
         # 1. Clean public root
         if os.path.exists(self.remotion_public):
             for filename in os.listdir(self.remotion_public):
@@ -44,8 +55,13 @@ class RemotionVideoCreator:
                     # Preserved files
                     if filename in ["dummy.jpg", "dummy_verif.jpg", "metadata.json"]:
                         continue
-                    # Delete old jpg, mp3, mp4, json
-                    if filename.endswith((".jpg", ".mp3", ".mp4", ".json")):
+                    # Delete old jpg/mp3/mp4/json (case-insensitive — DDG-sourced
+                    # files sometimes carry an uppercase extension like ".JPG"),
+                    # OR any file matching a known transient-source prefix regardless
+                    # of its extension.
+                    lower_name = filename.lower()
+                    if lower_name.endswith((".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".mp3", ".mp4", ".json")) \
+                            or filename.startswith(_TRANSIENT_PREFIXES):
                         try:
                             os.remove(file_path)
                         except Exception as e:

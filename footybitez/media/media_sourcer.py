@@ -1220,6 +1220,21 @@ class MediaSourcer:
             print(f"[Openverse] Error: {e}")
         return paths
 
+    _VALID_IMAGE_EXTS = {"jpg", "jpeg", "png", "gif", "webp", "bmp"}
+
+    def _safe_image_ext(self, image_url: str) -> str:
+        """
+        Extracts a real image extension from a URL, defaulting to 'jpg' for
+        anything unrecognized. The previous version blindly took the last 3
+        characters after the final '.' (`ext[:3]`), which turned '.webp' into
+        '.web', '.jpeg' into '.jpe', and non-extension URL tails (e.g. a domain
+        ending '.com') into a bogus extension. Those mis-extensioned files were
+        never matched by cleanup_public_assets()'s '.jpg/.mp3/.mp4/.json' filter,
+        so they piled up as permanent debris in remotion-video/public/.
+        """
+        ext = image_url.split('.')[-1].split('?')[0].lower()
+        return ext if ext in self._VALID_IMAGE_EXTS else "jpg"
+
     def _fetch_ddg_image(self, query, suffix):
         """Fetches an image using DuckDuckGo as final free fallback with football-only filter."""
         if DDGS is None:
@@ -1240,10 +1255,8 @@ class MediaSourcer:
                         # Filter: reject bad-sport URLs and titles
                         if self._is_bad_image(url=image_url, title=title):
                             continue
-                        ext = image_url.split('.')[-1].split('?')[0][:3]
+                        ext = self._safe_image_ext(image_url)
                         filename = f"ddg_{suffix}_{hash(query)}.{ext}"
-                        if len(ext) > 4 or not ext.isalpha():
-                            filename = f"ddg_{suffix}_{hash(query)}.jpg"
                         filepath = os.path.join(self.download_dir, filename)
                         self._download_file(image_url, filepath, context_query=query, strict=True)
                         if os.path.exists(filepath):
@@ -1275,10 +1288,8 @@ class MediaSourcer:
                         # Filter: reject bad-sport URLs and titles
                         if self._is_bad_image(url=image_url, title=title):
                             continue
-                        ext = image_url.split('.')[-1].split('?')[0][:3]
+                        ext = self._safe_image_ext(image_url)
                         filename = f"ddg_{suffix}_{len(paths)}_{hash(query)}.{ext}"
-                        if len(ext) > 4 or not ext.isalpha():
-                            filename = f"ddg_{suffix}_{len(paths)}_{hash(query)}.jpg"
                         filepath = os.path.join(self.download_dir, filename)
                         self._download_file(image_url, filepath, context_query=query, strict=True)
                         if os.path.exists(filepath):
