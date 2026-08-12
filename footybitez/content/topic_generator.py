@@ -58,8 +58,8 @@ class TopicGenerator:
                 "History of the FIFA World Cup",
                 "Total cost of hosting the World Cup by country",
                 "Top 5 highest attendance in football history",
-                "The future of the FIFA World Cup (48 teams)",
-                "Who will host the next World Cups?",
+                "Why FIFA expanded the World Cup to 48 teams",
+                "Where the World Cup is headed next: 2030 and 2034",
                 "The most expensive World Cup ever (Qatar)",
                 "Evolution of the World Cup Trophy"
             ],

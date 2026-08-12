@@ -288,7 +288,68 @@ class ScriptGenerator:
         except Exception as e:
             logger.warning(f"Context fetch attempt 2 failed: {e}")
 
+        # CONCEPTUAL-TOPIC FALLBACK: Wikipedia entity search only works when the
+        # topic names a specific person/club/event. Topics like "Why penalties are
+        # psychological" or "How tiki-taka really works" don't map to any single
+        # Wikipedia article — every topic in Psychology & Mental Side and Football
+        # Explained Simply, and roughly half of Tactics & IQ, are exactly this shape.
+        # Those topics were falling straight to "__NO_CONTEXT__" -> "be conservative,
+        # avoid specifics" -> vague, uninformative scripts. A web text search (not
+        # entity lookup) can still find real explainer content for a concept.
+        web_result = self._fetch_web_text_context(topic)
+        if web_result:
+            return web_result
+
         return "__NO_CONTEXT__"
+
+    def _fetch_web_text_context(self, topic):
+        """
+        Grounding fallback for CONCEPTUAL topics that have no Wikipedia entity page.
+        Uses a DuckDuckGo TEXT search (not the image search used elsewhere) to pull
+        real snippets about the concept, so the model has something to explain the
+        "why"/"how" with instead of hedging with vague filler. Returns None (not
+        '__NO_CONTEXT__') on failure so the caller's existing fallback path is used.
+        """
+        try:
+            from ddgs import DDGS
+        except ImportError:
+            try:
+                from duckduckgo_search import DDGS
+            except ImportError:
+                logger.warning("[Grounding] Neither 'ddgs' nor 'duckduckgo_search' installed — skipping web text fallback.")
+                return None
+
+        try:
+            query = f"{topic} men's football soccer explained"
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=6, safesearch="on"))
+
+            if not results:
+                return None
+
+            # Same men's-football-only guard as the Wikipedia path — a bare
+            # conceptual query is exactly the shape that could otherwise surface
+            # off-topic or wrong-gender results.
+            clean = []
+            for r in results:
+                combined = f"{r.get('title', '')} {r.get('body', '')}".lower()
+                if any(bad in combined for bad in self.BAD_TOPIC_KEYWORDS):
+                    logger.warning(f"[Grounding] Skipping web result '{r.get('title', '')[:60]}' — matches a banned term.")
+                    continue
+                clean.append(r)
+
+            if not clean:
+                return None
+
+            parts = [
+                f"WEB SOURCE: {r.get('title', '')}\nSNIPPET: {r.get('body', '')[:500]}"
+                for r in clean[:4]
+            ]
+            logger.info(f"[Grounding] Found {len(parts)} web snippets for conceptual topic '{topic}'.")
+            return "\n\n=====\n\n".join(parts)
+        except Exception as e:
+            logger.warning(f"[Grounding] Web text context fetch failed for '{topic}': {e}")
+            return None
 
     def _get_prompt(self, topic, category, context=""):
         """Generates the prompt based on the category."""
