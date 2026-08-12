@@ -1,5 +1,6 @@
 import os
 import io
+import time
 import requests
 import random
 import re
@@ -30,9 +31,13 @@ class MediaSourcer:
         self.pexels_api_key = os.getenv("PEXELS_API_KEY")
         self.unsplash_api_key = os.getenv("UNSPLASH_ACCESS_KEY")
         self.pixabay_api_key = os.getenv("PIXABAY_API_KEY")
+        self.api_football_key = os.getenv("API_FOOTBALL_KEY")
         self.gemini_keys = self._collect_gemini_keys()
         self.download_dir = download_dir
         self.credits_file = os.path.join(download_dir, "image_credits.txt")
+        # In-memory cache so the same entity isn't looked up twice against
+        # API-Football's tight daily quota (100 req/day) within one pipeline run.
+        self._api_football_cache = {}
         
         # Clean directory at startup to ensure no stale cached assets are reused
         self.startup_cleanup()
@@ -114,8 +119,23 @@ class MediaSourcer:
         except Exception:
             pass
 
-    def _download_file(self, url, filepath):
-        """Downloads a file using requests with headers."""
+    def _download_file(self, url, filepath, context_query: str = "", strict: bool = True):
+        """
+        Downloads a file using requests with headers, then runs it through the
+        safety+relevance MIDDLEWARE before it is allowed to remain on disk.
+
+        `context_query` is the topic/entity/segment text this image is supposed to
+        depict — passed to the vision check so it verifies actual relevance to the
+        script, not just "is this football in general".
+
+        `strict` controls fail-safe behaviour if the vision check itself cannot be
+        completed (quota exhausted, network error, etc.):
+          - True  (default; used for open/uncurated sources like DDG, Wikimedia,
+            AI-generated images) -> the file is REJECTED (fail closed).
+          - False (used for pre-moderated sources like Unsplash/Pixabay/TheSportsDB/
+            Wikipedia that already apply their own safe-search) -> the file is kept,
+            relying on the text-keyword filter that already ran.
+        """
         if os.path.exists(filepath):
             return
         try:
@@ -135,23 +155,36 @@ class MediaSourcer:
                 with open(filepath, 'wb') as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
-
-            if os.path.exists(filepath):
-                if os.path.getsize(filepath) < 100:
-                    os.remove(filepath)
-                else:
-                    # Run post-download visual safety check
-                    if not self._check_image_safety_and_relevance(filepath):
-                        print(f"[Filter] Visual safety check failed for: {os.path.basename(filepath)}. Deleting.")
-                        try:
-                            os.remove(filepath)
-                        except Exception:
-                            pass
-                    else:
-                        print(f"DEBUG MEDIA: Downloaded {os.path.basename(filepath)} FROM {url}")
-
         except Exception as e:
             print(f"Download failed {url}: {e}")
+            return
+
+        if not os.path.exists(filepath):
+            return
+
+        if os.path.getsize(filepath) < 100:
+            os.remove(filepath)
+            return
+
+        # Run post-download visual safety+relevance MIDDLEWARE.
+        # This is deliberately OUTSIDE the download try/except above: a bug in (or
+        # transient error from) the safety check must never be swallowed and must
+        # never leave an unverified image sitting on disk. Any failure here defaults
+        # to rejecting the file rather than silently accepting it.
+        try:
+            passed = self._check_image_safety_and_relevance(filepath, context_query=context_query, strict=strict)
+        except Exception as e:
+            print(f"[Filter] Safety check crashed for {os.path.basename(filepath)}: {e}. Rejecting (fail-safe).")
+            passed = False
+
+        if not passed:
+            print(f"[Filter] Visual safety/relevance check failed for: {os.path.basename(filepath)}. Deleting.")
+            try:
+                os.remove(filepath)
+            except Exception:
+                pass
+        else:
+            print(f"DEBUG MEDIA: Downloaded {os.path.basename(filepath)} FROM {url}")
 
 
     # ─────────────────────────────────────────────────────────
@@ -225,20 +258,36 @@ class MediaSourcer:
                 return True
         return False
 
-    def _check_image_safety_and_relevance(self, filepath: str) -> bool:
+    def _check_image_safety_and_relevance(self, filepath: str, context_query: str = "", strict: bool = True) -> bool:
         """
-        Uses Gemini multimodal API to inspect the downloaded image file.
-        Returns False if the image is sexually explicit/NSFW or completely irrelevant to football/soccer.
+        MIDDLEWARE: sits between "image downloaded/generated" and "image is allowed
+        into the video". Uses the Gemini multimodal API to inspect the image file
+        and answers three questions:
+          1. Is it NSFW / nudity / sexually explicit? -> always rejected.
+          2. Is it football/soccer related at all? -> rejected if not.
+          3. If `context_query` (the script topic/entity/segment text this image is
+             supposed to depict) is given, does the image actually match THAT
+             specific subject — not just "football in general"? -> rejected if not.
+
+        `strict` decides what happens if the check cannot be completed at all
+        (no API keys, every key/model failed, response blocked with empty text):
+          - strict=True  -> FAIL CLOSED: reject the image. Used for open/uncurated
+            sources (DDG, Wikimedia Commons, AI-generated images) where an
+            unverifiable image is exactly the kind of risk that got the channel
+            banned before.
+          - strict=False -> FAIL OPEN: keep the image, relying on the text-keyword
+            filter that already ran. Used only for pre-moderated, safe-search-backed
+            sources (Unsplash content_filter=high, Pixabay safesearch=true,
+            TheSportsDB, Wikipedia).
+
+        Returns False if the image should be rejected/deleted.
         """
         filename = os.path.basename(filepath)
-        
-        # Only perform Gemini visual safety checks on open web fallbacks (DDG and Wikimedia)
-        # to preserve API quota for curated stock directories (Unsplash/Pixabay/TheSportsDB)
-        is_high_risk = filename.startswith("ddg_") or "fallback" in filename or "real" in filename
-        if not is_high_risk:
-            return True
 
         if not self.gemini_keys:
+            if strict:
+                print(f"[Safety] No GEMINI_API_KEY configured — cannot verify '{filename}' from an uncurated source. Rejecting (fail-safe).")
+                return False
             print("[Safety] No GEMINI_API_KEY available for visual safety check. Relying on text filter.")
             return True
 
@@ -254,13 +303,18 @@ class MediaSourcer:
         from google import genai
         from google.genai import types
 
+        context_clause = (
+            f"The image is supposed to depict this specific subject: \"{context_query.strip()[:200]}\". "
+            if context_query and context_query.strip() else ""
+        )
         prompt = (
-            "Analyze this image. You must answer two questions: \n"
-            "1. Is there any nudity, pornography, sexually suggestive poses, or NSFW content? \n"
-            "2. Is this image related to association football (soccer), sports stadium, fans, players, jerseys, or match action? \n"
-            "Respond strictly in JSON format with two keys: \n"
-            "'is_nsfw' (boolean: true if NSFW/nudity, false otherwise) and \n"
-            "'is_football_related' (boolean: true if related to football/sports, false otherwise)."
+            "Analyze this image. You must answer three questions:\n"
+            "1. Is there any nudity, pornography, sexually suggestive poses, or NSFW content?\n"
+            "2. Is this image related to association football (soccer) — stadium, fans, players, jerseys, badges, or match action?\n"
+            f"3. {context_clause}Does the image plausibly match that specific subject (the right "
+            "player/team/event/topic), not just football in general? If no specific subject was given, answer true.\n"
+            "Respond strictly in JSON format with three boolean keys:\n"
+            "'is_nsfw', 'is_football_related', 'matches_context'."
         )
 
         safety_settings = [
@@ -282,35 +336,42 @@ class MediaSourcer:
                             response_mime_type="application/json"
                         )
                     )
-                    
+
                     if not response.text:
-                        print(f"[Safety] Image blocked by Gemini safety filters for {filename}.")
+                        print(f"[Safety] Image blocked by Gemini safety filters for {filename}. Rejecting.")
                         return False
-                        
-                    import json
+
                     data = json.loads(response.text)
                     is_nsfw = data.get("is_nsfw", False)
                     is_football = data.get("is_football_related", True)
-                    
+                    matches_context = data.get("matches_context", True)
+
                     if is_nsfw:
-                        print(f"[Safety] Gemini classified image {filename} as NSFW.")
+                        print(f"[Safety] Gemini classified image {filename} as NSFW. REJECTED.")
                         return False
-                        
+
                     if not is_football:
-                        print(f"[Safety] Gemini classified image {filename} as not football-related.")
+                        print(f"[Safety] Gemini classified image {filename} as not football-related. REJECTED.")
                         return False
-                        
-                    print(f"[Safety] Image {filename} passed Gemini safety check.")
+
+                    if context_query and not matches_context:
+                        print(f"[Safety] Gemini says image {filename} does NOT match script context '{context_query[:60]}'. REJECTED.")
+                        return False
+
+                    print(f"[Safety] Image {filename} passed safety+relevance check" + (f" (context='{context_query[:40]}')" if context_query else "") + ".")
                     return True
                 except Exception as e:
                     err_str = str(e).lower()
                     if "safety" in err_str or "blocked" in err_str:
-                        print(f"[Safety] Image blocked during API call for {filename}: {e}")
+                        print(f"[Safety] Image blocked during API call for {filename}: {e}. Rejecting.")
                         return False
                     print(f"[Safety] Gemini visual check failed on key/model {model}: {e}")
                     time.sleep(1)
                     continue
 
+        if strict:
+            print(f"[Safety] Gemini API rate limited/offline on ALL keys — cannot verify '{filename}' from an uncurated source. Rejecting (fail-safe).")
+            return False
         print(f"[Safety] Gemini API rate limited or offline. Falling back to text check for {filename}.")
         return True
 
@@ -340,7 +401,7 @@ class MediaSourcer:
                     if thumb and thumb not in self.used_urls:
                         fname = f"tsdb_player_{hash(entity_name)}.jpg"
                         fpath = os.path.join(self.download_dir, fname)
-                        self._download_file(thumb, fpath)
+                        self._download_file(thumb, fpath, context_query=f"{entity_name} (football player)", strict=False)
                         if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
                             self.used_urls.add(thumb)
                             self._add_credit(f"Image from TheSportsDB (Player: {entity_name})")
@@ -364,7 +425,7 @@ class MediaSourcer:
                     if img_url and img_url not in self.used_urls:
                         fname = f"tsdb_team_{hash(entity_name)}.jpg"
                         fpath = os.path.join(self.download_dir, fname)
-                        self._download_file(img_url, fpath)
+                        self._download_file(img_url, fpath, context_query=f"{entity_name} (football club)", strict=False)
                         if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
                             self.used_urls.add(img_url)
                             self._add_credit(f"Image from TheSportsDB (Team: {entity_name})")
@@ -374,6 +435,81 @@ class MediaSourcer:
         except Exception as e:
             print(f"[TheSportsDB] Error for '{entity_name}': {e}")
         return None
+
+    def _fetch_api_football_image(self, entity_name: str, is_team: bool = False) -> str | None:
+        """
+        Fetches an official player photo or team logo from API-Football
+        (api-sports' direct dashboard.api-football.com API — the RapidAPI
+        marketplace listing for this API no longer exists, so this hits
+        api-sports.io directly). Free tier is small (100 req/day, 10/min),
+        so this is only called after TheSportsDB has already had a chance to
+        resolve the entity, and results are cached in-memory per entity name
+        for the lifetime of this MediaSourcer instance.
+
+        Returns a local file path or None. Never raises.
+        """
+        if not self.api_football_key:
+            return None
+
+        cache_key = entity_name.strip().lower()
+        if cache_key in self._api_football_cache:
+            return self._api_football_cache[cache_key]
+
+        result = None
+        try:
+            headers = {
+                "x-apisports-key": self.api_football_key,
+            }
+            base_url = "https://v3.football.api-sports.io"
+
+            if is_team:
+                r = requests.get(f"{base_url}/teams", headers=headers,
+                                  params={"search": entity_name}, timeout=10)
+                if r.status_code == 200:
+                    response_list = r.json().get("response", []) or []
+                    for item in response_list:
+                        team = item.get("team", {}) or {}
+                        logo = team.get("logo")
+                        if logo and logo not in self.used_urls:
+                            fname = f"apifootball_team_{hash(entity_name)}.jpg"
+                            fpath = os.path.join(self.download_dir, fname)
+                            self._download_file(logo, fpath,
+                                                 context_query=f"{entity_name} (football player/club)",
+                                                 strict=False)
+                            if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
+                                self.used_urls.add(logo)
+                                self._add_credit(f"Image from API-Football (Team: {entity_name})")
+                                self._write_image_meta(fpath, "API-Football", entity_name)
+                                print(f"[API-Football] Got team logo for '{entity_name}'")
+                                result = fpath
+                            break
+            else:
+                r = requests.get(f"{base_url}/players", headers=headers,
+                                  params={"search": entity_name}, timeout=10)
+                if r.status_code == 200:
+                    response_list = r.json().get("response", []) or []
+                    for item in response_list:
+                        player = item.get("player", {}) or {}
+                        photo = player.get("photo")
+                        if photo and photo not in self.used_urls:
+                            fname = f"apifootball_player_{hash(entity_name)}.jpg"
+                            fpath = os.path.join(self.download_dir, fname)
+                            self._download_file(photo, fpath,
+                                                 context_query=f"{entity_name} (football player/club)",
+                                                 strict=False)
+                            if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
+                                self.used_urls.add(photo)
+                                self._add_credit(f"Image from API-Football (Player: {entity_name})")
+                                self._write_image_meta(fpath, "API-Football", entity_name)
+                                print(f"[API-Football] Got player photo for '{entity_name}'")
+                                result = fpath
+                            break
+        except Exception as e:
+            print(f"[API-Football] Error for '{entity_name}': {e}")
+            result = None
+
+        self._api_football_cache[cache_key] = result
+        return result
 
     # ─────────────────────────────────────────────────────────
     # PUBLIC API — called by main.py (Shorts pipeline)
@@ -459,7 +595,7 @@ class MediaSourcer:
     def get_profile_image(self, entity_query: str) -> str | None:
         """
         Fetches a portrait image of the primary entity (player/club).
-        Priority chain: Wikipedia → TheSportsDB → Wikimedia → Unsplash → Pixabay → DDG
+        Priority chain: Wikipedia → TheSportsDB → API-Football → Wikimedia → Unsplash → Pixabay → Openverse → DDG
         Returns None if nothing found — caller handles the fallback.
         """
         print(f"Sourcing profile image for: {entity_query}")
@@ -471,6 +607,12 @@ class MediaSourcer:
 
         # 2. TheSportsDB (football-specific database, no wrong-sport risk)
         path = self._fetch_thesportsdb_image(entity_query)
+        if path:
+            return path
+
+        # 2b. API-Football (api-sports.io direct, small daily quota — only spent on
+        # entities TheSportsDB couldn't already resolve; no-op if no key set)
+        path = self._fetch_api_football_image(entity_query)
         if path:
             return path
 
@@ -489,14 +631,20 @@ class MediaSourcer:
         if paths:
             return paths[0]
 
-        # 6. DDG fallback (filtered)
+        # 6. Openverse (filtered) — no API key/account, so no quota to run out of and
+        # nothing that can get "suspended" the way API-Football's account did.
+        paths = self._fetch_openverse_image(f"{entity_query} soccer player portrait", count=1)
+        if paths:
+            return paths[0]
+
+        # 7. DDG fallback (filtered)
         return self._fetch_ddg_image(f"{entity_query} soccer portrait", suffix=f"profile_{hash(entity_query)}")
 
     def get_media(self, visual_keyword: str, count: int = 3, prefer_real_match: bool = False) -> list:
         """
         Fetches a list of image paths for a given visual keyword.
         Used by Shorts pipeline for segment visuals.
-        Priority: (DDG if prefer_real_match) → Wikipedia entity → TheSportsDB → Wikimedia → Unsplash → Pixabay → DDG
+        Priority: (DDG if prefer_real_match) → Wikipedia entity → TheSportsDB → API-Football → Wikimedia → Unsplash → Pixabay → Openverse → DDG
         All queries are filtered to men's association football only.
         """
         results = []
@@ -521,6 +669,13 @@ class MediaSourcer:
                 if tsdb:
                     results.append(tsdb)
 
+            # API-Football (api-sports.io direct, small daily quota — only spent on
+            # entities TheSportsDB couldn't already resolve; no-op without key)
+            if len(results) < count:
+                apif = self._fetch_api_football_image(visual_keyword)
+                if apif:
+                    results.append(apif)
+
         # 2. Wikimedia Commons (filtered)
         if len(results) < count:
             wiki_paths = self._fetch_wikimedia_images(safe_query, count=count - len(results))
@@ -536,7 +691,13 @@ class MediaSourcer:
             pix_paths = self._fetch_pixabay_image(safe_query, count=count - len(results))
             results.extend(pix_paths)
 
-        # 5. DDG fallback (filtered)
+        # 5. Openverse (filtered) — no API key/account, so no quota to run out of and
+        # nothing that can get "suspended" the way API-Football's account did.
+        if len(results) < count:
+            openverse_paths = self._fetch_openverse_image(safe_query, count=count - len(results))
+            results.extend(openverse_paths)
+
+        # 6. DDG fallback (filtered)
         if len(results) < count:
             path = self._fetch_ddg_image(safe_query, suffix=f"seg_{hash(visual_keyword)}")
             if path:
@@ -619,7 +780,7 @@ class MediaSourcer:
                 
                 fname = f"wiki_entity_{hash(image_url)}.jpg"
                 fpath = os.path.join(self.download_dir, fname)
-                self._download_file(image_url, fpath)
+                self._download_file(image_url, fpath, context_query=entity_name, strict=False)
                 if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
                     self._add_credit(f"Image from Wikipedia (Entity: {entity_name})")
                     self._write_image_meta(fpath, "Wikipedia Page Summary API", entity_name)
@@ -693,7 +854,7 @@ class MediaSourcer:
                                 if img_url:
                                     fname = f"wiki_api_{hash(img_url)}.jpg"
                                     fpath = os.path.join(self.download_dir, fname)
-                                    self._download_file(img_url, fpath)
+                                    self._download_file(img_url, fpath, context_query=entity_name, strict=False)
                                     if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
                                         self._add_credit(f"Image from Wikipedia (Entity: {entity_name})")
                                         self._write_image_meta(fpath, "Wikipedia API Images", entity_name)
@@ -752,10 +913,17 @@ class MediaSourcer:
     # AI IMAGE GENERATION
     # ─────────────────────────────────────────────────────────
 
-    def generate_ai_image_for_shorts(self, prompt: str, output_path: str) -> bool:
+    def generate_ai_image_for_shorts(self, prompt: str, output_path: str, max_attempts: int = 3) -> bool:
         """
         Generates a 9:16 portrait AI image for Shorts using Gemini (new SDK, free tier).
         Model: gemini-2.5-flash-image
+
+        Every generated image is run through the same safety+relevance MIDDLEWARE as
+        downloaded images before being accepted (AI generators can drift off-topic or,
+        rarely, produce inappropriate content — never trust them blindly). If the
+        image fails the check, generation is retried up to `max_attempts` times before
+        giving up so the caller can fall back to the next source tier.
+
         Returns True on success, False on any failure.
         """
         if not self.gemini_keys:
@@ -772,35 +940,59 @@ class MediaSourcer:
         full_prompt = (
             f"portrait orientation 9:16, {prompt}, "
             f"dramatic lighting, dark background, sports photography style, "
-            f"no text overlays, cinematic quality"
+            f"family-friendly, safe for work, no text overlays, cinematic quality"
         )
 
-        for i, key in enumerate(self.gemini_keys):
-            try:
-                client = genai.Client(api_key=key)
-                response = client.models.generate_content(
-                    model="gemini-2.5-flash-image",
-                    contents=full_prompt,
-                    config=types.GenerateContentConfig(
-                        response_modalities=["TEXT", "IMAGE"]
-                    )
-                )
-                for part in response.candidates[0].content.parts:
-                    if part.inline_data and part.inline_data.mime_type.startswith("image/"):
-                        img = PILImage.open(io.BytesIO(part.inline_data.data)).convert("RGB")
-                        img = img.resize((1080, 1920), PILImage.LANCZOS)
-                        os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
-                        img.save(output_path, "JPEG", quality=95)
-                        print(f"[AI Image] Generated shorts image with key #{i+1}")
-                        return True
-            except Exception as e:
-                print(f"[AI Image] Key #{i+1} failed: {e}")
+        for attempt in range(max_attempts):
+            generated = False
+            for i, key in enumerate(self.gemini_keys):
                 try:
-                    from footybitez.media.football_visual_generator import handle_429_sleep
-                    handle_429_sleep(str(e))
-                except Exception as sleep_err:
-                    print(f"[AI Image] Error during sleep: {sleep_err}")
+                    client = genai.Client(api_key=key)
+                    response = client.models.generate_content(
+                        model="gemini-2.5-flash-image",
+                        contents=full_prompt,
+                        config=types.GenerateContentConfig(
+                            response_modalities=["TEXT", "IMAGE"]
+                        )
+                    )
+                    for part in response.candidates[0].content.parts:
+                        if part.inline_data and part.inline_data.mime_type.startswith("image/"):
+                            img = PILImage.open(io.BytesIO(part.inline_data.data)).convert("RGB")
+                            img = img.resize((1080, 1920), PILImage.LANCZOS)
+                            os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
+                            img.save(output_path, "JPEG", quality=95)
+                            print(f"[AI Image] Generated shorts image with key #{i+1} (attempt {attempt+1}/{max_attempts})")
+                            generated = True
+                            break
+                    if generated:
+                        break
+                except Exception as e:
+                    print(f"[AI Image] Key #{i+1} failed: {e}")
+                    try:
+                        from footybitez.media.football_visual_generator import handle_429_sleep
+                        handle_429_sleep(str(e))
+                    except Exception as sleep_err:
+                        print(f"[AI Image] Error during sleep: {sleep_err}")
 
+            if not generated:
+                continue  # every key failed to even produce an image this attempt
+
+            try:
+                passed = self._check_image_safety_and_relevance(output_path, context_query=prompt, strict=True)
+            except Exception as e:
+                print(f"[AI Image] Safety check crashed: {e}. Rejecting (fail-safe).")
+                passed = False
+
+            if passed:
+                return True
+
+            print(f"[AI Image] Generated image REJECTED by safety/relevance check (attempt {attempt+1}/{max_attempts}). Regenerating...")
+            try:
+                os.remove(output_path)
+            except Exception:
+                pass
+
+        print(f"[AI Image] Gave up after {max_attempts} attempts — no safe/relevant image could be generated.")
         return False
 
     # ─────────────────────────────────────────────────────────
@@ -888,7 +1080,7 @@ class MediaSourcer:
 
                     fname = f"wiki_{hash(url)}.jpg"
                     fpath = os.path.join(self.download_dir, fname)
-                    self._download_file(url, fpath)
+                    self._download_file(url, fpath, context_query=query, strict=True)
 
                     if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
                         self.used_urls.add(url)
@@ -931,7 +1123,7 @@ class MediaSourcer:
                         continue
                     user = photo['user']['name']
                     fpath = os.path.join(self.download_dir, f"unsplash_{photo['id']}.jpg")
-                    self._download_file(src, fpath)
+                    self._download_file(src, fpath, context_query=query, strict=False)
                     if os.path.exists(fpath):
                         self.used_urls.add(src)
                         paths.append(fpath)
@@ -971,7 +1163,7 @@ class MediaSourcer:
                         continue
                     user = hit['user']
                     fpath = os.path.join(self.download_dir, f"pixabay_{hit['id']}.jpg")
-                    self._download_file(src, fpath)
+                    self._download_file(src, fpath, context_query=query, strict=False)
                     if os.path.exists(fpath):
                         self.used_urls.add(src)
                         paths.append(fpath)
@@ -979,6 +1171,53 @@ class MediaSourcer:
                         self._write_image_meta(fpath, "Pixabay", user)
         except Exception as e:
             print(f"Pixabay error: {e}")
+        return paths
+
+    def _fetch_openverse_image(self, query, count=1):
+        """
+        Fetches CC-licensed images from Openverse (openverse.org) — an aggregator
+        that searches Flickr, Wikimedia, museum collections, and more in one call.
+        No API key or account needed, so unlike API-Football this can never get
+        "suspended" or run out of quota; it's a free, always-available layer to try
+        before falling back to unfiltered DDG web search.
+        """
+        paths = []
+        try:
+            safe_query = self._make_football_query(query)
+            url = "https://api.openverse.org/v1/images/"
+            params = {
+                "q": safe_query,
+                "license_type": "all-cc",
+                "page_size": count * 4,  # fetch more to filter bad ones
+            }
+            headers = {'User-Agent': 'FootyBitezBot/1.0 (contact: admin@footybitez.com)'}
+            res = requests.get(url, params=params, headers=headers, timeout=10)
+            if res.status_code == 200:
+                data = res.json()
+                for hit in data.get('results', []):
+                    if len(paths) >= count:
+                        break
+                    src = hit.get('url')
+                    if not src or src in self.used_urls:
+                        continue
+                    title = hit.get('title') or ""
+                    tags = " ".join(t.get('name', '') for t in (hit.get('tags') or []))
+                    if self._is_bad_image(url=src, title=title, tags=tags):
+                        continue
+                    creator = hit.get('creator') or "Unknown"
+                    license_name = (hit.get('license') or 'CC').upper()
+                    fpath = os.path.join(self.download_dir, f"openverse_{hash(src)}.jpg")
+                    # Openverse aggregates many source providers of mixed curation
+                    # quality — treat like Wikimedia/DDG (fail closed on the safety
+                    # check), not like Unsplash/Pixabay's own moderated feeds.
+                    self._download_file(src, fpath, context_query=query, strict=True)
+                    if os.path.exists(fpath):
+                        self.used_urls.add(src)
+                        paths.append(fpath)
+                        self._add_credit(f"Image by {creator} via Openverse ({license_name})")
+                        self._write_image_meta(fpath, "Openverse", creator)
+        except Exception as e:
+            print(f"[Openverse] Error: {e}")
         return paths
 
     def _fetch_ddg_image(self, query, suffix):
@@ -1006,7 +1245,7 @@ class MediaSourcer:
                         if len(ext) > 4 or not ext.isalpha():
                             filename = f"ddg_{suffix}_{hash(query)}.jpg"
                         filepath = os.path.join(self.download_dir, filename)
-                        self._download_file(image_url, filepath)
+                        self._download_file(image_url, filepath, context_query=query, strict=True)
                         if os.path.exists(filepath):
                             self.used_urls.add(image_url)
                             return filepath
@@ -1041,7 +1280,7 @@ class MediaSourcer:
                         if len(ext) > 4 or not ext.isalpha():
                             filename = f"ddg_{suffix}_{len(paths)}_{hash(query)}.jpg"
                         filepath = os.path.join(self.download_dir, filename)
-                        self._download_file(image_url, filepath)
+                        self._download_file(image_url, filepath, context_query=query, strict=True)
                         if os.path.exists(filepath):
                             self.used_urls.add(image_url)
                             paths.append(filepath)
@@ -1049,27 +1288,54 @@ class MediaSourcer:
             print(f"DDG Multi Fallback error: {e}")
         return paths
 
-    def _fetch_pollinations_image(self, prompt: str, output_path: str) -> bool:
+    def _fetch_pollinations_image(self, prompt: str, output_path: str, max_attempts: int = 2) -> bool:
         """
         Fetches an AI image from Pollinations.ai — no API key, no quota.
+
+        Pollinations is an open, unmoderated generator, so every result is run
+        through the safety+relevance MIDDLEWARE (fail-closed) before being accepted.
+        Regenerates (new random seed via cache-busting) up to `max_attempts` times if
+        rejected, then gives up so the caller falls back to the next source tier.
+
         Returns True on success, False on failure.
         """
-        try:
-            import urllib.parse
-            encoded = urllib.parse.quote(prompt)
-            url = f"https://image.pollinations.ai/prompt/{encoded}?width=1080&height=1920&nologo=true"
-            headers = {'User-Agent': 'FootyBitezBot/1.0'}
-            r = requests.get(url, headers=headers, timeout=30)
-            if r.status_code == 200 and 'image' in r.headers.get('Content-Type', ''):
-                os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
-                with open(output_path, 'wb') as f:
-                    f.write(r.content)
-                if os.path.getsize(output_path) > 5000:
-                    print(f"[Pollinations] Generated image: {output_path}")
-                    return True
-                os.remove(output_path)
-        except Exception as e:
-            print(f"[Pollinations] Error: {e}")
+        import urllib.parse
+        encoded = urllib.parse.quote(prompt)
+        headers = {'User-Agent': 'FootyBitezBot/1.0'}
+
+        for attempt in range(max_attempts):
+            try:
+                # Cache-bust with a random seed so a retry actually produces a
+                # different image instead of the same (rejected) one.
+                seed = random.randint(1, 10_000_000)
+                url = f"https://image.pollinations.ai/prompt/{encoded}?width=1080&height=1920&nologo=true&seed={seed}"
+                r = requests.get(url, headers=headers, timeout=30)
+                if r.status_code == 200 and 'image' in r.headers.get('Content-Type', ''):
+                    os.makedirs(os.path.dirname(output_path) if os.path.dirname(output_path) else ".", exist_ok=True)
+                    with open(output_path, 'wb') as f:
+                        f.write(r.content)
+                    if os.path.getsize(output_path) <= 5000:
+                        os.remove(output_path)
+                        continue
+
+                    try:
+                        passed = self._check_image_safety_and_relevance(output_path, context_query=prompt, strict=True)
+                    except Exception as e:
+                        print(f"[Pollinations] Safety check crashed: {e}. Rejecting (fail-safe).")
+                        passed = False
+
+                    if passed:
+                        print(f"[Pollinations] Generated image: {output_path} (attempt {attempt+1}/{max_attempts})")
+                        return True
+
+                    print(f"[Pollinations] Generated image REJECTED by safety/relevance check (attempt {attempt+1}/{max_attempts}). Retrying...")
+                    try:
+                        os.remove(output_path)
+                    except Exception:
+                        pass
+            except Exception as e:
+                print(f"[Pollinations] Error: {e}")
+
         return False
 
     def _create_solid_card(self, text: str) -> str:

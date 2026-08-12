@@ -50,7 +50,7 @@ class BreakingNewsPipeline:
         self.media_sourcer = MediaSourcer()
         self.video_creator = RemotionVideoCreator()
         self.uploader = YouTubeUploader()
-        self.socials = SocialOrchestrator()
+        self.socials = SocialOrchestrator(use_footybitez=True, skip_tiktok=False)
 
 
     # ─────────────────────────────────────────────────────────
