@@ -20,6 +20,24 @@ def _get_keys(prefix: str) -> list:
 
 
 class ScriptGenerator:
+    # Shared by _sanitize_visual_keywords (patches the image search query) AND
+    # _validate_script_data (rejects the whole script outright). The prompt already
+    # tells the model "men's football only" — this is the enforcement layer, because
+    # a rule that's only ever *asked for* and never *checked* gets violated by the
+    # model exactly when it matters (see: an entire fabricated NWSL stat surviving
+    # validation because only the visual_keyword field was ever scanned).
+    # NOTE: deliberately excludes "handball" — unlike media_sourcer.py's image-query
+    # filter (where it's fine to steer an image search away from it), "handball" is a
+    # routine, legitimate football term (a foul/VAR decision) that would otherwise get
+    # a perfectly good, on-topic script rejected outright.
+    BAD_TOPIC_KEYWORDS = [
+        "nfl", "gridiron", "american football", "superbowl", "super bowl", "touchdown",
+        "rugby", "cricket", "hockey", "nhl", "baseball", "basketball", "nba",
+        "tennis", "golf", "boxing", "mma", "volleyball",
+        "women", "woman", "female", "ladies", "girl",
+        "nwsl", "wsl", "nwt", "women's national", "womens",
+    ]
+
     def __init__(self):
         self.gemini_keys = _get_keys("GEMINI_API_KEY")
         self.groq_keys = _get_keys("GROQ_API_KEY")
@@ -196,17 +214,39 @@ class ScriptGenerator:
                     search_query = ent.lower().replace("football", "soccer")
                     if "soccer" not in search_query and "association" not in search_query:
                         search_query += " soccer"
+                    # Disambiguate toward men's football the same way media_sourcer.py's
+                    # image search does — a bare "soccer"/"football" query is exactly
+                    # what let a men's-attendance-records topic surface an NWSL page
+                    # as the #1 Wikipedia search hit, which then got trusted as ground
+                    # truth and fabricated the rest of the script from there.
+                    search_query += " men's"
 
-                    search_res = wikipedia.search(search_query, results=1)
+                    # Pull several candidates and skip any that are themselves about
+                    # the wrong sport/gender — taking the literal #1 hit blindly is
+                    # what let a wrong-gender page in as "ground truth" before.
+                    search_res = wikipedia.search(search_query, results=5)
                     if not search_res:
                         continue
 
-                    page_title = search_res[0]
-                    if page_title in seen_pages:
+                    page_title = None
+                    for candidate in search_res:
+                        candidate_lower = candidate.lower()
+                        if any(bad in candidate_lower for bad in ScriptGenerator.BAD_TOPIC_KEYWORDS):
+                            logger.warning(f"[Grounding] Skipping Wikipedia candidate '{candidate}' — matches a banned term.")
+                            continue
+                        if candidate not in seen_pages:
+                            page_title = candidate
+                            break
+                    if not page_title:
                         continue
                     seen_pages.add(page_title)
 
                     page = wikipedia.page(page_title, auto_suggest=False)
+                    # Belt-and-braces: also reject on the actual page summary, in case
+                    # the title alone looked clean but the content is not what we want.
+                    if any(bad in page.summary[:700].lower() for bad in ScriptGenerator.BAD_TOPIC_KEYWORDS):
+                        logger.warning(f"[Grounding] Skipping Wikipedia page '{page.title}' — summary matches a banned term.")
+                        continue
                     context_parts = [f"ENTITY: {page.title}\nSUMMARY: {page.summary[:700]}"]
 
                     sections = page.sections
@@ -467,12 +507,7 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
         replaces any that contain wrong-sport or wrong-gender terms.
         This runs AFTER the LLM response — it's the last line of defense.
         """
-        BAD_KW = [
-            "nfl", "gridiron", "american football", "superbowl", "touchdown",
-            "rugby", "cricket", "hockey", "nhl", "baseball", "basketball",
-            "tennis", "golf", "boxing", "women", "woman", "female", "ladies",
-            "girl", "nwsl", "wsl", "nwt", "womens",
-        ]
+        BAD_KW = self.BAD_TOPIC_KEYWORDS
         primary = script_data.get("primary_entity", "football")
         fallback_kw = f"{primary} association football soccer men"
 
@@ -520,6 +555,21 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
             for phrase in refusal_phrases:
                 if phrase in lower_text:
                     logger.warning(f"AI Refusal Detected in Script: {full_text[:100]}...")
+                    return False
+
+            # Content-policy check on the ACTUAL NARRATION, not just the image search
+            # queries. Without this, a script whose whole story is about the wrong
+            # sport/gender can still pass (image sourcing then correctly refuses to
+            # fetch matching images, so the video ends up narrating one thing and
+            # showing unrelated filler pictures — which reads as "random images").
+            # Rejecting here sends the pipeline back to try the next model/key, or
+            # the Wikipedia/local fallback if every model keeps getting it wrong.
+            for bad in self.BAD_TOPIC_KEYWORDS:
+                if bad in lower_text:
+                    logger.warning(
+                        f"[ContentPolicy] Rejected script — narration contains banned "
+                        f"term '{bad}' (men's-football-only rule). Full text: {full_text[:150]}..."
+                    )
                     return False
 
             data['full_text'] = full_text

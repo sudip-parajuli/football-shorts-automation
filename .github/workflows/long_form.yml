@@ -94,7 +94,7 @@ jobs:
         # Media Sourcing
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
         PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
-        RAPIDAPI_FOOTBALL_KEY: ${{ secrets.RAPIDAPI_FOOTBALL_KEY }}
+        API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
         UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
         
         # YouTube

@@ -31,7 +31,7 @@ class MediaSourcer:
         self.pexels_api_key = os.getenv("PEXELS_API_KEY")
         self.unsplash_api_key = os.getenv("UNSPLASH_ACCESS_KEY")
         self.pixabay_api_key = os.getenv("PIXABAY_API_KEY")
-        self.rapidapi_football_key = os.getenv("RAPIDAPI_FOOTBALL_KEY")
+        self.api_football_key = os.getenv("API_FOOTBALL_KEY")
         self.gemini_keys = self._collect_gemini_keys()
         self.download_dir = download_dir
         self.credits_file = os.path.join(download_dir, "image_credits.txt")
@@ -439,14 +439,16 @@ class MediaSourcer:
     def _fetch_api_football_image(self, entity_name: str, is_team: bool = False) -> str | None:
         """
         Fetches an official player photo or team logo from API-Football
-        (api-sports, via RapidAPI). Free tier is small (100 req/day, 10/min),
+        (api-sports' direct dashboard.api-football.com API — the RapidAPI
+        marketplace listing for this API no longer exists, so this hits
+        api-sports.io directly). Free tier is small (100 req/day, 10/min),
         so this is only called after TheSportsDB has already had a chance to
         resolve the entity, and results are cached in-memory per entity name
         for the lifetime of this MediaSourcer instance.
 
         Returns a local file path or None. Never raises.
         """
-        if not self.rapidapi_football_key:
+        if not self.api_football_key:
             return None
 
         cache_key = entity_name.strip().lower()
@@ -456,10 +458,9 @@ class MediaSourcer:
         result = None
         try:
             headers = {
-                "x-rapidapi-host": "api-football-v1.p.rapidapi.com",
-                "x-rapidapi-key": self.rapidapi_football_key,
+                "x-apisports-key": self.api_football_key,
             }
-            base_url = "https://api-football-v1.p.rapidapi.com/v3"
+            base_url = "https://v3.football.api-sports.io"
 
             if is_team:
                 r = requests.get(f"{base_url}/teams", headers=headers,
@@ -594,7 +595,7 @@ class MediaSourcer:
     def get_profile_image(self, entity_query: str) -> str | None:
         """
         Fetches a portrait image of the primary entity (player/club).
-        Priority chain: Wikipedia → TheSportsDB → API-Football → Wikimedia → Unsplash → Pixabay → DDG
+        Priority chain: Wikipedia → TheSportsDB → API-Football → Wikimedia → Unsplash → Pixabay → Openverse → DDG
         Returns None if nothing found — caller handles the fallback.
         """
         print(f"Sourcing profile image for: {entity_query}")
@@ -609,7 +610,7 @@ class MediaSourcer:
         if path:
             return path
 
-        # 2b. API-Football (RapidAPI, small daily quota — only spent on
+        # 2b. API-Football (api-sports.io direct, small daily quota — only spent on
         # entities TheSportsDB couldn't already resolve; no-op if no key set)
         path = self._fetch_api_football_image(entity_query)
         if path:
@@ -630,14 +631,20 @@ class MediaSourcer:
         if paths:
             return paths[0]
 
-        # 6. DDG fallback (filtered)
+        # 6. Openverse (filtered) — no API key/account, so no quota to run out of and
+        # nothing that can get "suspended" the way API-Football's account did.
+        paths = self._fetch_openverse_image(f"{entity_query} soccer player portrait", count=1)
+        if paths:
+            return paths[0]
+
+        # 7. DDG fallback (filtered)
         return self._fetch_ddg_image(f"{entity_query} soccer portrait", suffix=f"profile_{hash(entity_query)}")
 
     def get_media(self, visual_keyword: str, count: int = 3, prefer_real_match: bool = False) -> list:
         """
         Fetches a list of image paths for a given visual keyword.
         Used by Shorts pipeline for segment visuals.
-        Priority: (DDG if prefer_real_match) → Wikipedia entity → TheSportsDB → API-Football → Wikimedia → Unsplash → Pixabay → DDG
+        Priority: (DDG if prefer_real_match) → Wikipedia entity → TheSportsDB → API-Football → Wikimedia → Unsplash → Pixabay → Openverse → DDG
         All queries are filtered to men's association football only.
         """
         results = []
@@ -662,7 +669,7 @@ class MediaSourcer:
                 if tsdb:
                     results.append(tsdb)
 
-            # API-Football (RapidAPI, small daily quota — only spent on
+            # API-Football (api-sports.io direct, small daily quota — only spent on
             # entities TheSportsDB couldn't already resolve; no-op without key)
             if len(results) < count:
                 apif = self._fetch_api_football_image(visual_keyword)
@@ -684,7 +691,13 @@ class MediaSourcer:
             pix_paths = self._fetch_pixabay_image(safe_query, count=count - len(results))
             results.extend(pix_paths)
 
-        # 5. DDG fallback (filtered)
+        # 5. Openverse (filtered) — no API key/account, so no quota to run out of and
+        # nothing that can get "suspended" the way API-Football's account did.
+        if len(results) < count:
+            openverse_paths = self._fetch_openverse_image(safe_query, count=count - len(results))
+            results.extend(openverse_paths)
+
+        # 6. DDG fallback (filtered)
         if len(results) < count:
             path = self._fetch_ddg_image(safe_query, suffix=f"seg_{hash(visual_keyword)}")
             if path:
@@ -1158,6 +1171,53 @@ class MediaSourcer:
                         self._write_image_meta(fpath, "Pixabay", user)
         except Exception as e:
             print(f"Pixabay error: {e}")
+        return paths
+
+    def _fetch_openverse_image(self, query, count=1):
+        """
+        Fetches CC-licensed images from Openverse (openverse.org) — an aggregator
+        that searches Flickr, Wikimedia, museum collections, and more in one call.
+        No API key or account needed, so unlike API-Football this can never get
+        "suspended" or run out of quota; it's a free, always-available layer to try
+        before falling back to unfiltered DDG web search.
+        """
+        paths = []
+        try:
+            safe_query = self._make_football_query(query)
+            url = "https://api.openverse.org/v1/images/"
+            params = {
+                "q": safe_query,
+                "license_type": "all-cc",
+                "page_size": count * 4,  # fetch more to filter bad ones
+            }
+            headers = {'User-Agent': 'FootyBitezBot/1.0 (contact: admin@footybitez.com)'}
+            res = requests.get(url, params=params, headers=headers, timeout=10)
+            if res.status_code == 200:
+                data = res.json()
+                for hit in data.get('results', []):
+                    if len(paths) >= count:
+                        break
+                    src = hit.get('url')
+                    if not src or src in self.used_urls:
+                        continue
+                    title = hit.get('title') or ""
+                    tags = " ".join(t.get('name', '') for t in (hit.get('tags') or []))
+                    if self._is_bad_image(url=src, title=title, tags=tags):
+                        continue
+                    creator = hit.get('creator') or "Unknown"
+                    license_name = (hit.get('license') or 'CC').upper()
+                    fpath = os.path.join(self.download_dir, f"openverse_{hash(src)}.jpg")
+                    # Openverse aggregates many source providers of mixed curation
+                    # quality — treat like Wikimedia/DDG (fail closed on the safety
+                    # check), not like Unsplash/Pixabay's own moderated feeds.
+                    self._download_file(src, fpath, context_query=query, strict=True)
+                    if os.path.exists(fpath):
+                        self.used_urls.add(src)
+                        paths.append(fpath)
+                        self._add_credit(f"Image by {creator} via Openverse ({license_name})")
+                        self._write_image_meta(fpath, "Openverse", creator)
+        except Exception as e:
+            print(f"[Openverse] Error: {e}")
         return paths
 
     def _fetch_ddg_image(self, query, suffix):
