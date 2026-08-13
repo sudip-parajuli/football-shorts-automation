@@ -54,17 +54,38 @@ type MainProps = z.infer<typeof MainSchema>;
 const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps: number }> = ({ timing, fps }) => {
   const frame = useCurrentFrame();
 
-  // Group words into pages of ~4 words or split on punctuation
+  // Group words into pages of ~4 words or split on punctuation. Chunking was
+  // purely word-count based before, so 4 long/highlighted words (common in a
+  // hook, which is written to be dense with *emphasized* terms) could produce a
+  // line far wider than the frame at this font size — flexWrap would push the
+  // overflow word onto a visual second line, but combined with the per-word pop
+  // animation growing words further at paint time, words near the edge ended up
+  // partially or fully outside the rendered frame ("floating out"). Chunking now
+  // also breaks on estimated line width, not just word count.
+  const MAX_CHUNK_CHARS = 16; // conservative estimate at this font size/frame width
   const pages = useMemo(() => {
     const chunks: typeof timing[] = [];
     let currentChunk: typeof timing = [];
-    
+    let currentChars = 0;
+
     for (const t of timing) {
+      const cleanLen = t.word.replace(/\*/g, '').length;
+      const wouldOverflow = currentChunk.length > 0 && (currentChars + cleanLen) > MAX_CHUNK_CHARS;
+
+      if (wouldOverflow) {
+        chunks.push(currentChunk);
+        currentChunk = [];
+        currentChars = 0;
+      }
+
       currentChunk.push(t);
-      // Chunk at punctuation or max length
+      currentChars += cleanLen;
+
+      // Chunk at punctuation or max word count
       if (currentChunk.length >= 4 || t.word.includes('.') || t.word.includes(',') || t.word.includes('?')) {
         chunks.push(currentChunk);
         currentChunk = [];
+        currentChars = 0;
       }
     }
     if (currentChunk.length > 0) chunks.push(currentChunk);
@@ -104,7 +125,12 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
       justifyContent: 'center',
       alignItems: 'center',
       gap: '12px 20px',
-      padding: '0 70px',
+      // Widened from 70px -> 92px. Words wrap based on their base (unscaled) size,
+      // but the pop animation below grows them further at paint time — a word
+      // sitting right at the old 70px padding boundary could scale past the frame
+      // edge during its pop and get clipped out of the rendered video entirely.
+      // The extra margin is the safety buffer for that growth.
+      padding: '0 92px',
       textAlign: 'center',
       fontFamily: 'Montserrat, Impact, sans-serif',
       zIndex: 20,
@@ -125,8 +151,13 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
            config: { damping: 12, mass: 0.5, stiffness: 220 }
         });
 
-        const baseSize = isHighlighted ? '82px' : '64px';
-        const popAmount = isHighlighted ? 0.18 : 0.1;
+        // Trimmed from 82/64px and 0.18/0.1 pop — the previous sizes left too
+        // little headroom before the pop's peak scale pushed a word past the
+        // container's safe zone, especially for chunks with several highlighted
+        // words back-to-back (common in hooks, which are written dense with
+        // *emphasis*).
+        const baseSize = isHighlighted ? '74px' : '58px';
+        const popAmount = isHighlighted ? 0.14 : 0.08;
         
         const scale = isActive ? 1 + (pop * popAmount) : 1;
         const rotation = isActive && isHighlighted ? pop * (idx % 2 === 0 ? 2 : -2) : 0;
@@ -150,6 +181,9 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
               fontSize: baseSize,
               display: 'inline-block',
               lineHeight: 1.1,
+              maxWidth: '100%',
+              overflowWrap: 'break-word',
+              wordBreak: 'break-word',
               background: isActive ? 'rgba(0,0,0,0.45)' : 'transparent',
               borderRadius: 8,
               padding: '2px 8px',
