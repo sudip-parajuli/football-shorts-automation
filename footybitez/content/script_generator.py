@@ -363,7 +363,37 @@ class ScriptGenerator:
         is_comparison = category == "Comparisons & Debates"
 
         import datetime as _dt
-        _current_year = _dt.datetime.now().year
+        _now = _dt.datetime.now()
+        _current_year = _now.year
+        _current_date_str = _now.strftime("%B %d, %Y")
+
+        # A bare "current year: 2026" doesn't tell the model whether an event that
+        # happens WITHIN 2026 is already over or still ahead — exactly the gap that
+        # let a script describe the (already-finished) 2026 World Cup's revenue as
+        # "expected to generate" instead of stating what it actually generated, or
+        # note it will be corrected once outcomes are confirmed. Anchoring on the
+        # exact date, plus this project's own fixed known milestones, removes the
+        # ambiguity instead of hoping the model infers it correctly.
+        TEMPORAL_ACCURACY_RULE = f"""
+        TEMPORAL ACCURACY (today's date: {_current_date_str}):
+        - Before describing any event, tournament, transfer window, or decision,
+          work out whether it has ALREADY HAPPENED or is STILL UPCOMING relative to
+          today's date above.
+        - If it has ALREADY happened: use PAST TENSE and state actual/confirmed
+          outcomes. NEVER use "will", "is expected to", "is set to", "upcoming", or
+          "will generate" for something that has already concluded.
+        - Known fixed milestone: the FIFA World Cup 2026 (USA/Canada/Mexico, the
+          first 48-team World Cup) took place June 11 - July 19, 2026 and has
+          ALREADY CONCLUDED as of today. Never describe it as upcoming, in progress,
+          or use future-tense projections for it (revenue, attendance, outcomes) —
+          state what actually happened, or if the actual figure isn't in your
+          grounding context, use cautious descriptive language ("was projected to")
+          rather than presenting a pre-tournament estimate as current fact.
+        - If your grounding context contains forward-looking language about an event
+          that has since concluded (this happens when the only available source
+          material predates the event), do not repeat it as-is — either omit the
+          specific figure or phrase it explicitly as what was projected beforehand.
+        """
 
         PLAYER_VERIFICATION_RULE = f"""
         CRITICAL PLAYER ACCURACY RULES (current year: {_current_year}):
@@ -562,6 +592,7 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
 """
 
         return f"""
+        {TEMPORAL_ACCURACY_RULE}
         {factual_grounding}
         {strict_accuracy}
         {PLAYER_VERIFICATION_RULE}

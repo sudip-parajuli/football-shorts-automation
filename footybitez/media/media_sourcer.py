@@ -330,10 +330,15 @@ class MediaSourcer:
             )
         ]
 
-        # gemini-2.0-flash was retired (returns 404 NOT_FOUND) — gemini-2.5-flash-lite
-        # is a separate model with its own quota pool, giving a real second attempt
-        # instead of a guaranteed-dead one.
-        candidate_models = ["gemini-2.5-flash", "gemini-2.5-flash-lite"]
+        # gemini-2.0-flash was retired (404 NOT_FOUND), and gemini-2.5-flash-lite
+        # turned out to also be dead for this project ("no longer available to new
+        # users", 404) — two model retirements in as many weeks. Configurable via
+        # env var so a future retirement can be fixed by updating a GitHub Actions
+        # variable/secret instead of another code deploy. Defaults to the one model
+        # confirmed working in production logs.
+        candidate_models = [
+            m.strip() for m in os.getenv("GEMINI_VISION_MODELS", "gemini-2.5-flash").split(",") if m.strip()
+        ]
 
         attempted_any = False
         for key in self.gemini_keys:
@@ -978,13 +983,21 @@ class MediaSourcer:
             f"family-friendly, safe for work, no text overlays, cinematic quality"
         )
 
+        image_model = "gemini-2.5-flash-image"
+
         for attempt in range(max_attempts):
             generated = False
             for i, key in enumerate(self.gemini_keys):
+                combo = (key, image_model)
+                if combo in self._gemini_unusable:
+                    # Already confirmed dead (daily quota / zero allocation) earlier
+                    # in this run — skip straight past it instead of re-discovering
+                    # the same failure on every attempt.
+                    continue
                 try:
                     client = genai.Client(api_key=key)
                     response = client.models.generate_content(
-                        model="gemini-2.5-flash-image",
+                        model=image_model,
                         contents=full_prompt,
                         config=types.GenerateContentConfig(
                             response_modalities=["TEXT", "IMAGE"]
@@ -1003,6 +1016,9 @@ class MediaSourcer:
                         break
                 except Exception as e:
                     print(f"[AI Image] Key #{i+1} failed: {e}")
+                    err_str = str(e).lower()
+                    if any(term in err_str for term in ["429", "resource_exhausted", "quota", "404", "not_found"]):
+                        self._gemini_unusable.add(combo)
                     try:
                         from footybitez.media.football_visual_generator import handle_429_sleep
                         handle_429_sleep(str(e))

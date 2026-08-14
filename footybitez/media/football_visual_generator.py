@@ -30,21 +30,36 @@ def _get_gemini_keys() -> list:
 
 def handle_429_sleep(err_msg: str) -> float:
     """
-    Parses the retryDelay value from error response.
-    Supports both 'Please retry in 27.613595891s' and 'retryDelay: 27s' or similar.
-    Sleeps for the parsed duration and returns it. If 429/quota error is detected
-    but not parsed, sleeps for a default 30s.
+    Parses the retryDelay value from error response and sleeps — but ONLY when
+    the underlying quota is a genuinely short-lived PerMinute bucket.
+
+    The free tier's real cap is a PerDay quota (quotaId
+    'GenerateRequestsPerDayPerProjectPerModel-FreeTier') or a hard 'limit: 0'
+    (the key's tier has zero allocation for this model at all). Gemini's API
+    still reports a small `retryDelay` (30-60s) on these errors, but that value
+    is meaningless for them — a PerDay quota resets at midnight UTC, not in 45
+    seconds, and 'limit: 0' will never succeed no matter how long you wait.
+    Blindly sleeping the suggested delay on every key, every attempt, was
+    observed costing 5-7+ minutes per pipeline run retrying keys that could not
+    possibly succeed again.
+    Returns the number of seconds actually slept (0.0 if the wait was skipped).
     """
-    delay = 0.0
-    
+    err_lower = err_msg.lower()
+
+    if "perday" in err_lower.replace("_", "").replace("-", "") or re.search(r"limit:\s*0\b", err_lower):
+        logger.warning("[Gemini API] Daily quota (or zero-allocation) exhausted for this key/model — "
+                        "will not reset for hours. Skipping wait, moving to the next option.")
+        return 0.0
+
     # 1. Parse 'Please retry in 27.61s'
+    delay = 0.0
     match1 = re.search(r"Please retry in ([0-9.]+)\s*s", err_msg, re.IGNORECASE)
     if match1:
         try:
             delay = float(match1.group(1))
         except ValueError:
             pass
-            
+
     # 2. Parse 'retryDelay: 27s' or 'retryDelay': '27s'
     if delay == 0.0:
         match2 = re.search(r"retryDelay[\"']?\s*:\s*[\"']?([0-9.]+)\s*s", err_msg, re.IGNORECASE)
@@ -53,16 +68,21 @@ def handle_429_sleep(err_msg: str) -> float:
                 delay = float(match2.group(1))
             except ValueError:
                 pass
-                
-    if delay > 0.0:
-        logger.warning(f"[Gemini API] Rate limited (429). Sleeping for exactly {delay} seconds.")
+
+    if delay > 0.0 and "perminute" in err_lower.replace("_", "").replace("-", ""):
+        # Confirmed short-lived quota — worth a bounded wait.
+        delay = min(delay, 60.0)
+        logger.warning(f"[Gemini API] Rate limited (429, per-minute quota). Sleeping {delay:.1f}s.")
         time.sleep(delay)
         return delay
-    elif any(term in err_msg.lower() for term in ["429", "resourceexhausted", "quota", "limit"]):
-        logger.warning("[Gemini API] Rate limited (429) but could not parse retryDelay. Sleeping 30s fallback.")
-        time.sleep(30.0)
-        return 30.0
-        
+    elif any(term in err_lower for term in ["429", "resourceexhausted", "quota", "limit"]):
+        # A 429/quota error we can't positively confirm is short-lived — default
+        # to NOT waiting rather than guessing with a blind 30s sleep, since the
+        # daily-quota case (the one actually observed in practice) is common and
+        # a wasted wait compounds fast across multiple keys and pipelines.
+        logger.warning("[Gemini API] Rate limited (429) but quota window is unclear — skipping wait, moving on.")
+        return 0.0
+
     return 0.0
 
 
