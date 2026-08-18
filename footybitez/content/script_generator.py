@@ -31,10 +31,19 @@ class ScriptGenerator:
     # filter (where it's fine to steer an image search away from it), "handball" is a
     # routine, legitimate football term (a foul/VAR decision) that would otherwise get
     # a perfectly good, on-topic script rejected outright.
+    # NOTE on "racing": deliberately NOT included bare — several real football
+    # clubs are literally named "Racing" (Racing Santander, Racing Club,
+    # Racing Genk), so a bare match would reject genuine football stories.
+    # "horse racing" / "racecourse" / "jockey" are specific enough to avoid
+    # that collision while still catching the motorsport/equestrian content a
+    # general sports feed can mix in (see general_news_pipeline.py, which
+    # discovered its Sky Sports feed ID was actually their all-sports feed).
     BAD_TOPIC_KEYWORDS = [
         "nfl", "gridiron", "american football", "superbowl", "super bowl", "touchdown",
         "rugby", "cricket", "hockey", "nhl", "baseball", "basketball", "nba",
         "tennis", "golf", "boxing", "mma", "volleyball",
+        "formula 1", "formula one", "motogp", "grand prix",
+        "horse racing", "racecourse", "jockey", "snooker", "darts",
         "women", "woman", "female", "ladies", "girl",
         "nwsl", "wsl", "nwt", "women's national", "womens",
     ]
@@ -73,6 +82,51 @@ class ScriptGenerator:
                 return data
         except Exception as e:
             logger.error(f"Claude script generation failed: {e}")
+        return None
+
+    def _try_gemini_raw_json(self, prompt: str) -> dict | None:
+        """
+        Same Gemini key/model fallback loop as _try_gemini, but for callers that
+        need arbitrary JSON back — NOT a script. _try_gemini gates success on
+        _validate_script_data(), which requires "hook"/"segments" keys; a caller
+        asking for a different JSON shape (e.g. general_news_pipeline.py's
+        headline-selection prompt, which returns {"selected_index", "category",
+        "reasoning"}) would have every otherwise-successful response rejected by
+        that check and silently fall through every key/model combination before
+        giving up — which is exactly what was happening: headline selection was
+        never actually working via the Gemini fallback, wasting up to 6 API calls
+        every run before defaulting to "just pick the first article".
+        """
+        try:
+            from google import genai
+            from google.genai import types
+        except ImportError:
+            logger.error("google-genai not installed. Run: pip install google-genai>=1.0.0")
+            return None
+
+        for i, key in enumerate(self.gemini_keys):
+            for model_name in GEMINI_TEXT_MODELS:
+                try:
+                    client = genai.Client(api_key=key)
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            temperature=0.3,
+                            thinking_config=types.ThinkingConfig(thinking_budget=0)
+                        )
+                    )
+                    text = response.text.strip()
+                    if text.startswith("```"):
+                        text = text.split("\n", 1)[-1]
+                    if text.endswith("```"):
+                        text = text.rsplit("```", 1)[0]
+                    data = json.loads(text.strip())
+                    logger.info(f"Gemini key #{i+1} ({model_name}) succeeded (raw JSON).")
+                    return data
+                except Exception as e:
+                    logger.warning(f"Gemini key #{i+1} model={model_name} failed: {e}")
         return None
 
     def _try_gemini(self, prompt: str) -> dict | None:
