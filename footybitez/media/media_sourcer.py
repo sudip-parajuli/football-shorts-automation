@@ -8,6 +8,7 @@ import warnings
 import json
 import logging
 from dotenv import load_dotenv
+from footybitez.utils.llm_models import GEMINI_VISION_MODELS
 
 logger = logging.getLogger(__name__)
 
@@ -264,6 +265,67 @@ class MediaSourcer:
                 return True
         return False
 
+    # Words the VISUAL_KEYWORD_RULES prompt (script_generator.py) reliably injects
+    # around a name ("National Team", "World Cup", etc.) — excluded so they never
+    # get mistaken for the actual entity being searched for.
+    _NAME_TOKEN_STOPWORDS = {
+        "the", "and", "of", "in", "on", "for", "national", "team", "teams",
+        "football", "soccer", "world", "cup", "men", "club", "fc", "vs", "an",
+        "action", "portrait", "match", "stadium", "association",
+    }
+
+    def _required_name_token(self, query: str) -> str | None:
+        """
+        Picks ONE distinguishing token from `query` that a candidate image's
+        title/tags MUST contain — a cheap, offline check that works even when
+        Gemini is unreachable/exhausted (unlike the vision-based relevance
+        check, which is the only thing currently guarding against this).
+
+        This exists because Wikimedia/Commons/TheSportsDB text search matches
+        on ANY overlapping word, not the actual person — searching "Diego
+        Maradona" surfaced "Diego Forlán" and "Diego Costa" photos in
+        production (same first name, different person entirely), and those
+        sailed straight through because Wikimedia is intentionally fail-open
+        on the vision check (see _fetch_wikimedia_images) once Gemini's quota
+        is exhausted. Matching on first name alone is nearly useless in
+        football, where "Diego", "Carlos", "Luis" etc. are extremely common —
+        so this specifically targets the SECOND capitalized name token
+        (typically a surname) when the query looks like "[Full Name] [club]
+        soccer ..." (the player-focused pattern the prompt rules produce), or
+        the single remaining token for a "[Country] National Team ..." query.
+
+        Returns None if the query doesn't look like a clear named-entity
+        query (no usable capitalized tokens) — generic queries like "football
+        stadium crowd atmosphere" are not affected by this check at all.
+        """
+        clean = query.replace('*', '')
+        words = re.findall(r"[A-Za-z']+", clean)
+        cap_tokens = [
+            w for w in words
+            if len(w) > 2 and w[0].isupper() and w.lower() not in self._NAME_TOKEN_STOPWORDS
+        ]
+        if not cap_tokens:
+            return None
+        # 2+ leading proper-noun tokens -> assume "[First] [Last] ..." and require
+        # the surname (2nd token), which is far more distinguishing than a common
+        # first name. A single token (e.g. a country, or a mononym like "Neymar")
+        # is used as-is.
+        return cap_tokens[1].lower() if len(cap_tokens) >= 2 else cap_tokens[0].lower()
+
+    def _name_mismatch(self, query: str, title: str = "", tags: str = "") -> bool:
+        """
+        Returns True if `query` clearly names a specific entity but the
+        candidate's title/tags don't mention it at all. See
+        _required_name_token for why this check exists and how the token is
+        chosen. Safe to call unconditionally — it silently no-ops (returns
+        False) for non-named, generic queries.
+        """
+        token = self._required_name_token(query)
+        if not token:
+            return False
+        haystack = f"{title} {tags}".lower().replace("_", " ").replace("-", " ")
+        return token not in haystack
+
     def _check_image_safety_and_relevance(self, filepath: str, context_query: str = "", strict: bool = True) -> bool:
         """
         MIDDLEWARE: sits between "image downloaded/generated" and "image is allowed
@@ -330,15 +392,11 @@ class MediaSourcer:
             )
         ]
 
-        # gemini-2.0-flash was retired (404 NOT_FOUND), and gemini-2.5-flash-lite
-        # turned out to also be dead for this project ("no longer available to new
-        # users", 404) — two model retirements in as many weeks. Configurable via
-        # env var so a future retirement can be fixed by updating a GitHub Actions
-        # variable/secret instead of another code deploy. Defaults to the one model
-        # confirmed working in production logs.
-        candidate_models = [
-            m.strip() for m in os.getenv("GEMINI_VISION_MODELS", "gemini-2.5-flash").split(",") if m.strip()
-        ]
+        # See footybitez/utils/llm_models.py — gemini-2.0-flash and
+        # gemini-2.5-flash-lite were both retired for this project within weeks
+        # of each other, so this list lives in one shared, env-overridable place
+        # now instead of being hardcoded separately in every file that needs it.
+        candidate_models = GEMINI_VISION_MODELS
 
         attempted_any = False
         for key in self.gemini_keys:
@@ -437,6 +495,11 @@ class MediaSourcer:
                         continue
                     if gender.lower() not in ("male", "m", ""):
                         continue
+                    # TheSportsDB's search is fuzzy/partial-text, not exact-match —
+                    # verify the returned player's actual name against what was
+                    # searched for (see _required_name_token).
+                    if self._name_mismatch(entity_name, title=p.get("strPlayer", "")):
+                        continue
                     thumb = p.get("strThumb") or p.get("strCutout")
                     if thumb and thumb not in self.used_urls:
                         fname = f"tsdb_player_{hash(entity_name)}.jpg"
@@ -458,6 +521,8 @@ class MediaSourcer:
                 for t in teams:
                     sport = (t.get("strSport") or "").lower()
                     if sport not in ("soccer", "football", ""):
+                        continue
+                    if self._name_mismatch(entity_name, title=t.get("strTeam", "")):
                         continue
                     badge = t.get("strTeamBadge") or t.get("strTeamJersey")
                     banner = t.get("strTeamBanner")
@@ -509,6 +574,8 @@ class MediaSourcer:
                     response_list = r.json().get("response", []) or []
                     for item in response_list:
                         team = item.get("team", {}) or {}
+                        if self._name_mismatch(entity_name, title=team.get("name", "")):
+                            continue
                         logo = team.get("logo")
                         if logo and logo not in self.used_urls:
                             fname = f"apifootball_team_{hash(entity_name)}.jpg"
@@ -530,6 +597,8 @@ class MediaSourcer:
                     response_list = r.json().get("response", []) or []
                     for item in response_list:
                         player = item.get("player", {}) or {}
+                        if self._name_mismatch(entity_name, title=player.get("name", "")):
+                            continue
                         photo = player.get("photo")
                         if photo and photo not in self.used_urls:
                             fname = f"apifootball_player_{hash(entity_name)}.jpg"
@@ -1128,6 +1197,11 @@ class MediaSourcer:
                     img_title = page.get("title", "")
                     if self._is_bad_image(url=url, title=img_title, tags=categories):
                         continue
+                    # ── Named-entity filter (see _required_name_token) — catches
+                    # e.g. "Diego Maradona" searches matching "Diego Forlán" /
+                    # "Diego Costa" pages on first-name overlap alone.
+                    if self._name_mismatch(query, title=img_title, tags=categories):
+                        continue
 
                     fname = f"wiki_{hash(url)}.jpg"
                     fpath = os.path.join(self.download_dir, fname)
@@ -1180,6 +1254,8 @@ class MediaSourcer:
                     alt = photo.get("alt_description") or ""
                     if self._is_bad_image(url=src, title=alt, tags=photo_tags):
                         continue
+                    if self._name_mismatch(query, title=alt, tags=photo_tags):
+                        continue
                     user = photo['user']['name']
                     fpath = os.path.join(self.download_dir, f"unsplash_{photo['id']}.jpg")
                     self._download_file(src, fpath, context_query=query, strict=False)
@@ -1219,6 +1295,8 @@ class MediaSourcer:
                     # Check pixabay tags field
                     tags = hit.get("tags", "")
                     if self._is_bad_image(url=src, title=tags, tags=tags):
+                        continue
+                    if self._name_mismatch(query, title=tags, tags=tags):
                         continue
                     user = hit['user']
                     fpath = os.path.join(self.download_dir, f"pixabay_{hit['id']}.jpg")
@@ -1262,6 +1340,8 @@ class MediaSourcer:
                     title = hit.get('title') or ""
                     tags = " ".join(t.get('name', '') for t in (hit.get('tags') or []))
                     if self._is_bad_image(url=src, title=title, tags=tags):
+                        continue
+                    if self._name_mismatch(query, title=title, tags=tags):
                         continue
                     creator = hit.get('creator') or "Unknown"
                     license_name = (hit.get('license') or 'CC').upper()
@@ -1314,6 +1394,8 @@ class MediaSourcer:
                         # Filter: reject bad-sport URLs and titles
                         if self._is_bad_image(url=image_url, title=title):
                             continue
+                        if self._name_mismatch(query, title=title):
+                            continue
                         ext = self._safe_image_ext(image_url)
                         filename = f"ddg_{suffix}_{hash(query)}.{ext}"
                         filepath = os.path.join(self.download_dir, filename)
@@ -1346,6 +1428,8 @@ class MediaSourcer:
                             continue
                         # Filter: reject bad-sport URLs and titles
                         if self._is_bad_image(url=image_url, title=title):
+                            continue
+                        if self._name_mismatch(query, title=title):
                             continue
                         ext = self._safe_image_ext(image_url)
                         filename = f"ddg_{suffix}_{len(paths)}_{hash(query)}.{ext}"

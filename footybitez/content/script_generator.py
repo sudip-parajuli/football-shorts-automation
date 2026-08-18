@@ -3,6 +3,7 @@ import time
 import json
 import logging
 from dotenv import load_dotenv
+from footybitez.utils.llm_models import GROQ_SCRIPT_MODEL, GEMINI_TEXT_MODELS
 
 # Load environment variables
 load_dotenv()
@@ -84,7 +85,7 @@ class ScriptGenerator:
             return None
 
         for i, key in enumerate(self.gemini_keys):
-            for model_name in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"]:
+            for model_name in GEMINI_TEXT_MODELS:
                 try:
                     logger.info(f"Trying Gemini key #{i+1} model={model_name}...")
                     client = genai.Client(api_key=key)
@@ -141,9 +142,9 @@ class ScriptGenerator:
                 try:
                     from groq import Groq
                     client = Groq(api_key=gkey)
-                    logger.info(f"Generating script with Groq key #{j+1} (Llama3) for category: {category}...")
+                    logger.info(f"Generating script with Groq key #{j+1} ({GROQ_SCRIPT_MODEL}) for category: {category}...")
                     completion = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
+                        model=GROQ_SCRIPT_MODEL,
                         messages=[{"role": "user", "content": prompt}],
                         temperature=0.7,
                         max_tokens=1024,
@@ -989,7 +990,7 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
                         from groq import Groq
                         client = Groq(api_key=gkey)
                         completion = client.chat.completions.create(
-                            model="llama-3.3-70b-versatile",
+                            model=GROQ_SCRIPT_MODEL,
                             messages=[{"role": "user", "content": attempt_prompt}],
                             temperature=0.3,
                             max_tokens=1024,

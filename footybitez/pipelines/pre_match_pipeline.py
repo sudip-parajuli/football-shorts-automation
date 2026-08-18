@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 # Ensure root path is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
+from footybitez.utils.llm_models import GROQ_SCRIPT_MODEL, GEMINI_TEXT_MODELS
+
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger("pre_match_pipeline")
@@ -98,7 +100,7 @@ def get_gemini_pre_match_details(home, away, kickoff_str, venue, stage_name="GRO
     """
     
     for key in keys:
-        for model in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"]:
+        for model in GEMINI_TEXT_MODELS:
             try:
                 logger.info(f"[GeminiSearch] Fetching pre-match details via model={model}...")
                 client = genai.Client(api_key=key)
@@ -207,7 +209,7 @@ def get_gemini_pre_match_details(home, away, kickoff_str, venue, stage_name="GRO
                     from groq import Groq
                     client = Groq(api_key=gkey)
                     completion = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
+                        model=GROQ_SCRIPT_MODEL,
                         messages=[{"role": "user", "content": prompt + "\n\nRespond ONLY with valid JSON."}],
                         temperature=0.7,
                         max_tokens=1024,

@@ -9,6 +9,7 @@ import google_auth_oauthlib.flow
 from google import genai
 from google.genai import types
 from dotenv import load_dotenv
+from footybitez.utils.llm_models import GEMINI_TEXT_MODELS
 
 # Load environment variables
 load_dotenv()
@@ -162,7 +163,7 @@ class CommentManager:
         """
         try:
             response = self.client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=GEMINI_TEXT_MODELS[0],
                 contents=prompt
             )
             return response.text.strip()

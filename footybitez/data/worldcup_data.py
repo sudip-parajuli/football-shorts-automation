@@ -11,6 +11,7 @@ import requests
 import time
 import logging
 from datetime import date, datetime, timezone, timedelta
+from footybitez.utils.llm_models import GEMINI_TEXT_MODELS
 
 logger = logging.getLogger(__name__)
 
@@ -299,7 +300,7 @@ class WorldCupData:
                 return []
 
             for key in gemini_keys:
-                for model_name in ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash"]:
+                for model_name in GEMINI_TEXT_MODELS:
                     for attempt in range(3):
                         try:
                             from google import genai

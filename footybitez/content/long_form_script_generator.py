@@ -4,6 +4,7 @@ import logging
 import random
 import google.generativeai as genai
 from dotenv import load_dotenv
+from footybitez.utils.llm_models import GROQ_SCRIPT_MODEL, GEMINI_TEXT_MODELS
 
 # Load environment variables
 load_dotenv()
@@ -24,7 +25,7 @@ class LongFormScriptGenerator:
     def __init__(self):
         self.gemini_keys = _get_keys("GEMINI_API_KEY")
         self.groq_keys = _get_keys("GROQ_API_KEY")
-        self.models = ["models/gemini-2.5-flash", "models/gemini-2.5-pro", "models/gemini-2.0-flash"]
+        self.models = [f"models/{m}" for m in GEMINI_TEXT_MODELS]
 
     def generate_long_script(self, topic, method="compilation"):
         """
@@ -116,7 +117,7 @@ class LongFormScriptGenerator:
                     client = Groq(api_key=gkey)
                     logger.info(f"Generating long-form script with Groq key #{j+1}...")
                     completion = client.chat.completions.create(
-                        model="llama-3.3-70b-versatile",
+                        model=GROQ_SCRIPT_MODEL,
                         messages=[{"role": "user", "content": prompt}],
                         temperature=0.7,
                         max_tokens=4096,

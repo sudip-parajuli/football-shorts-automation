@@ -4,6 +4,7 @@ import logging
 import requests
 import google.genai as genai
 from dotenv import load_dotenv
+from footybitez.utils.llm_models import GEMINI_TEXT_MODELS
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -23,7 +24,7 @@ class SocialCommentManager:
             try:
                 # Use the recommended google.genai package
                 self.client = genai.Client(api_key=self.gemini_api_key)
-                self.model_name = "gemini-2.5-flash"
+                self.model_name = GEMINI_TEXT_MODELS[0]
             except Exception as e:
                 logger.error(f"Failed to initialize Gemini client: {e}")
 

@@ -25,6 +25,7 @@ import random
 import numpy as np
 from datetime import date
 from dotenv import load_dotenv
+from footybitez.utils.llm_models import GEMINI_TEXT_MODELS
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -442,7 +443,7 @@ class WorldCupPipeline:
                         f"World Cup 2026 match: {home} vs {away}."
                     )
                     r = client.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model=GEMINI_TEXT_MODELS[0],
                         contents=search_prompt,
                         config=types.GenerateContentConfig(
                             tools=[types.Tool(google_search=types.GoogleSearch())]

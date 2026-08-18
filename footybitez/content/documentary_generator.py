@@ -4,6 +4,7 @@ import json
 import time
 import logging
 from dotenv import load_dotenv
+from footybitez.utils.llm_models import GROQ_SCRIPT_MODEL, GEMINI_TEXT_MODELS
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -54,7 +55,7 @@ class DocumentaryGenerator:
                     logger.info(f"Attempting script generation with Gemini key #{i+1} (attempt {attempt+1})...")
                     client = genai.Client(api_key=key)
                     response = client.models.generate_content(
-                        model="gemini-2.5-flash",
+                        model=GEMINI_TEXT_MODELS[0],
                         contents=f"{system_prompt}\n\n{user_prompt}",
                         config=types.GenerateContentConfig(
                             response_mime_type="application/json",
@@ -80,10 +81,15 @@ class DocumentaryGenerator:
                     break  # move to next key
         return None
 
-    # Ordered model fallback chain for Groq
+    # Ordered model fallback chain for Groq. llama-3.3-70b-versatile AND
+    # llama-3.1-8b-instant were BOTH deprecated together on 2026-06-17
+    # (console.groq.com/docs/deprecations) — openai/gpt-oss-120b and
+    # openai/gpt-oss-20b are Groq's own recommended replacements for them.
+    # gemma2-9b-it kept as a third option from a different model family
+    # entirely, for resilience against a single-family deprecation wave.
     GROQ_MODELS = [
-        "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant",
+        GROQ_SCRIPT_MODEL,
+        "openai/gpt-oss-20b",
         "gemma2-9b-it",
     ]
 

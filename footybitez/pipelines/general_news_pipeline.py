@@ -17,6 +17,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from dotenv import load_dotenv
+from footybitez.utils.llm_models import GROQ_SCRIPT_MODEL
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -150,7 +151,7 @@ class GeneralNewsPipeline:
                 from groq import Groq
                 client = Groq(api_key=self.script_gen.groq_keys[0])
                 completion = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
+                    model=GROQ_SCRIPT_MODEL,
                     messages=[{"role": "user", "content": prompt}],
                     temperature=0.3,
                     response_format={"type": "json_object"}
