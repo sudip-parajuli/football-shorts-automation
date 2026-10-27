@@ -1,70 +1,68 @@
-# FootyBitez Automation
+# FootyBitez — Football Media Automation
 
-Fully automated system to create and upload YouTube Shorts (and Long-Form Videos) about football facts and history.
+A Python and Remotion system for creating football videos and coordinating
+scheduled publishing. It connects topic selection, AI-assisted scripting,
+narration, visual assets, captions, rendering and platform upload workflows.
 
-## Features
-- **Topic Generation**: Automatically selects from topics.
-- **Scripting**: Uses Google Gemini AI to write highly-retaining scripts (Chunks & Word Timings).
-- **Voiceover & Audio**: Uses `edge-tts` for high-quality voiceover generation and automatically integrates background music + SFX.
-- **Cinematic Video Engine (Remotion)**: Uses React-based `Remotion` instead of MoviePy for advanced styling, fast rendering, and infinite scale. Includes TikTok-style highlight captions, Ken Burns asset motion, audio visualizer overlays, and seamless slide/fade cinematic transitions.
-- **Multi-Format Architecture**: Native support for building `Shorts` (1080x1920) or `LongForm` (1920x1080) compositions dynamically.
-- **Upload**: Automatically uploads to YouTube via YouTube Data API v3.
-- **CI/CD**: Runs strictly via GitHub Actions.
+## Engineering areas
 
-## Prerequisites
-1. **Node.js**: Required to boot and compile the Remotion video engine.
-2. **Python 3.10+**: Back-end scripting, text-to-speech, and API scraping.
-3. **Google Cloud Project** with API enabled.
+- Football topics and news-driven pre/post-match pipelines.
+- Script generation and provider fallback handling.
+- Narration, timed captions, images, clips, music and sound effects.
+- React/Remotion compositions for vertical and horizontal video.
+- GitHub Actions workflows and configurable platform integrations.
 
-## Setup
+## Run locally
 
-### 1. Installation
-```bash
-# Install Python backend dependencies
-pip install -r footybitez/requirements.txt
+Use Python 3.10+, Node.js and FFmpeg. From the repository root:
 
-# Install Remotion Engine dependencies
+```sh
+python -m venv .venv
+```
+
+Activate the environment, then:
+
+```sh
+python -m pip install -r footybitez/requirements.txt
 cd remotion-video
 npm install
 ```
 
-### 2. Authentication Setup
-1. Place your `client_secret.json` in the project root.
-2. Run `python setup_auth.py` to generate the `token.json` OAuth token for uploads.
-3. Create a `.env` in the root:
-```
-GEMINI_API_KEY=your_gemini_key_here
-ENABLE_UPLOAD=true
+Configure only the providers you intend to use, following the retained
+[provider/setup guide](docs/PROVIDER_SETUP.md). For the basic entry point, set
+`ENABLE_UPLOAD=false` and `ENABLE_SOCIAL_PUBLISHING=false` in your local
+environment before running from the repository root:
 
-# Text-to-speech, tried in this order: Google Cloud TTS -> Hume -> Edge TTS -> gTTS.
-# GOOGLE_CLOUD_TTS_API_KEY is the first choice. Get one at
-# console.cloud.google.com -> enable "Cloud Text-to-Speech API" -> Credentials -> API key.
-# Free tier covers ~1M characters/month per voice type (Neural2 included).
-GOOGLE_CLOUD_TTS_API_KEY=your_google_cloud_tts_key_here
-# Optional 2nd key for rotation once the first is exhausted.
-GOOGLE_CLOUD_TTS_API_KEY2=
-# Defaults to en-US-Neural2-D (deep, energetic male voice suited to sports narration).
-# Any MALE voice name from cloud.google.com/text-to-speech/docs/voices works here.
-GOOGLE_CLOUD_TTS_VOICE=en-US-Neural2-D
-```
-
-## Running Locally
-
-To manually generate the assets and JSON script instructions (`props.json`):
-```bash
+```sh
 python footybitez/main.py
 ```
 
-### Previewing the Cinematic Engine (Hot Reload)
-To test the visual engine or view the output instantly without fully rendering an MP4:
-```bash
+Generation still makes external provider requests. Other entry points and
+scheduled workflows have their own publication configuration; inspect the
+selected workflow before running it.
+
+## Preview and source map
+
+```sh
 cd remotion-video
 npm start
 ```
-This opens Remotion Studio at `http://localhost:3000`. You can choose between the `Shorts` (9:16) and `LongForm` (16:9) compositions in the left sidebar!
 
-## Folder Structure
-- `footybitez/content`: Logic for AI script structures and parsing timings.
-- `footybitez/media`: Audio scraping, SFX, background music fetching, and TTS generation.
-- `remotion-video`: The complete React-based frontend cinematic rendering engine.
-- `footybitez/youtube`: Automatic YouTube metadata population and uploading logic.
+| Path | Responsibility |
+| --- | --- |
+| `footybitez/content/` | Topics, scripts and content preparation |
+| `footybitez/media/` | Narration and visual/media assembly |
+| `footybitez/youtube/` | YouTube upload integration |
+| `remotion-video/` | Video compositions and rendering |
+| `.github/workflows/` | Scheduled and manually triggered jobs |
+
+## Validation and boundaries
+
+Root-level `test_*.py` files include fallback, routing, API and media experiments.
+Some contact real services; inspect their inputs before running them. Scheduled
+pipeline runs are operational checks, not a complete isolated regression suite.
+
+Review factual claims, media provenance, captions and provider/platform terms
+before publication. Retries and fallbacks improve resilience but do not guarantee
+factually correct scripts, licensed assets or successful platform distribution.
+Keep credentials and OAuth artifacts outside Git.
