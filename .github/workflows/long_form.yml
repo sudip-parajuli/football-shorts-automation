@@ -47,7 +47,7 @@ jobs:
     - name: Install Remotion dependencies
       run: |
         cd remotion-video
-        npm install
+        npm ci
 
     - name: Install System Dependencies (Browsers)
       run: |
@@ -108,10 +108,11 @@ jobs:
         TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
         TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        DOCUMENTARY_TOPIC: ${{ github.event.inputs.topic }}
       run: |
         export PYTHONPATH=$PYTHONPATH:.
-        if [ -n "${{ github.event.inputs.topic }}" ]; then
-          node remotion-video/scripts/generate.js --topic "${{ github.event.inputs.topic }}"
+        if [ -n "$DOCUMENTARY_TOPIC" ]; then
+          node remotion-video/scripts/generate.js --topic "$DOCUMENTARY_TOPIC"
         else
           node remotion-video/scripts/generate.js
         fi

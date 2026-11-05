@@ -48,7 +48,7 @@ jobs:
     - name: Install Node Dependencies
       run: |
         cd remotion-video
-        npm install
+        npm ci
 
     - name: Install system browser dependencies
       run: |

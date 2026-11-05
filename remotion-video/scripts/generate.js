@@ -31,13 +31,7 @@ function getAudioDuration(filePath) {
 
 function runStep(name, command, args, cwd = process.cwd()) {
   log(`Starting Step: ${name}...`);
-  const safeArgs = args.map(arg => {
-    if (typeof arg === 'string' && arg.includes(' ') && !arg.startsWith('"')) {
-      return `"${arg}"`;
-    }
-    return arg;
-  });
-  const result = spawnSync(command, safeArgs, { cwd, stdio: 'inherit', shell: true });
+  const result = spawnSync(command, args, { cwd, stdio: 'inherit', shell: false });
   if (result.error) {
     log(`ERROR: Step ${name} failed to start: ${result.error.message}`);
     process.exit(1);
@@ -61,7 +55,7 @@ async function main() {
   runStep("Python Content Generation", "python", ["footybitez/long_main.py", ...args]);
 
   // Step 2: YouTube Upload
-  runStep("YouTube Upload", "python", ["footybitez/long_upload.py"], path.join(__dirname, '../..'));
+  runStep("YouTube Upload", "python", ["footybitez/long_upload.py"], path.join(__dirname, '..', '..'));
 
   log("--- PIPELINE COMPLETED SUCCESSFULLY ---");
 }

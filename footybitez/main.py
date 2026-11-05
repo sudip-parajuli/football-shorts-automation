@@ -58,7 +58,7 @@ def main():
             
         if not script:
             logger.error("Failed to generate a valid script after 3 attempts. Aborting.")
-            return
+            raise RuntimeError("All topics failed editorial quality checks")
 
         logger.info(f"Script Generated: {script['full_text']}")
         # 3. Get Visuals (Pexels)
@@ -111,14 +111,8 @@ def main():
         logger.info(f"Assets gathered. Title: {bool(title_card_path)}, Profile: {bool(profile_image_path)}, Media: {len(segment_media)}")
         
         # 3.1 Get Random Music (NEW)
-        music_dir = "footybitez/music"
-        background_music = None
-        if os.path.exists(music_dir):
-            music_files = [f for f in os.listdir(music_dir) if f.endswith('.mp3')]
-            if music_files:
-                selected_music = random.choice(music_files)
-                background_music = os.path.join(music_dir, selected_music)
-                logger.info(f"Selected Background Music: {selected_music}")
+        from footybitez.media.music_selector import select_music
+        background_music = select_music(script.get("music_mood", "neutral"))
 
         # 4. Create Video
         video_creator = RemotionVideoCreator()
@@ -126,9 +120,9 @@ def main():
         logger.info(f"Video Created at: {video_path}")
         
         # 5. Metadata
-        title = f"{topic} #shorts #football"
+        title = str(script.get("title") or topic).strip()[:100]
         description = (
-            f"You won't believe this fact about {topic}!\n\n"
+            f"{title}\n\n"
             f"{script['full_text']}\n\n"
             "#football #soccer #didyouknow #footybitez #shorts"
         )
@@ -146,7 +140,7 @@ def main():
             if video_id:
                 logger.info(f"Successfully uploaded video: {video_id}")
             else:
-                logger.error("Upload failed.")
+                raise RuntimeError("YouTube upload failed")
         else:
             logger.info("Upload skipped (ENABLE_UPLOAD not set to true).")
 

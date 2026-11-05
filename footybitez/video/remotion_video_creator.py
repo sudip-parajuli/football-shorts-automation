@@ -103,6 +103,10 @@ class RemotionVideoCreator:
                         logger.warning(f"Failed to delete {filename} in public/music: {e}")
 
     def create_video(self, script_data, visual_assets, background_music_path=None):
+        from footybitez.content.quality import short_errors
+        errors = short_errors(script_data)
+        if errors:
+            raise ValueError("Cannot render script: " + "; ".join(errors))
         logger.info("Starting Remotion Video Creation...")
         
         # Clean public directory first to ensure no stale cached assets are reused
@@ -117,7 +121,8 @@ class RemotionVideoCreator:
             text = seg['text'] if isinstance(seg, dict) else seg
             chunks.append({"type": f"segment_{i}", "text": text, "is_title": False, "index": i})
         
-        chunks.append({"type": "outro", "text": script_data.get("outro", ""), "is_title": False})
+        if script_data.get("outro", "").strip():
+            chunks.append({"type": "outro", "text": script_data["outro"], "is_title": False})
 
         # 2. Setup Remotion Data Structure
         remotion_props = {
@@ -133,6 +138,8 @@ class RemotionVideoCreator:
         for i, chunk in enumerate(chunks):
             # Generate Audio
             audio_path = self.voice_gen.generate(chunk['text'], f"{chunk['type']}.mp3")
+            if not audio_path or not os.path.isfile(audio_path):
+                raise ValueError(f"Narration generation failed for {chunk['type']}")
             json_path = audio_path.replace('.mp3', '.json')
             
             # Get duration
@@ -141,6 +148,9 @@ class RemotionVideoCreator:
                 clip = AudioFileClip(audio_path)
                 audio_duration = clip.duration
                 clip.close()
+
+            if audio_duration <= 0.1:
+                raise ValueError(f"Empty narration for {chunk['type']}")
 
             # Load word timings
             timing_data = []
@@ -175,11 +185,8 @@ class RemotionVideoCreator:
                         if not isinstance(pool, list): pool = [pool]
                         media_files = [self._copy_to_public(p) for p in pool if p]
                 
-                # Fallback: if no media found for this segment, reuse title card
-                if not media_files and remotion_props["title_card"]:
-                    media_files = [remotion_props["title_card"]]
-                elif not media_files and remotion_props["profile_image"]:
-                    media_files = [remotion_props["profile_image"]]
+            if not any(media_files):
+                raise ValueError(f"No verified visual for {chunk['type']}; refusing blank video")
 
             # Append segment
             remotion_props["segments"].append({
@@ -250,8 +257,12 @@ class RemotionVideoCreator:
             if os.path.exists(output_abs_path):
                 logger.info(f"Verified: Output file exists at {output_abs_path}")
             else:
-                logger.error(f"Post-render ALERT: Output file NOT FOUND at {output_abs_path}")
+                raise ValueError(f"Output file missing: {output_abs_path}")
                 
+            from footybitez.video.preflight import inspect_video
+            report = inspect_video(output_abs_path)
+            with open(output_abs_path + ".quality.json", "w", encoding="utf-8") as f:
+                json.dump({"script": script_data, "media": visual_assets, "render": report}, f, indent=2)
             return output_abs_path
         except subprocess.CalledProcessError as e:
             logger.error(f"Remotion Render Failed (Code {e.returncode})")

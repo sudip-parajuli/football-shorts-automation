@@ -61,7 +61,7 @@ class MediaSourcer:
             "rugby", "rugby union", "rugby league",
             # Other sports
             "cricket", "hockey", "nhl", "baseball", "basketball", "nba",
-            "tennis", "golf", "boxing", "mma", "handball", "volleyball",
+            "tennis", "golf", "boxing", "mma", "volleyball",
             # Beach/futsal variants (different from standard association football)
             "beach socca", "beach soccer", "beach football", "sand soccer",
             "futsal", "futbol sala", "indoor football", "indoor soccer",
@@ -143,6 +143,11 @@ class MediaSourcer:
             Wikipedia that already apply their own safe-search) -> the file is kept,
             relying on the text-keyword filter that already ran.
         """
+        if not hasattr(self, "_rejected_downloads"):
+            self._rejected_downloads = set()
+        cache_key = (url, context_query, strict)
+        if cache_key in self._rejected_downloads:
+            return
         if os.path.exists(filepath):
             return
         try:
@@ -173,6 +178,19 @@ class MediaSourcer:
             os.remove(filepath)
             return
 
+        # Reject tiny previews before consuming a vision call.
+        try:
+            from PIL import Image
+            with Image.open(filepath) as image:
+                if min(image.size) < 360 or max(image.size) < 640:
+                    self._rejected_downloads.add(cache_key)
+                    os.remove(filepath)
+                    return
+        except Exception:
+            self._rejected_downloads.add(cache_key)
+            os.remove(filepath)
+            return
+
         # Run post-download visual safety+relevance MIDDLEWARE.
         # This is deliberately OUTSIDE the download try/except above: a bug in (or
         # transient error from) the safety check must never be swallowed and must
@@ -185,6 +203,7 @@ class MediaSourcer:
             passed = False
 
         if not passed:
+            self._rejected_downloads.add(cache_key)
             print(f"[Filter] Visual safety/relevance check failed for: {os.path.basename(filepath)}. Deleting.")
             try:
                 os.remove(filepath)
@@ -206,7 +225,7 @@ class MediaSourcer:
         q = raw_query.strip()
         # Remove any bad keywords accidentally in the query
         for bk in self._BAD_KEYWORDS:
-            q = re.sub(re.escape(bk), "", q, flags=re.IGNORECASE).strip()
+            q = re.sub(r"(?<!\w)" + re.escape(bk) + r"(?!\w)", "", q, flags=re.IGNORECASE).strip()
         # Always append the safe football suffix
         if self._FOOTBALL_SAFE_SUFFIX not in q.lower():
             q = f"{q} {self._FOOTBALL_SAFE_SUFFIX}"
@@ -260,7 +279,7 @@ class MediaSourcer:
         # Normalize underscores to spaces for better matching
         combined = combined.replace("_", " ").replace("-", " ")
         for bk in self._BAD_KEYWORDS:
-            if bk in combined:
+            if re.search(r"(?<!\w)" + re.escape(bk) + r"(?!\w)", combined):
                 print(f"[Filter] Rejected image — matched bad keyword '{bk}' in: {url[:80]}")
                 return True
         return False
@@ -1397,7 +1416,7 @@ class MediaSourcer:
                         if self._name_mismatch(query, title=title):
                             continue
                         ext = self._safe_image_ext(image_url)
-                        filename = f"ddg_{suffix}_{hash(query)}.{ext}"
+                        filename = f"ddg_{suffix}_{hash(image_url)}.{ext}"
                         filepath = os.path.join(self.download_dir, filename)
                         self._download_file(image_url, filepath, context_query=query, strict=True)
                         if os.path.exists(filepath):

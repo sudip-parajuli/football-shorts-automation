@@ -371,12 +371,12 @@ export const Main: React.FC<MainProps> = (props) => {
   const { fps } = useVideoConfig();
 
   // Use a fallback for transitions length
-  const TRANSITION_FRAMES = 15;
+  const TRANSITION_FRAMES = 5;
 
   return (
     <AbsoluteFill style={{ background: '#000' }}>
       {props.background_music && (
-        <Audio src={staticFile(props.background_music)} volume={0.04} />
+        <Audio src={staticFile(props.background_music)} volume={0.04} loop />
       )}
       
       {/* Custom Watermark */}

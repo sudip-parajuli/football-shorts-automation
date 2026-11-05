@@ -39,61 +39,33 @@ class SocialOrchestrator:
         raw_url = f"https://raw.githubusercontent.com/{repo_slug}/temp-video-host/hosted_video.mp4"
         logger.info(f"Preparing to host video on Git. Targeted URL: {raw_url}")
 
+        # Isolate hosting from the content checkout: no stash, orphan checkout,
+        # git rm, global config or hard-coded restoration branch.
+        import tempfile
+        import shutil
+        from pathlib import Path
+        source = Path(local_video_path).resolve()
         try:
-            # We must run git commands securely
-            def git_run(args, check=True):
-                cmd = ["git"] + args
-                logger.info(f"Running git command: {' '.join(cmd)}")
-                res = subprocess.run(cmd, capture_output=True, text=True, check=check)
-                if res.stdout:
-                    logger.debug(res.stdout)
-                if res.stderr:
-                    logger.debug(res.stderr)
-                return res
-
-            # Configure Git credentials in runner
-            git_run(["config", "--global", "user.name", "github-actions[bot]"])
-            git_run(["config", "--global", "user.email", "github-actions[bot]@users.noreply.github.com"])
-
-            # Stash any local working directory edits to avoid conflicts
-            git_run(["stash", "-u"], check=False)
-
-            # Create an orphan branch 'temp-video-host'
-            git_run(["checkout", "--orphan", "temp-video-host"], check=False)
-            
-            # Clear all current staging area files
-            git_run(["rm", "-rf", "."], check=False)
-
-            # Copy our local video into root directory under target name 'hosted_video.mp4'
-            import shutil
-            shutil.copy(local_video_path, "hosted_video.mp4")
-
-            # Add, commit, and force-push to remote temp-video-host branch
-            git_run(["add", "hosted_video.mp4"])
-            git_run(["commit", "-m", "Host temporary video for Instagram Reels API fetch"])
-            
-            # Use GITHUB_TOKEN if available, otherwise just use standard remote push
-            github_token = os.getenv("GITHUB_TOKEN")
-            if github_token:
-                remote_url = f"https://x-access-token:{github_token}@github.com/{repo_slug}.git"
-                git_run(["push", remote_url, "temp-video-host", "--force"])
-            else:
-                git_run(["push", "origin", "temp-video-host", "--force"])
-
-            # Revert back to main branch to leave working copy clean for subsequent workflow steps
-            git_run(["checkout", "main"], check=False)
-            git_run(["stash", "pop"], check=False)
-
-            logger.info(f"SUCCESS: Video successfully hosted on Git branch. Serving URL: {raw_url}")
+            with tempfile.TemporaryDirectory(prefix="footybitez-host-") as temporary:
+                def run(args):
+                    result = subprocess.run(["git", *args], cwd=temporary,
+                                            capture_output=True, text=True)
+                    if result.returncode:
+                        raise RuntimeError("Temporary video hosting Git operation failed")
+                run(["init", "--initial-branch=temp-video-host"])
+                run(["config", "user.name", "github-actions[bot]"])
+                run(["config", "user.email", "github-actions[bot]@users.noreply.github.com"])
+                shutil.copy2(source, Path(temporary) / "hosted_video.mp4")
+                run(["add", "hosted_video.mp4"])
+                run(["commit", "-m", "Host video for Instagram fetch"])
+                token = os.getenv("GITHUB_TOKEN")
+                remote = (f"https://x-access-token:{token}@github.com/{repo_slug}.git"
+                          if token else f"https://github.com/{repo_slug}.git")
+                run(["push", remote, "temp-video-host", "--force"])
             return raw_url
-
-        except Exception as e:
-            logger.error(f"Git-hosting failed: {e}", exc_info=True)
-            # Make sure we checkout main branch back on failure
-            try:
-                subprocess.run(["git", "checkout", "main"], capture_output=True)
-            except:
-                pass
+        except Exception:
+            # Do not expose a credential-bearing command or subprocess error.
+            logger.error("Temporary video hosting failed; content checkout was preserved")
             return None
 
     def publish_to_all(self, local_video_path, title, description=None):
@@ -110,6 +82,9 @@ class SocialOrchestrator:
         # Fallback description
         desc = description if description else f"{title}\n\n#football #soccer #shorts #footybitez"
 
+        if not self.dry_run:
+            from footybitez.video.preflight import inspect_video
+            inspect_video(local_video_path)
         results = {}
 
         # 1. Publish to Facebook
@@ -119,7 +94,10 @@ class SocialOrchestrator:
 
         # 2. Publish to Instagram Reels (Requires git hosting)
         logger.info("--- Publishing to Instagram Reels ---")
-        if self.dry_run:
+        if not self.dry_run and not self.meta.preflight_instagram():
+            logger.error("Instagram token/account preflight failed; skipping video hosting")
+            results["instagram"] = None
+        elif self.dry_run:
             ig_id = self.meta.publish_to_instagram_reel("https://example.com/video.mp4", title)
             results["instagram"] = ig_id
         else:
@@ -145,6 +123,8 @@ class SocialOrchestrator:
 
         logger.info("=== Cross-Platform Social Publishing Completed ===")
         logger.info(f"Publishing Results: {results}")
+        if not self.dry_run and not any(results.values()):
+            raise RuntimeError("No social platform published successfully; check credentials and results")
         return results
 
 if __name__ == "__main__":

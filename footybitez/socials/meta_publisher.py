@@ -21,6 +21,18 @@ class MetaPublisher:
         self.base_url = "https://graph.facebook.com"
         self.dry_run = os.getenv("DRY_RUN", "false").lower() == "true"
 
+    def preflight_instagram(self):
+        """Check account access before spending time hosting a video."""
+        if not self.access_token or not self.instagram_id:
+            return False
+        try:
+            response = requests.get(
+                f"{self.base_url}/{self.api_version}/{self.instagram_id}",
+                params={"fields": "id", "access_token": self.access_token}, timeout=15)
+            return response.ok and bool(response.json().get("id"))
+        except Exception:
+            return False
+
     def _get_authorized_pages(self) -> list:
         """
         Retrieves all authorized Facebook Pages and their Page Access Tokens dynamically.
