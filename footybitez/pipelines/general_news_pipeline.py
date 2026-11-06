@@ -299,11 +299,14 @@ class GeneralNewsPipeline:
             profile_image_path = title_card_path
 
         segment_media = []
-        for segment in script.get("segments", []):
+        from footybitez.media.real_assets import segment_real_media
+        for index, segment in enumerate(script.get("segments", [])):
             keyword = segment.get("visual_keyword", entity_query)
             logger.info(f"Searching media assets for visual keyword: '{keyword}'")
-            paths = self.media_sourcer.get_media(keyword, count=3)
+            paths = segment_real_media(self.media_sourcer, segment, script, index)
             segment_media.append(paths)
+        if not title_card_path:
+            title_card_path = next((path for pool in segment_media for path in pool),None)
 
         visual_assets = {
             "title_card": title_card_path,

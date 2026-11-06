@@ -37,8 +37,15 @@ Meta rejection may be retried after credentials/configuration are corrected.
 
 ## Video layouts and narration
 
-Shorts use measured headlines, brief captions, real entity photos/stock clips
-and animated football diagrams. Scene boundaries follow word timestamps rather
+Shorts use measured headlines, brief captions, relevant real photos and supported
+explanatory diagrams. Photos are never replaced by graphics on a fixed rotation.
+A diagram is allowed only for a matching spoken explanation (currently contract
+negotiation or kit design). Selection news, biographies, results, pressure and
+transfer announcements do not automatically trigger diagrams. Missing relevant
+media stops the Short before rendering/uploading, with `visual-gaps.json`, rather
+than inserting unrelated filler. Explicit match-data cards remain supported.
+Stock clips are not used as substitute portraits of named people.
+Scene boundaries follow word timestamps rather
 than dividing paragraphs into equal time slices. Missing timing marks are
 interpolated and reported. Daily public uploads require at least 25% real-media
 coverage; `MIN_REAL_MEDIA_FRACTION` can change that threshold. Previews remain

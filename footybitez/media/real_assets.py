@@ -92,17 +92,19 @@ def supported_entities(segment, script):
 
 def stock_query(text):
     lower = text.lower()
-    if any(term in lower for term in ("agent", "contract", "deal", "transfer", "business", "legal")):
+    if 'contract' in lower and any(term in lower for term in ('sign', 'negotiat')):
         return "contract signing"
     if any(term in lower for term in ("stadium", "crowd", "fans")):
         return "soccer stadium"
     if any(term in lower for term in ("kit", "shirt", "jersey")):
         return "soccer jersey"
-    return "soccer training"
+    if any(term in lower for term in ('training', 'practice', 'drill')):
+        return "soccer training"
+    return None
 
 
 def pexels_short_clip(sourcer, query, index=0):
-    if not sourcer.pexels_api_key:
+    if not query or not sourcer.pexels_api_key:
         return None
     try:
         response = requests.get("https://api.pexels.com/v1/videos/search",
@@ -151,7 +153,9 @@ def segment_real_media(sourcer, segment, script, index):
             paths.append(path)
     if not paths:
         paths = sourcer.get_media(segment.get("visual_keyword", "football soccer"), count=2)
-    clip = pexels_short_clip(sourcer, stock_query(segment.get("text", "")), index)
+    clip = None
+    if not supported_entities(segment, script):
+        clip = pexels_short_clip(sourcer, stock_query(segment.get("text", "")), index)
     if clip:
         paths.append(clip)
     return paths

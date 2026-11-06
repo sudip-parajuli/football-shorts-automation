@@ -48,16 +48,17 @@ def align_words(text, timing, duration):
 
 
 def visual_theme(text, offset=0):
+    """Select only a diagram whose actual drawing explains this spoken clause.
+
+    No generic theme or rotation: a selection announcement, biography or result
+    does not become a tactics/transfer story just because media is unavailable.
+    """
     lower = text.lower()
-    if any(term in lower for term in ("agent", "contract", "transfer", "business", "legal", "money", "deal")):
-        return ("contract", "network", "transfer")[offset % 3]
-    if any(term in lower for term in ("pressure", "confidence", "psycholog", "focus", "mental")):
-        return ("pressure", "training", "pitch")[offset % 3]
-    if any(term in lower for term in ("offside", "backpass", "back-pass", "tactic", "rule", "formation", "referee")):
-        return ("tactics", "pitch", "training")[offset % 3]
-    if any(term in lower for term in ("kit", "shirt", "jersey")):
-        return ("kit", "contract", "network")[offset % 3]
-    return ("pitch", "training", "network", "transfer")[offset % 4]
+    if re.search(r'\b(?:contract|contracts)\b',lower) and re.search(r'\b(?:negotiate|negotiates|negotiating|negotiation|sign|signs|signing|represent|represents)\b',lower):
+        return 'contract'
+    if re.search(r'\b(?:kit|shirt|jersey|kits|shirts|jerseys)\b',lower) and re.search(r'\b(?:design|designs|colour|color|colours|colors|stripes)\b',lower):
+        return 'kit'
+    return None
 
 
 def plan_visual_beats(text, timing, duration, media=None, fps=24, offset=0):
@@ -83,16 +84,22 @@ def plan_visual_beats(text, timing, duration, media=None, fps=24, offset=0):
     for index, (start, _) in enumerate(groups[1:], 1):
         boundaries.append(min(total_frames - (len(groups) - index), max(boundaries[-1] + 1, round(words[start]["start"] * fps))))
     boundaries.append(total_frames)
-    media = [path for path in (media or []) if path and not re.search(r"(?:^|[/\\])(?:editorial_|card_|placeholder)", path)]
+    media = [path for path in (media or []) if path and not re.search(r"(?:^|[/\\])(?:editorial_|placeholder)", path)]
     scenes = []
     for index, (start, end) in enumerate(groups):
         phrase = " ".join(word["word"] for word in words[start:end])
-        source = media[index % len(media)] if media and index % 3 != 1 else ""
+        source = media[index % len(media)] if media else ""
+        # Check the local sentence, not a different point elsewhere in the chunk.
+        clauses = re.split(r'(?<=[.!?;])\s+', clean_text(text))
+        local = next((clause for clause in clauses if phrase in clause), phrase)
+        theme = visual_theme(local)
+        kind = 'media' if source else 'diagram' if theme else 'unavailable'
         scenes.append({
             "from_frame": boundaries[index], "duration_frames": boundaries[index + 1] - boundaries[index],
             "headline": " ".join(word["word"] for word in words[start:min(end, start + 5)]),
-            "narration_snippet": phrase, "theme": visual_theme(text, index + offset),
-            "src": source, "kind": "media" if source else "diagram",
+            "narration_snippet": phrase, "theme": theme or '',
+            "src": source, "kind": kind,
+            "visual_reason": 'Relevant supplied photo/clip' if source else f'Explicit {theme} explanation in the spoken clause' if theme else 'No relevant asset or supported explanatory diagram',
             "word_start": start, "word_end": end,
         })
     return scenes, words, timing_source

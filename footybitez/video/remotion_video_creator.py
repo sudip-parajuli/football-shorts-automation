@@ -137,6 +137,7 @@ class RemotionVideoCreator:
 
         # 3. Process Audio & Timings
         current_time = 0.0
+        recovery_sourcer = None
         
         for i, chunk in enumerate(chunks):
             # Generate Audio
@@ -188,12 +189,26 @@ class RemotionVideoCreator:
                         if not isinstance(pool, list): pool = [pool]
                         media_files = [self._copy_to_public(p) for p in pool if p]
                 
-            media_files = [path for path in media_files if path]
+            media_files = [path for path in media_files if path and not os.path.basename(path).startswith(('editorial_','placeholder'))]
+            if not media_files and chunk.get('index') is not None:
+                # Older news/match callers use broad visual queries. Recover
+                # actual named subjects using the same sourcing as daily Shorts.
+                from footybitez.media.real_assets import segment_real_media
+                if recovery_sourcer is None:
+                    from footybitez.media.media_sourcer import MediaSourcer
+                    recovery_sourcer = MediaSourcer(download_dir=os.path.join(self.output_dir,'recovered_media'))
+                segment = script_data['segments'][chunk['index']]
+                recovered = segment_real_media(recovery_sourcer, segment, script_data, chunk['index'])
+                media_files = [self._copy_to_public(path) for path in recovered if path]
             from footybitez.video.short_timeline import plan_visual_beats
             scenes, timing_data, timing_source = plan_visual_beats(
                 chunk["text"], timing_data, audio_duration, media_files, offset=i)
-            if not media_files:
-                logger.info("No verified photo for %s; planning animated football scenes", chunk['type'])
+            missing = [scene for scene in scenes if scene['kind']=='unavailable']
+            if missing:
+                report_path=os.path.join(self.output_dir,'visual-gaps.json')
+                with open(report_path,'w',encoding='utf-8') as report:
+                    json.dump({'segment':chunk['type'],'missing_scenes':missing},report,indent=2)
+                raise ValueError(f"No context-matching visual for {chunk['type']}; refusing unrelated filler. See visual-gaps.json")
 
             voice_info = {}
             if os.path.isfile(audio_path + ".voice.json"):

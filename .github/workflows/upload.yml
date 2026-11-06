@@ -152,3 +152,4 @@ jobs:
           footybitez/output/visual-plan.json
           footybitez/output/visual-coverage.json
           footybitez/output/narration-report.json
+          footybitez/output/visual-gaps.json

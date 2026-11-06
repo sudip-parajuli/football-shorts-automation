@@ -105,13 +105,16 @@ export const ShortsScene: React.FC<{scene:ShortVisual; hook?:boolean; hookText?:
   const progress = Math.min(1,frame/Math.max(1,scene.duration_frames));
   const t = .5-.5*Math.cos(progress*Math.PI*2);
   const hasMedia = scene.kind==='media' && Boolean(scene.src);
+  if (!hasMedia && (scene.kind!=='diagram' || !['contract','kit'].includes(scene.theme))) {
+    throw new Error('Missing context-matching photo or supported explanatory diagram; unrelated filler is disabled');
+  }
   return <AbsoluteFill style={{background:'#0b2027',overflow:'hidden'}}>
     {hasMedia ? <>
       {/\.(mp4|mov|webm)$/i.test(scene.src)
         ? <Video src={staticFile(scene.src)} muted loop style={{width:'100%',height:'100%',objectFit:'cover'}}/>
         : <Img src={staticFile(scene.src)} style={{width:'100%',height:'100%',objectFit:'cover',transform:`scale(${1+progress*.04})`}}/>}
       <AbsoluteFill style={{background:'linear-gradient(#04131bd9 0%,#04131b22 42%,#04131bd9 85%)'}}/>
-      <div style={{position:'absolute',left:100,top:1380,color:'#a5c5bb',fontSize:24,fontFamily:'Barlow Condensed'}}>ILLUSTRATIVE FOOTAGE</div>
+      <div style={{position:'absolute',left:100,top:1380,color:'#a5c5bb',fontSize:24,fontFamily:'Barlow Condensed'}}>{scene.src.startsWith('card_') ? 'MATCH DATA GRAPHIC' : 'ILLUSTRATIVE FOOTAGE'}</div>
     </> : <>
       <AbsoluteFill style={{background:'radial-gradient(ellipse at 70% 45%,#28514d 0%,#0b2027 60%)'}}/>
       <svg viewBox="0 0 800 900" style={{position:'absolute',left:80,top:hook?520:440,width:880,height:990}}>

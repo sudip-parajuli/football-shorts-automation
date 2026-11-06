@@ -71,7 +71,7 @@ export const Main: React.FC<MainProps> = (props) => {
       const frames=Math.max(1,Math.round(segment.duration*fps));
       const from=cumulative;cumulative+=frames;
       const fallback: ShortVisual = {from_frame:0,duration_frames:frames,headline:stripCaptionMarkup(segment.text).split(/\s+/).slice(0,5).join(' '),
-        narration_snippet:segment.text,theme:['pitch','contract','network','training'][index%4],src:segment.media?.find(src=>!/(editorial_|card_)/.test(src)) || '',kind:'diagram'};
+        narration_snippet:segment.text,theme:'',src:segment.media?.find(src=>!/(editorial_|placeholder)/.test(src)) || '',kind:'unavailable'};
       if(fallback.src) fallback.kind='media';
       const scenes=segment.visual_scenes?.length ? segment.visual_scenes : [fallback];
       return <Sequence key={index} from={from} durationInFrames={frames}>
