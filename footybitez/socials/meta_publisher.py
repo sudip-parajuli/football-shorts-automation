@@ -6,17 +6,13 @@ import requests
 logger = logging.getLogger(__name__)
 
 class MetaPublisher:
-    def __init__(self, use_footybitez=False):
-        if use_footybitez:
-            self.access_token = os.getenv("FOOTYBITEZ_META_ACCESS_TOKEN") or os.getenv("META_ACCESS_TOKEN")
-            self.page_id = os.getenv("FOOTYBITEZ_FACEBOOK_PAGE_ID") or os.getenv("FACEBOOK_PAGE_ID")
-            self.page_ids_filter = os.getenv("FOOTYBITEZ_FACEBOOK_PAGE_IDS") or os.getenv("FACEBOOK_PAGE_IDS")
-            self.instagram_id = os.getenv("FOOTYBITEZ_INSTAGRAM_BUSINESS_ACCOUNT_ID") or os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID")
-        else:
-            self.access_token = os.getenv("META_ACCESS_TOKEN")
-            self.page_id = os.getenv("FACEBOOK_PAGE_ID")
-            self.page_ids_filter = os.getenv("FACEBOOK_PAGE_IDS")  # Comma-separated Page IDs
-            self.instagram_id = os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID")
+    def __init__(self, use_footybitez=True):
+        # Retain the legacy argument for existing callers. All workflows now
+        # target FootyBitez; even use_footybitez=False cannot select another token.
+        self.access_token = os.getenv("FOOTYBITEZ_META_ACCESS_TOKEN")
+        self.page_id = os.getenv("FOOTYBITEZ_FACEBOOK_PAGE_ID")
+        self.page_ids_filter = os.getenv("FOOTYBITEZ_FACEBOOK_PAGE_IDS")
+        self.instagram_id = os.getenv("FOOTYBITEZ_INSTAGRAM_BUSINESS_ACCOUNT_ID")
         self.api_version = "v19.0"
         self.base_url = "https://graph.facebook.com"
         self.dry_run = os.getenv("DRY_RUN", "false").lower() == "true"
@@ -60,7 +56,7 @@ class MetaPublisher:
                     pass
                 err_msg = err_data.get("error", {}).get("message", "")
                 if "accounts" in err_msg or err_data.get("error", {}).get("code") == 100:
-                    logger.info("META_ACCESS_TOKEN is a Page Access Token. Dynamic page list discovery skipped; using page token directly.")
+                    logger.info("FOOTYBITEZ_META_ACCESS_TOKEN is a Page Access Token. Dynamic page list discovery skipped; using page token directly.")
                 else:
                     logger.warning(f"Failed to fetch authorized pages: {res.text}")
         except Exception as e:
@@ -74,7 +70,7 @@ class MetaPublisher:
         Uses dynamic Page Access Tokens.
         """
         if not self.access_token:
-            logger.warning("META_ACCESS_TOKEN not configured. Skipping Facebook publishing.")
+            logger.warning("FOOTYBITEZ_META_ACCESS_TOKEN not configured. Skipping Facebook publishing.")
             return None
 
         # 1. Fetch all authorized pages dynamically
@@ -98,7 +94,7 @@ class MetaPublisher:
 
         # Fallback to default page_id if no pages were dynamically fetched/matched but we have a single ID
         if not filtered_pages and self.page_id:
-            logger.info("Using fallback single FACEBOOK_PAGE_ID and default User Token.")
+            logger.info("Using fallback single FOOTYBITEZ_FACEBOOK_PAGE_ID and default User Token.")
             filtered_pages.append({
                 "id": self.page_id,
                 "access_token": self.access_token,
@@ -154,7 +150,7 @@ class MetaPublisher:
         Requires a publicly accessible URL to the video file.
         """
         if not self.access_token or not self.instagram_id:
-            logger.warning("Instagram credentials (META_ACCESS_TOKEN, INSTAGRAM_BUSINESS_ACCOUNT_ID) not configured. Skipping.")
+            logger.warning("Instagram credentials (FOOTYBITEZ_META_ACCESS_TOKEN, FOOTYBITEZ_INSTAGRAM_BUSINESS_ACCOUNT_ID) not configured. Skipping.")
             return None
 
         if self.dry_run:

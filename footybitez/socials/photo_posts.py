@@ -43,8 +43,16 @@ def host_post_image(image_path):
 
 
 class PhotoPostPublisher:
-    def __init__(self, use_footybitez=False):
+    def __init__(self, use_footybitez=True):
         self.meta = MetaPublisher(use_footybitez=use_footybitez)
+        if use_footybitez:
+            # The photo workflow belongs to FootyBitez. Never combine its token
+            # with generic account IDs or silently publish to a different brand.
+            self.meta.access_token = os.getenv('FOOTYBITEZ_META_ACCESS_TOKEN')
+            self.meta.page_id = os.getenv('FOOTYBITEZ_FACEBOOK_PAGE_ID')
+            self.meta.page_ids_filter = os.getenv('FOOTYBITEZ_FACEBOOK_PAGE_IDS')
+            self.meta.instagram_id = os.getenv('FOOTYBITEZ_INSTAGRAM_BUSINESS_ACCOUNT_ID')
+        self.use_footybitez = use_footybitez
         self.version = os.getenv("META_GRAPH_API_VERSION", "v26.0")
         self.meta.api_version = self.version
         self.base = f"https://graph.facebook.com/{self.version}"
@@ -61,6 +69,8 @@ class PhotoPostPublisher:
         return str(data["id"])
 
     def pages(self):
+        if self.use_footybitez and (not self.meta.access_token or not (self.meta.page_id or self.meta.page_ids_filter)):
+            raise RuntimeError('Configure FOOTYBITEZ_META_ACCESS_TOKEN and FOOTYBITEZ_FACEBOOK_PAGE_ID (or FOOTYBITEZ_FACEBOOK_PAGE_IDS)')
         pages = self.meta._get_authorized_pages()
         targets = [value.strip() for value in (self.meta.page_ids_filter or self.meta.page_id or "").split(',') if value.strip()]
         if targets:
@@ -87,7 +97,7 @@ class PhotoPostPublisher:
 
     def instagram(self, image_path, caption, record, save):
         if not self.meta.instagram_id or not self.meta.access_token:
-            raise RuntimeError("Instagram account/token is missing")
+            raise RuntimeError("FootyBitez Instagram requires FOOTYBITEZ_INSTAGRAM_BUSINESS_ACCOUNT_ID and FOOTYBITEZ_META_ACCESS_TOKEN" if self.use_footybitez else "Instagram account/token is missing")
         # An ambiguous publish response is not automatically retried: doing so can
         # create a duplicate even if the original request succeeded on Meta.
         if record.get("instagram_publish_pending"):

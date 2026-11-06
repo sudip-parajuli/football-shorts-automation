@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 
 class SocialCommentManager:
     def __init__(self):
-        self.access_token = os.getenv("META_ACCESS_TOKEN")
-        self.page_ids_filter = os.getenv("FACEBOOK_PAGE_IDS")
-        self.instagram_id = os.getenv("INSTAGRAM_BUSINESS_ACCOUNT_ID")
+        self.access_token = os.getenv("FOOTYBITEZ_META_ACCESS_TOKEN")
+        self.page_ids_filter = os.getenv("FOOTYBITEZ_FACEBOOK_PAGE_IDS") or os.getenv("FOOTYBITEZ_FACEBOOK_PAGE_ID")
+        self.instagram_id = os.getenv("FOOTYBITEZ_INSTAGRAM_BUSINESS_ACCOUNT_ID")
         self.api_version = "v19.0"
         self.base_url = "https://graph.facebook.com"
         
@@ -48,7 +48,7 @@ class SocialCommentManager:
                     pass
                 err_msg = err_data.get("error", {}).get("message", "")
                 if "accounts" in err_msg or err_data.get("error", {}).get("code") == 100:
-                    logger.info("META_ACCESS_TOKEN is a Page Access Token. Dynamic page list discovery skipped; using page token directly.")
+                    logger.info("FOOTYBITEZ_META_ACCESS_TOKEN is a Page Access Token. Dynamic page list discovery skipped; using page token directly.")
                 else:
                     logger.warning(f"Failed to fetch authorized pages: {res.text}")
         except Exception as e:
@@ -85,7 +85,7 @@ class SocialCommentManager:
         Polls recent Facebook posts across all authorized pages and replies to unanswered comments.
         """
         if not self.access_token:
-            logger.warning("META_ACCESS_TOKEN not set. Skipping Facebook auto-reply.")
+            logger.warning("FOOTYBITEZ_META_ACCESS_TOKEN not set. Skipping Facebook auto-reply.")
             return
 
         pages = self._get_authorized_pages()
@@ -95,11 +95,11 @@ class SocialCommentManager:
             fallback_id = None
             if self.page_ids_filter:
                 fallback_id = self.page_ids_filter.split(",")[0].strip()
-            elif os.getenv("FACEBOOK_PAGE_ID"):
-                fallback_id = os.getenv("FACEBOOK_PAGE_ID")
+            elif os.getenv("FOOTYBITEZ_FACEBOOK_PAGE_ID"):
+                fallback_id = os.getenv("FOOTYBITEZ_FACEBOOK_PAGE_ID")
             
             if fallback_id:
-                logger.info("Using fallback FACEBOOK_PAGE_ID and default Page Token for Facebook comment checks.")
+                logger.info("Using fallback FOOTYBITEZ_FACEBOOK_PAGE_ID and default Page Token for Facebook comment checks.")
                 pages = [{
                     "id": fallback_id,
                     "access_token": self.access_token,
@@ -199,7 +199,7 @@ class SocialCommentManager:
         Polls recent Instagram media posts and replies to unanswered comments.
         """
         if not self.access_token or not self.instagram_id:
-            logger.warning("META_ACCESS_TOKEN or INSTAGRAM_BUSINESS_ACCOUNT_ID not set. Skipping Instagram auto-reply.")
+            logger.warning("FOOTYBITEZ_META_ACCESS_TOKEN or FOOTYBITEZ_INSTAGRAM_BUSINESS_ACCOUNT_ID not set. Skipping Instagram auto-reply.")
             return
 
         logger.info(f"Checking comments for Instagram Business Account: {self.instagram_id}...")

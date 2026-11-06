@@ -4,13 +4,68 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 from datetime import datetime, timezone
 from PIL import Image
-from footybitez.socials.photo_posts import publish_post
+from footybitez.socials.photo_posts import publish_post, PhotoPostPublisher
 from footybitez.socials.post_composer import render_overlay, compose_caption
 from footybitez.social_post_main import verified_result, result_headline
 from footybitez.media.football_assets import sports_image_url, football_logo, LogoPage
+from footybitez.socials.meta_publisher import MetaPublisher
 
 
 class SocialPostTests(unittest.TestCase):
+    @patch.dict('os.environ',{'FOOTYBITEZ_META_ACCESS_TOKEN':'footy-test-token',
+        'FOOTYBITEZ_FACEBOOK_PAGE_ID':'footy-page','FOOTYBITEZ_INSTAGRAM_BUSINESS_ACCOUNT_ID':'footy-ig',
+        'META_ACCESS_TOKEN':'generic-test-token','FACEBOOK_PAGE_ID':'generic-page',
+        'FACEBOOK_PAGE_IDS':'generic-filter','INSTAGRAM_BUSINESS_ACCOUNT_ID':'generic-ig'},clear=True)
+    def test_photo_publisher_defaults_to_footybitez_credentials_only(self):
+        publisher=PhotoPostPublisher()
+        self.assertEqual(publisher.meta.access_token,'footy-test-token')
+        self.assertEqual(publisher.meta.page_id,'footy-page')
+        self.assertEqual(publisher.meta.instagram_id,'footy-ig')
+        self.assertIsNone(publisher.meta.page_ids_filter)
+        for publisher_args in ({},{'use_footybitez':True},{'use_footybitez':False}):
+            shared=MetaPublisher(**publisher_args)
+            self.assertEqual(shared.access_token,'footy-test-token')
+            self.assertEqual(shared.page_id,'footy-page')
+            self.assertEqual(shared.instagram_id,'footy-ig')
+            self.assertIsNone(shared.page_ids_filter)
+        with patch.object(publisher.meta,'_get_authorized_pages',return_value=[{'id':'footy-page'},{'id':'generic-page'}]):
+            self.assertEqual(publisher.pages(),[{'id':'footy-page'}])
+
+    @patch.dict('os.environ',{'META_ACCESS_TOKEN':'generic-test-token','FACEBOOK_PAGE_ID':'generic-page',
+        'INSTAGRAM_BUSINESS_ACCOUNT_ID':'generic-ig'},clear=True)
+    def test_missing_footybitez_secrets_never_fall_back_to_generic_brand(self):
+        publisher=PhotoPostPublisher()
+        self.assertIsNone(publisher.meta.access_token)
+        self.assertIsNone(publisher.meta.page_id)
+        self.assertIsNone(publisher.meta.instagram_id)
+        with patch.object(publisher.meta,'_get_authorized_pages') as discover:
+            with self.assertRaisesRegex(RuntimeError,'FOOTYBITEZ_META_ACCESS_TOKEN'):
+                publisher.pages()
+            discover.assert_not_called()
+
+    def test_workflow_passes_the_dedicated_secret_names(self):
+        social_workflows=0
+        for path in Path('.github/workflows').glob('*.yml'):
+            workflow=path.read_text(encoding='utf-8')
+            if 'META_ACCESS_TOKEN' not in workflow:
+                continue
+            social_workflows+=1
+            for name in ('META_ACCESS_TOKEN','FACEBOOK_PAGE_ID','INSTAGRAM_BUSINESS_ACCOUNT_ID'):
+                self.assertIn('${{ secrets.FOOTYBITEZ_'+name+' }}',workflow,str(path))
+                self.assertNotIn('${{ secrets.'+name+' }}',workflow,str(path))
+        self.assertEqual(social_workflows,10)
+
+    @patch.dict('os.environ',{'FOOTYBITEZ_META_ACCESS_TOKEN':'footy-test-token',
+        'FOOTYBITEZ_FACEBOOK_PAGE_ID':'footy-page','FOOTYBITEZ_INSTAGRAM_BUSINESS_ACCOUNT_ID':'footy-ig',
+        'META_ACCESS_TOKEN':'generic-test-token','FACEBOOK_PAGE_IDS':'generic-page'},clear=True)
+    def test_comment_workflow_uses_and_filters_footybitez_account(self):
+        with patch('dotenv.load_dotenv'):
+            from footybitez.socials.social_comment_manager import SocialCommentManager
+        manager=SocialCommentManager()
+        self.assertEqual(manager.access_token,'footy-test-token')
+        self.assertEqual(manager.page_ids_filter,'footy-page')
+        self.assertEqual(manager.instagram_id,'footy-ig')
+
     def test_shootout_totals_are_not_presented_as_goals_during_play(self):
         match={'homeTeam':{'name':'Germany'},'awayTeam':{'name':'England'},
                'score':{'duration':'PENALTY_SHOOTOUT','fullTime':{'home':7,'away':6},'penalties':{'home':6,'away':5}}}

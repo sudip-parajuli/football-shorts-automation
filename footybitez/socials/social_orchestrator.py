@@ -8,12 +8,9 @@ from footybitez.socials.tiktok_publisher import TikTokPublisher
 logger = logging.getLogger(__name__)
 
 class SocialOrchestrator:
-    def __init__(self, use_footybitez=False, skip_tiktok=False):
-        # `use_footybitez` ONLY controls which Meta (Facebook/Instagram) page/credentials
-        # are targeted — it is intentionally decoupled from TikTok publishing so that
-        # routing a pipeline's Facebook/Instagram posts to the Footybitez page doesn't
-        # silently also disable its TikTok uploads (a previous version conflated the two).
-        self.use_footybitez = use_footybitez
+    def __init__(self, use_footybitez=True, skip_tiktok=False):
+        # Meta targets FootyBitez in every pipeline. TikTok remains independent.
+        self.use_footybitez = True
         self.skip_tiktok = skip_tiktok
         self.meta = MetaPublisher(use_footybitez=use_footybitez)
         self.tiktok = TikTokPublisher()

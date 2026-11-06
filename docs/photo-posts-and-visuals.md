@@ -17,10 +17,13 @@ and overlaid images include author, source and license links in the caption.
 The image is an entity portrait, not proof of a particular match or event.
 No suitable photo means a failed preview rather than an unrelated photograph.
 
-Publishing reuses `META_ACCESS_TOKEN`, `FACEBOOK_PAGE_ID` (or comma-separated
-`FACEBOOK_PAGE_IDS`), and `INSTAGRAM_BUSINESS_ACCOUNT_ID`. Configure the intended
-Page IDs. Without a filter, the existing account routing includes authorized
-Pages. Invalid/logged-out Meta tokens must be renewed in repository secrets.
+Every Facebook/Instagram workflow, including video uploads, news, match posts,
+backfill and auto-replies, uses `FOOTYBITEZ_META_ACCESS_TOKEN`, `FOOTYBITEZ_FACEBOOK_PAGE_ID`
+(or optional comma-separated `FOOTYBITEZ_FACEBOOK_PAGE_IDS`), and
+`FOOTYBITEZ_INSTAGRAM_BUSINESS_ACCOUNT_ID`. The Page ID filter is required;
+only the configured FootyBitez Pages are targeted. Generic Meta secrets are
+not used as fallbacks by this workflow. A token error applies to the selected
+secret; check credential routing before replacing any token.
 `META_GRAPH_API_VERSION` can override the default v26.0.
 
 Instagram fetches a publicly hosted JPEG. Actions hosts it in an isolated
