@@ -61,6 +61,38 @@ class ReliableWriterTests(unittest.TestCase):
         self.assertIsNone(output)
         self.assertTrue(any('numbers/dates' in error for error in errors))
 
+    def test_short_or_missing_visual_metadata_is_repaired_before_validation(self):
+        for query in ('Manchester United', 'comeback', '', None, []):
+            with self.subTest(query=query):
+                data, records, context = fixture()
+                data['segments'][0]['visual_keyword'] = query
+                output, errors = prepare_script(data, records, context)
+                self.assertFalse(errors)
+                self.assertEqual(output['segments'][0]['text'], data['segments'][0]['text'])
+                self.assertGreaterEqual(len(output['segments'][0]['visual_keyword'].split()),3)
+                self.assertFalse(visual_query_errors(output['segments'][0]['visual_keyword'],data['segments'][0]['text'],context))
+
+    def test_caption_with_short_visual_queries_does_not_consume_provider_retries(self):
+        data, records, context = fixture()
+        for segment in data['segments']:
+            segment['visual_keyword'] = 'football'
+        writer = ShortWriter(['not-a-key'], ['unused-gemini-key'])
+        with patch.object(writer, '_request', return_value=json.dumps(data)) as request:
+            result = writer.write('Back-pass rule', 'matches', context, lambda data, **kwargs: True)
+        self.assertIsNotNone(result)
+        self.assertEqual(request.call_count,1)
+
+    def test_visual_repair_never_hides_unsupported_facts_or_malformed_narration(self):
+        data, records, context = fixture()
+        data['segments'][0].update(text=data['segments'][0]['text']+' This happened in 2026.',visual_keyword='')
+        output, errors = prepare_script(data, records, context)
+        self.assertIsNone(output)
+        self.assertTrue(any('numbers/dates' in error for error in errors))
+        data['segments'][0]['text'] = None
+        output, errors = prepare_script(data, records, context)
+        self.assertIsNone(output)
+        self.assertIn('Every segment needs narration text',errors)
+
     def test_malformed_candidate_is_repaired_with_feedback(self):
         data, records, context = fixture()
         writer = ShortWriter(['not-a-key'], [])

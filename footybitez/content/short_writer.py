@@ -52,12 +52,14 @@ def repair_visual_queries(data, context):
     """A bad search query must not invalidate otherwise usable narration."""
     stop = QUERY_STOPWORDS
     for segment in data.get("segments", []):
+        if not isinstance(segment, dict) or not isinstance(segment.get('text'), str):
+            continue  # Narration validation reports malformed content below.
         query = segment.get("visual_keyword", "")
-        if visual_query_errors(query, segment.get("text", ""), context):
+        if not isinstance(query, str) or len(query.split()) < 3 or visual_query_errors(query, segment["text"], context):
             # Derive the replacement only from the spoken point. Never substitute
             # a random famous player or an unrelated generic crowd photograph.
             terms = [word for word in re.findall(r"[\w]+", segment["text"].lower()) if word not in stop]
-            segment["visual_keyword"] = " ".join(dict.fromkeys(terms[:10])) + " football illustration"
+            segment["visual_keyword"] = (" ".join(dict.fromkeys(terms[:10])) + " football illustration").strip()
             logger.info("Replaced unsupported visual query with narration-derived terms")
 
 
@@ -77,10 +79,13 @@ def prepare_script(data, records, context):
         segment["source_quotes"] = [lookup[value]["text"] for value in dict.fromkeys(ids)]
         segment["source_quote"] = segment["source_quotes"][0]
         segment["source_urls"] = [lookup[value]["url"] for value in dict.fromkeys(ids) if lookup[value]["url"]]
+    # Repair asset-search metadata before editorial validation. A valid caption
+    # must not be rejected because a provider returned "Manchester United" or
+    # an empty query; factual narration and evidence checks still run afterward.
+    repair_visual_queries(data, context)
     errors = short_errors(data)
     if errors:
         return None, errors
-    repair_visual_queries(data, context)
     errors = grounding_errors(data, context)
     if errors:
         return None, errors
@@ -108,6 +113,7 @@ Do not invent incidents, quotes, teams, players, current clubs or statistics.
 For each segment, visual_entities lists exact full names of players, clubs,
 coaches, stadiums, trophies or matches actually present in that segment's evidence
 or narration. Use [] for abstract concepts; never add a famous face as decoration.
+Each visual_keyword is a descriptive search phrase of at least three words.
 Rules/tactics queries should describe the actual action or diagram; they do not
 need a famous player or club. Visual queries must use subjects in the narration
 or evidence, never an invented entity/year combination. Missing source information
