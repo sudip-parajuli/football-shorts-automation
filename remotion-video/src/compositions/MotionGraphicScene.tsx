@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Img, staticFile, interpolate, spring, useCurrentFrame, useVideoConfig } from 'remotion';
 
 export interface MotionGraphicSceneProps {
   motion_style?: 'pulse' | 'lines' | 'grid' | 'particles' | 'counter' | 'slash';
@@ -7,6 +7,7 @@ export interface MotionGraphicSceneProps {
   label?: string;
   counter_value?: number;
   counter_unit?: string;
+  club_logos?: string[];
   durationInFrames: number;
 }
 
@@ -346,6 +347,7 @@ const SlashMotion: React.FC<{ frame: number; fps: number; color: string; label?:
 // ─── Main Component ───────────────────────────────────────────────────────────
 export const MotionGraphicScene: React.FC<MotionGraphicSceneProps> = ({
   motion_style = 'lines',
+  club_logos = [],
   accent_color = '#F5A623',
   label,
   counter_value,
@@ -384,6 +386,9 @@ export const MotionGraphicScene: React.FC<MotionGraphicSceneProps> = ({
   return (
     <AbsoluteFill style={{ opacity: fadeOut }}>
       {content}
+      <div style={{position:'absolute',right:100,top:70,display:'flex',gap:30}}>
+        {club_logos.map(src=><Img key={src} src={staticFile(src)} style={{width:140,height:140,objectFit:'contain'}}/>)}
+      </div>
     </AbsoluteFill>
   );
 };

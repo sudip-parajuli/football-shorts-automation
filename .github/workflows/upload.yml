@@ -74,6 +74,9 @@ jobs:
         YOUTUBE_TOKEN_JSON: ${{ secrets.YOUTUBE_TOKEN_JSON }}
         GOOGLE_CLOUD_TTS_API_KEY: ${{ secrets.GOOGLE_CLOUD_TTS_API_KEY }}
         GOOGLE_CLOUD_TTS_API_KEY2: ${{ secrets.GOOGLE_CLOUD_TTS_API_KEY2 }}
+        GOOGLE_CLOUD_TTS_VOICE: ${{ vars.GOOGLE_CLOUD_TTS_VOICE || 'en-GB-Neural2-B' }}
+        EDGE_TTS_VOICE: ${{ vars.EDGE_TTS_VOICE || 'en-GB-RyanNeural' }}
+        NARRATION_RATE: ${{ vars.NARRATION_RATE || '1.0' }}
         HUME_API_KEY_LONG_1: ${{ secrets.HUME_API_KEY_LONG_1 }}
         HUME_API_KEY_LONG_2: ${{ secrets.HUME_API_KEY_LONG_2 }}
         HUME_API_KEY_LONG_3: ${{ secrets.HUME_API_KEY_LONG_3 }}
@@ -145,3 +148,7 @@ jobs:
           footybitez/output/final_short.mp4.quality.json
           footybitez/output/script.json
           footybitez/output/remotion-render.log
+          footybitez/output/render-props.json
+          footybitez/output/visual-plan.json
+          footybitez/output/visual-coverage.json
+          footybitez/output/narration-report.json

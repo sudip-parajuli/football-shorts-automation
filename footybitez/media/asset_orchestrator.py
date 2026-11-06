@@ -177,6 +177,14 @@ def fetch_asset(scene: dict, job_id: str, media_sourcer=None, topic: str = "") -
     Fetch the best available visual asset for a scene.
     """
     scene = _enforce_schema(scene, topic)
+    if scene['visual_type'] in ('image','image_tag') and media_sourcer:
+        from footybitez.media.real_assets import wikipedia_primary_photo
+        for entity in scene.get('named_entities',[]):
+            name=entity.get('name','') if isinstance(entity,dict) else entity
+            if name and name.lower() in scene.get('narration_snippet','').lower():
+                photo=wikipedia_primary_photo(media_sourcer,name)
+                if photo:
+                    return {'asset_type':'image','asset_path':photo,'overlay_text':None,'kinetic_stat':None}
     out_dir = os.path.join("remotion-video", "public", "assets", "temp", job_id, str(scene.get("scene_index", "0")))
     os.makedirs(out_dir, exist_ok=True)
 

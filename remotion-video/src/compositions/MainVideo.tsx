@@ -183,6 +183,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
               sceneComponent = (
                 <MotionGraphicScene
                   motion_style={scene.motion_style || 'lines'}
+                  club_logos={scene.club_logos}
                   accent_color={scene.accent_color || '#F5A623'}
                   label={scene.motion_label || scene.caption}
                   counter_value={scene.counter_value}

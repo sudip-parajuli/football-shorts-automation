@@ -1,0 +1,79 @@
+name: Football Facebook and Instagram Posts
+on:
+  schedule:
+    - cron: '30 8 * * *'
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: 'Optional researched football topic'
+        type: string
+        default: ''
+      category:
+        type: choice
+        options: [auto, players, matches, coaches, lifestyle, trophies, stats, results]
+        default: auto
+      format:
+        description: 'Auto occasionally chooses Facebook text-only'
+        type: choice
+        options: [auto, photo, text]
+        default: auto
+      publish:
+        description: 'Publish to configured Facebook Pages and Instagram account'
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: football-photo-posts
+  cancel-in-progress: false
+jobs:
+  compose-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r footybitez/requirements.txt
+      - name: Compose football post
+        env:
+          POST_TOPIC: ${{ inputs.topic }}
+          POST_CATEGORY: ${{ inputs.category || 'auto' }}
+          POST_FORMAT: ${{ inputs.format || 'auto' }}
+          PUBLISH_POST: ${{ github.event_name == 'schedule' || inputs.publish }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
+          META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
+          FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
+          FACEBOOK_PAGE_IDS: ${{ secrets.FACEBOOK_PAGE_IDS }}
+          INSTAGRAM_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_BUSINESS_ACCOUNT_ID }}
+          META_GRAPH_API_VERSION: ${{ vars.META_GRAPH_API_VERSION || 'v26.0' }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          args=(--topic "$POST_TOPIC" --category "$POST_CATEGORY" --format "$POST_FORMAT")
+          if [ "$PUBLISH_POST" = "true" ]; then args+=(--publish); fi
+          python -m footybitez.social_post_main "${args[@]}"
+      - name: Preserve publishing state even after partial failure
+        if: always() && (github.event_name == 'schedule' || inputs.publish)
+        run: |
+          if [ -f footybitez/data/social_posts_state.json ]; then
+            git config user.name 'github-actions[bot]'
+            git config user.email 'github-actions[bot]@users.noreply.github.com'
+            git add footybitez/data/social_posts_state.json
+            if ! git diff --cached --quiet; then
+              git commit -m 'Save social photo publishing state [skip ci]'
+              git pull --rebase origin main
+              git push origin HEAD:main
+            fi
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: football-photo-post
+          path: |
+            footybitez/output/social_posts/
+            footybitez/data/social_posts_state.json
+          retention-days: 14

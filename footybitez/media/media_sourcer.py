@@ -1166,8 +1166,6 @@ class MediaSourcer:
         return results[0] if results else None
 
     def _fetch_wikimedia_images(self, query, count=3):
-        if not self._vision_available():
-            return []
         """Fetches up to `count` images from Wikimedia Commons with football-only filter."""
         results = []
 
@@ -1226,7 +1224,7 @@ class MediaSourcer:
 
                     meta = imageinfo[0].get("extmetadata", {})
                     categories = meta.get("Categories", {}).get("value", "")
-                    license_name = meta.get("LicenseShortName", {}).get("value", "CC BY-SA")
+                    license_name = meta.get("LicenseShortName", {}).get("value", "License not supplied by source")
                     artist = meta.get("Artist", {}).get("value", "Unknown")
                     artist = re.sub('<[^<]+?>', '', artist)
 
@@ -1240,15 +1238,19 @@ class MediaSourcer:
                     if self._name_mismatch(query, title=img_title, tags=categories):
                         continue
 
-                    from footybitez.media.relevance import metadata_matches
+                    from footybitez.media.relevance import metadata_matches, tokens
                     description = meta.get("ImageDescription", {}).get("value", "")
                     if not metadata_matches(query, img_title, description, categories):
+                        continue
+                    # Without vision, require every specific query token in the
+                    # file title/description, never just broad parent categories.
+                    verified_by_metadata = tokens(query).issubset(tokens(img_title + " " + description))
+                    if not self._vision_available() and not verified_by_metadata:
                         continue
 
                     fname = f"wiki_{hash(url)}.jpg"
                     fpath = os.path.join(self.download_dir, fname)
-                    # Commons metadata plus vision must match this exact query.
-                    self._download_file(url, fpath, context_query=query, strict=True)
+                    self._download_file(url, fpath, context_query=query, strict=not verified_by_metadata)
 
                     if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
                         self.used_urls.add(url)

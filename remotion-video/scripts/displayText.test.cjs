@@ -9,6 +9,17 @@ const compiled = ts.transpileModule(fs.readFileSync(filename, 'utf8'), { compile
 const captionModule = new Module(filename, module);
 captionModule._compile(compiled, filename);
 const { cleanDisplayFields, stripCaptionMarkup } = captionModule.exports;
+const layoutFilename = path.join(__dirname, '../src/shortLayout.ts');
+const layoutModule = new Module(layoutFilename, module);
+layoutModule._compile(ts.transpileModule(fs.readFileSync(layoutFilename,'utf8'), {compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,layoutFilename);
+test('long hooks fit both safe width and height without losing words', () => {
+  for (const title of ['Who truly holds the power behind modern football transfers?', 'Why goalkeepers cannot pick up deliberate backpasses', 'X'.repeat(70)]) {
+    const layout=layoutModule.exports.fitHeadline(title,820,350,(text,size)=>text.length*size*.64,98);
+    assert.ok(layout.lines.every(line=>line.length*layout.fontSize*.64<=820));
+    assert.ok(layout.lines.length*layout.fontSize*1.12<=350);
+    assert.equal(layout.lines.join('').replace(/\s/g,''),title.toUpperCase().replace(/\s/g,''));
+  }
+});
 
 test('single, double, escaped and unmatched markers never reach captions', () => {
   for (const text of ['*Messi*', '**Messi**', '\\*Messi\\*', '***Messi', 'Messi**']) {

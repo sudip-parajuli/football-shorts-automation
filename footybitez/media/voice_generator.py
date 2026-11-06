@@ -12,6 +12,7 @@ import base64
 from gtts import gTTS
 from moviepy.editor import AudioFileClip
 from dotenv import load_dotenv
+from footybitez.media.narration import DEFAULT_GOOGLE_VOICE, DEFAULT_EDGE_VOICE, google_payload, hume_payload
 
 logger = logging.getLogger(__name__)
 
@@ -74,52 +75,59 @@ class VoiceGenerator:
         # Deep, energetic male voice well-suited to football/sports narration.
         # Override with GOOGLE_CLOUD_TTS_VOICE if a different voice is preferred —
         # must be a MALE voice name from https://cloud.google.com/text-to-speech/docs/voices
-        self.gcp_tts_voice = os.getenv("GOOGLE_CLOUD_TTS_VOICE", "en-US-Neural2-D")
+        self._selected_provider = None
+        self.gcp_tts_voice = os.getenv("GOOGLE_CLOUD_TTS_VOICE", DEFAULT_GOOGLE_VOICE)
 
     def generate(self, text, filename, voice_index=0):
-        """
-        Generates audio using, in order: Google Cloud TTS (primary), Hume (2nd),
-        Edge TTS (3rd), gTTS (last resort).
-        """
+        """Choose a provider once per video, retaining accent and timbre."""
         clean_text = self._clean_text(text)
         output_path = os.path.join(self.output_dir, filename)
         json_path = output_path.replace('.mp3', '.json')
-
-        # 1. Try Google Cloud Text-to-Speech (first choice)
-        if self.gcp_tts_keys:
-            if self._generate_gcp_tts(clean_text, output_path, json_path):
-                logger.info(f"Google Cloud TTS generated {filename}")
+        order = [value.strip() for value in os.getenv("TTS_PROVIDER_ORDER", "google,edge,hume").split(',')]
+        providers = [self._selected_provider] if self._selected_provider else order
+        for provider in providers:
+            success = False
+            if provider == "google" and self.gcp_tts_keys:
+                success = self._generate_gcp_tts(clean_text, output_path, json_path)
+            elif provider == "hume" and self.hume_keys:
+                success = self._generate_hume(clean_text, output_path, voice_index)
+                if success:
+                    self._generate_json_fallback(clean_text, json_path, output_path)
+            elif provider == "edge":
+                try:
+                    asyncio.run(self._generate_edge_async(clean_text, output_path, json_path,
+                                                         os.getenv("EDGE_TTS_VOICE", DEFAULT_EDGE_VOICE)))
+                    success = os.path.isfile(output_path) and os.path.getsize(output_path) > 0
+                except Exception as error:
+                    logger.warning("Edge narration failed: %s", type(error).__name__)
+            elif provider == "gtts":
+                # Basic TTS is an explicit opt-in, not a silent quality downgrade.
+                try:
+                    gTTS(text=clean_text, lang='en', tld='co.uk').save(output_path)
+                    self._generate_json_fallback(clean_text, json_path, output_path)
+                    success = True
+                except Exception:
+                    pass
+            if success:
+                self._selected_provider = provider
+                self._master_narration(output_path)
+                voice = self.gcp_tts_voice if provider == "google" else os.getenv("EDGE_TTS_VOICE", DEFAULT_EDGE_VOICE) if provider == "edge" else "configured Hume voice"
+                logger.info("Narration: provider=%s voice=%s file=%s", provider, voice, filename)
+                with open(output_path + ".voice.json", "w", encoding="utf-8") as report:
+                    json.dump({"provider":provider,"voice":voice,"style":"UK football storyteller","pitch":0,"rate":float(os.getenv("NARRATION_RATE", "1.0"))},report,indent=2)
                 return output_path
-            logger.info(f"Google Cloud TTS failed for {filename}. Falling back to Hume...")
-
-        # 2. Try Hume AI
-        if self.hume_keys:
-            if self._generate_hume(clean_text, output_path, voice_index):
-                logger.info(f"Hume AI generated {filename}")
-                self._generate_json_fallback(clean_text, json_path, output_path)
-                return output_path
-
-        # 3. Fallback to Edge TTS
-        logger.info(f"Hume failed or missing keys. Trying Edge TTS for {filename}...")
-        try:
-            voice = "en-US-ChristopherNeural"
-            asyncio.run(self._generate_edge_async(clean_text, output_path, json_path, voice))
-            if os.path.exists(output_path) and os.path.getsize(output_path) > 0:
-                return output_path
-        except Exception as e:
-            logger.error(f"Edge TTS failed: {e}")
-
-        # 4. Fallback to gTTS
-        logger.info(f"Edge TTS failed. Falling back to gTTS for {filename}...")
-        try:
-            tts = gTTS(text=clean_text, lang='en', tld='co.uk')
-            tts.save(output_path)
-            self._generate_json_fallback(clean_text, json_path, output_path)
-            return output_path
-        except Exception as e:
-            logger.error(f"gTTS failed: {e}")
-            
+        if self._selected_provider:
+            logger.error("Selected narration provider failed; refusing to switch voice midway through a video")
         return None
+
+    def _master_narration(self, output_path):
+        if os.getenv("NORMALIZE_NARRATION", "true").lower() != "true":
+            return
+        temporary = output_path.replace('.mp3', '.mastered.mp3')
+        subprocess.run(["ffmpeg", "-y", "-v", "error", "-i", output_path,
+                        "-af", "loudnorm=I=-16:TP=-1.5:LRA=9", "-ar", "44100", temporary],
+                       check=True, capture_output=True, timeout=120)
+        os.replace(temporary, output_path)
 
     def _generate_gcp_tts(self, text, output_path, json_path):
         """
@@ -132,21 +140,7 @@ class VoiceGenerator:
         if not words or not self.gcp_tts_keys:
             return False
 
-        def _escape(w):
-            return w.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
-
-        ssml = "<speak>" + "".join(f'<mark name="w{i}"/>{_escape(w)} ' for i, w in enumerate(words)) + "</speak>"
-
-        # Voice name like "en-US-Neural2-D" -> language code "en-US"
-        parts = self.gcp_tts_voice.split("-")
-        language_code = "-".join(parts[:2]) if len(parts) >= 2 else "en-US"
-
-        payload = {
-            "input": {"ssml": ssml},
-            "voice": {"languageCode": language_code, "name": self.gcp_tts_voice, "ssmlGender": "MALE"},
-            "audioConfig": {"audioEncoding": "MP3", "speakingRate": 1.05, "pitch": -1.0},
-            "enableTimePointing": ["SSML_MARK"],
-        }
+        payload = google_payload(text, self.gcp_tts_voice, rate=float(os.getenv("NARRATION_RATE", "1.0")))
 
         for i, key in enumerate(self.gcp_tts_keys):
             try:
@@ -221,14 +215,8 @@ class VoiceGenerator:
                     "X-Hume-Api-Key": api_key,
                     "Content-Type": "application/json"
                 }
-                payload = {
-                    "utterances": [{"text": text}],
-                    "format": {"type": "mp3"}
-                }
-                
-                if voice_id:
-                     payload["utterances"][0]["description"] = f"Voice ID: {voice_id}"
-                
+                payload = hume_payload(text, voice_id)
+
                 response = requests.post(url, json=payload, headers=headers, timeout=60)
                 if response.status_code == 200:
                     with open(output_path, "wb") as f:
@@ -243,7 +231,7 @@ class VoiceGenerator:
         return False
 
     async def _generate_edge_async(self, text, output_path, json_path, voice):
-        communicate = edge_tts.Communicate(text, voice)
+        communicate = edge_tts.Communicate(text, voice, rate="+0%", pitch="+0Hz")
         word_map = []
         with open(output_path, "wb") as file:
             async for chunk in communicate.stream():

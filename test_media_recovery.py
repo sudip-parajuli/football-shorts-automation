@@ -46,7 +46,8 @@ class RecoveryTests(unittest.TestCase):
             with patch('footybitez.media.media_sourcer.create_gemini_client', side_effect=RuntimeError('400 INVALID_ARGUMENT')) as client:
                 self.assertFalse(sourcer._check_image_safety_and_relevance(str(path), 'kit launch'))
                 self.assertFalse(sourcer._check_image_safety_and_relevance(str(path), 'kit launch'))
-                self.assertEqual(client.call_count, 1)
+                from footybitez.utils.llm_models import GEMINI_VISION_MODELS
+                self.assertEqual(client.call_count, len(GEMINI_VISION_MODELS))
 
     def test_editorial_graphics_work_without_network(self):
         with tempfile.TemporaryDirectory() as directory:
