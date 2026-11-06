@@ -1,3 +1,4 @@
+import { cleanDisplayFields } from '../displayText';
 import React from 'react';
 import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig } from 'remotion';
 import { TransitionSeries, linearTiming } from '@remotion/transitions';
@@ -49,9 +50,11 @@ export const MainVideo: React.FC<MainVideoProps> = ({
   sound_effects = {},
 }) => {
   const { fps } = useVideoConfig();
+  chapters = cleanDisplayFields(chapters);
+  quiz = cleanDisplayFields(quiz);
 
   let currentFrame = 0;
-  const CHAPTER_INTRO_DURATION = 4 * fps; // 4 seconds
+
 
   let sfxIndex = 0;
   let globalKbIndex = 0; // Global index for Ken Burns cycling across all scenes
@@ -62,11 +65,13 @@ export const MainVideo: React.FC<MainVideoProps> = ({
       {background_music && (
         <Audio
           src={staticFile(background_music)}
-          volume={() => 0.06}
+          loop
+          volume={() => 0.04}
         />
       )}
 
       {chapters.map((chapter, chapterIdx) => {
+        const CHAPTER_INTRO_DURATION = chapterIdx === 0 ? 0 : fps;
         const chapterStartTime = currentFrame;
 
         // ── Chapter Intro ───────────────────────────────────────────────────
@@ -74,7 +79,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
         const chapterSfxPath = sound_effects[chapterSfxCategory];
         sfxIndex++;
 
-        const introSequence = (
+        const introSequence = CHAPTER_INTRO_DURATION > 0 ? (
           <React.Fragment key={`intro-frag-${chapterIdx}`}>
             <Sequence
               key={`intro-${chapterIdx}`}
@@ -93,11 +98,11 @@ export const MainVideo: React.FC<MainVideoProps> = ({
                 from={chapterStartTime}
                 durationInFrames={24}
               >
-                <Audio src={staticFile(chapterSfxPath)} volume={() => 0.45} />
+                <Audio src={staticFile(chapterSfxPath)} volume={() => 0.14} />
               </Sequence>
             )}
           </React.Fragment>
-        );
+        ) : null;
 
         currentFrame += CHAPTER_INTRO_DURATION;
 
@@ -212,22 +217,11 @@ export const MainVideo: React.FC<MainVideoProps> = ({
               );
             }
 
-            // ── Transitions ────────────────────────────────────────────────
-            if (i > 0) {
-              const transitionDuration = scene.transition === 'flash' ? 4 : scene.transition === 'fade' ? 15 : 0;
-              if (transitionDuration > 0) {
-                transitionChildren.push(
-                  <TransitionSeries.Transition
-                    key={`trans-${chapterIdx}-${i}`}
-                    presentation={fade()}
-                    timing={linearTiming({ durationInFrames: transitionDuration })}
-                  />
-                );
-              }
-            }
+            // Hard cuts preserve the exact narration timeline. TransitionSeries
+            // overlaps shorten coverage and used to leave the end of chapters blank.
 
             // ── SFX on scene entry ─────────────────────────────────────────
-            const sceneSfxPath = i > 0 ? sound_effects[SFX_ROTATION[sfxIndex % SFX_ROTATION.length]] : null;
+            const sceneSfxPath = i > 0 && i % 4 === 0 ? sound_effects[SFX_ROTATION[sfxIndex % SFX_ROTATION.length]] : null;
             if (i > 0) sfxIndex++;
 
             transitionChildren.push(
@@ -235,7 +229,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
                 {sceneComponent}
                 {sceneSfxPath && (
                   <Sequence from={0} durationInFrames={18}>
-                    <Audio src={staticFile(sceneSfxPath)} volume={() => 0.22} />
+                    <Audio src={staticFile(sceneSfxPath)} volume={() => 0.10} />
                   </Sequence>
                 )}
               </TransitionSeries.Sequence>
@@ -291,7 +285,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
                 </Sequence>
                 {sfxPath && !isFirstSlide && (
                   <Sequence from={slideFrame} durationInFrames={18}>
-                    <Audio src={staticFile(sfxPath)} volume={() => 0.22} />
+                    <Audio src={staticFile(sfxPath)} volume={() => 0.10} />
                   </Sequence>
                 )}
               </React.Fragment>

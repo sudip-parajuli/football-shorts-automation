@@ -5,6 +5,11 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 
 logger = logging.getLogger(__name__)
 
+def _draw_text(draw, position, text, **kwargs):
+    # Match cards are also displayed as full-screen captions in event workflows.
+    return draw.text(position, re.sub(r"\\?\*", "", str(text)), **kwargs)
+
+
 # Color Palette
 DARK_BG = (12, 16, 32)        # Deep Carbon Navy
 CARD_BG = (22, 28, 52)        # Slightly lighter navy for cards
@@ -65,12 +70,12 @@ def _draw_card_frame(draw, title_text: str, subtitle_text: str = ""):
     
     # Watermark-style logo banner at top
     draw.rectangle([340, 60, 740, 110], fill=(22, 28, 52, 180), outline=ACCENT_AMBER + (100,), width=2)
-    draw.text((540, 82), "FIFA WORLD CUP 2026", font=_get_font(28, bold=True), fill=ACCENT_AMBER, anchor="mm")
+    _draw_text(draw, (540, 82), "FIFA WORLD CUP 2026", font=_get_font(28, bold=True), fill=ACCENT_AMBER, anchor="mm")
     
     # Header card title
-    draw.text((540, 200), title_text.upper(), font=font_title, fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (540, 200), title_text.upper(), font=font_title, fill=COLOR_WHITE, anchor="mm")
     if subtitle_text:
-        draw.text((540, 260), subtitle_text.upper(), font=font_sub, fill=ACCENT_BLUE, anchor="mm")
+        _draw_text(draw, (540, 260), subtitle_text.upper(), font=font_sub, fill=ACCENT_BLUE, anchor="mm")
 
 def _draw_team_emblem_placeholder(draw, x_center, y_center, team_name, radius=110):
     """Draws a premium fallback national flag/badge card if no SVG/PNG flag image is on disk."""
@@ -85,7 +90,7 @@ def _draw_team_emblem_placeholder(draw, x_center, y_center, team_name, radius=11
     # Team initial text
     init = team_name.strip()[:3].upper()
     font_text = _get_font(52, bold=True)
-    draw.text((x_center, y_center), init, font=font_text, fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (x_center, y_center), init, font=font_text, fill=COLOR_WHITE, anchor="mm")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # PRE-MATCH SCENE GENERATORS
@@ -98,19 +103,19 @@ def draw_pre_match_card_1_hook(home: str, away: str, group: str, venue: str, out
     
     # Draw Home Team Card
     _draw_team_emblem_placeholder(draw, 280, 750, home, radius=130)
-    draw.text((280, 930), home.upper(), font=_get_font(56, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (280, 930), home.upper(), font=_get_font(56, bold=True), fill=COLOR_WHITE, anchor="mm")
     
     # Draw Away Team Card
     _draw_team_emblem_placeholder(draw, 800, 750, away, radius=130)
-    draw.text((800, 930), away.upper(), font=_get_font(56, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (800, 930), away.upper(), font=_get_font(56, bold=True), fill=COLOR_WHITE, anchor="mm")
     
     # VS Center Badge
     draw.ellipse([490, 700, 590, 800], fill=ACCENT_AMBER + (255,), outline=COLOR_WHITE + (255,), width=4)
-    draw.text((540, 747), "VS", font=_get_font(38, bold=True), fill=DARK_BG, anchor="mm")
+    _draw_text(draw, (540, 747), "VS", font=_get_font(38, bold=True), fill=DARK_BG, anchor="mm")
     
     # Venue Text
     draw.rounded_rectangle([140, 1100, 940, 1220], radius=15, fill=CARD_BG + (230,), outline=ACCENT_BLUE + (100,), width=2)
-    draw.text((540, 1160), f"VENUE: {venue.upper()}", font=_get_font(34, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (540, 1160), f"VENUE: {venue.upper()}", font=_get_font(34, bold=True), fill=COLOR_WHITE, anchor="mm")
     
     img.convert("RGB").save(output_path, "JPEG", quality=95)
     logger.info(f"[CardGen] Saved pre-match Hook card: {output_path}")
@@ -125,7 +130,7 @@ def draw_pre_match_card_2_form(home: str, away: str, form_a: str, form_b: str, o
         draw.rounded_rectangle([80, y_pos, 1000, y_pos + 280], radius=20, fill=CARD_BG + (230,), outline=ACCENT_BLUE + (80,), width=2)
         
         # Team Name
-        draw.text((120, y_pos + 60), team_name.upper(), font=_get_font(46, bold=True), fill=COLOR_WHITE, anchor="ls")
+        _draw_text(draw, (120, y_pos + 60), team_name.upper(), font=_get_font(46, bold=True), fill=COLOR_WHITE, anchor="ls")
         
         # Parse Form chars, e.g. "W D W L W" or "WWDLW"
         chars = [c.upper() for c in form_str.replace(" ", "")]
@@ -149,7 +154,7 @@ def draw_pre_match_card_2_form(home: str, away: str, form_a: str, form_b: str, o
             # Circle
             draw.ellipse([cx - radius, cy - radius, cx + radius, cy + radius], fill=color + (255,))
             # Text in circle
-            draw.text((cx, cy - 2), char, font=_get_font(32, bold=True), fill=DARK_BG, anchor="mm")
+            _draw_text(draw, (cx, cy - 2), char, font=_get_font(32, bold=True), fill=DARK_BG, anchor="mm")
             
     draw_form_row(draw, 500, home, form_a)
     draw_form_row(draw, 880, away, form_b)
@@ -179,16 +184,16 @@ def draw_pre_match_card_3_h2h(home: str, away: str, h2h_desc: str, output_path: 
     font_label = _get_font(34, bold=False)
     
     # Left Wins
-    draw.text((250, 680), w1, font=font_huge, fill=COLOR_GREEN, anchor="mm")
-    draw.text((250, 770), f"{home.upper()} WINS", font=font_label, fill=COLOR_GRAY, anchor="mm")
+    _draw_text(draw, (250, 680), w1, font=font_huge, fill=COLOR_GREEN, anchor="mm")
+    _draw_text(draw, (250, 770), f"{home.upper()} WINS", font=font_label, fill=COLOR_GRAY, anchor="mm")
     
     # Center Draws
-    draw.text((540, 680), d, font=font_huge, fill=COLOR_YELLOW, anchor="mm")
-    draw.text((540, 770), "DRAWS", font=font_label, fill=COLOR_GRAY, anchor="mm")
+    _draw_text(draw, (540, 680), d, font=font_huge, fill=COLOR_YELLOW, anchor="mm")
+    _draw_text(draw, (540, 770), "DRAWS", font=font_label, fill=COLOR_GRAY, anchor="mm")
     
     # Right Wins
-    draw.text((830, 680), w2, font=font_huge, fill=COLOR_GREEN, anchor="mm")
-    draw.text((830, 770), f"{away.upper()} WINS", font=font_label, fill=COLOR_GRAY, anchor="mm")
+    _draw_text(draw, (830, 680), w2, font=font_huge, fill=COLOR_GREEN, anchor="mm")
+    _draw_text(draw, (830, 770), f"{away.upper()} WINS", font=font_label, fill=COLOR_GRAY, anchor="mm")
     
     # Details paragraph
     detail_font = _get_font(32, bold=False)
@@ -208,7 +213,7 @@ def draw_pre_match_card_3_h2h(home: str, away: str, h2h_desc: str, output_path: 
         
     y_text = 900
     for line in lines[:3]:
-        draw.text((540, y_text), line, font=detail_font, fill=COLOR_WHITE, anchor="mm")
+        _draw_text(draw, (540, y_text), line, font=detail_font, fill=COLOR_WHITE, anchor="mm")
         y_text += 45
         
     img.convert("RGB").save(output_path, "JPEG", quality=95)
@@ -250,16 +255,16 @@ def draw_pre_match_card_4_probability(home: str, away: str, prob_a: float, prob_
 
     # Draw Boxes
     draw.rounded_rectangle([120, 580, 390, 820], radius=15, fill=(14, 18, 36, 200))
-    draw.text((255, 660), f"{int(f_a)}%", font=font_pct, fill=COLOR_GREEN, anchor="mm")
-    draw.text((255, 750), home.upper(), font=font_lbl, fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (255, 660), f"{int(f_a)}%", font=font_pct, fill=COLOR_GREEN, anchor="mm")
+    _draw_text(draw, (255, 750), home.upper(), font=font_lbl, fill=COLOR_WHITE, anchor="mm")
     
     draw.rounded_rectangle([425, 580, 655, 820], radius=15, fill=(14, 18, 36, 200))
-    draw.text((540, 660), f"{int(f_draw)}%", font=font_pct, fill=COLOR_YELLOW, anchor="mm")
-    draw.text((540, 750), "DRAW", font=font_lbl, fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (540, 660), f"{int(f_draw)}%", font=font_pct, fill=COLOR_YELLOW, anchor="mm")
+    _draw_text(draw, (540, 750), "DRAW", font=font_lbl, fill=COLOR_WHITE, anchor="mm")
     
     draw.rounded_rectangle([690, 580, 960, 820], radius=15, fill=(14, 18, 36, 200))
-    draw.text((825, 660), f"{int(f_b)}%", font=font_pct, fill=ACCENT_AMBER, anchor="mm")
-    draw.text((825, 750), away.upper(), font=font_lbl, fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (825, 660), f"{int(f_b)}%", font=font_pct, fill=ACCENT_AMBER, anchor="mm")
+    _draw_text(draw, (825, 750), away.upper(), font=font_lbl, fill=COLOR_WHITE, anchor="mm")
     
     # Draw continuous horizontal bar representing the splits
     bar_x1, bar_y1, bar_x2, bar_y2 = 120, 950, 960, 1010
@@ -291,16 +296,16 @@ def draw_pre_match_card_5_spotlight(player: str, team: str, stats_desc: str, out
     # Profile pic circle/card placeholder
     draw.rounded_rectangle([390, 540, 690, 840], radius=35, fill=(14, 18, 36, 255), outline=ACCENT_AMBER + (255,), width=4)
     # Initial representation
-    draw.text((540, 690), player.strip()[:2].upper(), font=_get_font(90, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (540, 690), player.strip()[:2].upper(), font=_get_font(90, bold=True), fill=COLOR_WHITE, anchor="mm")
     
     # Player Name
-    draw.text((540, 920), player.upper(), font=_get_font(54, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (540, 920), player.upper(), font=_get_font(54, bold=True), fill=COLOR_WHITE, anchor="mm")
     # Player Team
-    draw.text((540, 980), team.upper(), font=_get_font(32, bold=False), fill=ACCENT_BLUE, anchor="mm")
+    _draw_text(draw, (540, 980), team.upper(), font=_get_font(32, bold=False), fill=ACCENT_BLUE, anchor="mm")
     
     # Stat callout
     draw.rounded_rectangle([200, 1050, 880, 1180], radius=15, fill=(14, 18, 36, 200), outline=ACCENT_BLUE + (100,), width=2)
-    draw.text((540, 1115), stats_desc.upper(), font=_get_font(36, bold=True), fill=ACCENT_AMBER, anchor="mm")
+    _draw_text(draw, (540, 1115), stats_desc.upper(), font=_get_font(36, bold=True), fill=ACCENT_AMBER, anchor="mm")
     
     img.convert("RGB").save(output_path, "JPEG", quality=95)
     logger.info(f"[CardGen] Saved pre-match Player Spotlight card: {output_path}")
@@ -313,13 +318,13 @@ def draw_pre_match_card_6_cta(home: str, away: str, output_path: str):
     # Main big prompt box
     draw.rounded_rectangle([100, 500, 980, 1100], radius=30, fill=CARD_BG + (230,), outline=ACCENT_AMBER + (255,), width=4)
     
-    draw.text((540, 650), f"{home.upper()} OR {away.upper()}?", font=_get_font(52, bold=True), fill=COLOR_WHITE, anchor="mm")
-    draw.text((540, 770), "DROP YOUR PREDICTION", font=_get_font(46, bold=True), fill=ACCENT_AMBER, anchor="mm")
-    draw.text((540, 840), "IN THE COMMENTS BELOW! 👇", font=_get_font(38, bold=False), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (540, 650), f"{home.upper()} OR {away.upper()}?", font=_get_font(52, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (540, 770), "DROP YOUR PREDICTION", font=_get_font(46, bold=True), fill=ACCENT_AMBER, anchor="mm")
+    _draw_text(draw, (540, 840), "IN THE COMMENTS BELOW! 👇", font=_get_font(38, bold=False), fill=COLOR_WHITE, anchor="mm")
     
     # Bottom Subscribe block
     draw.rounded_rectangle([180, 1250, 900, 1370], radius=15, fill=ACCENT_BLUE + (255,))
-    draw.text((540, 1310), "SUBSCRIBE FOR DAILY WORLD CUP RECALS! 🏆", font=_get_font(30, bold=True), fill=DARK_BG, anchor="mm")
+    _draw_text(draw, (540, 1310), "SUBSCRIBE FOR DAILY WORLD CUP RECALS! 🏆", font=_get_font(30, bold=True), fill=DARK_BG, anchor="mm")
     
     img.convert("RGB").save(output_path, "JPEG", quality=95)
     logger.info(f"[CardGen] Saved pre-match CTA card: {output_path}")
@@ -336,19 +341,19 @@ def draw_post_match_card_1_score(home: str, away: str, hs: int, as_: int, stage:
     
     # Home Team
     _draw_team_emblem_placeholder(draw, 280, 750, home, radius=130)
-    draw.text((280, 930), home.upper(), font=_get_font(56, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (280, 930), home.upper(), font=_get_font(56, bold=True), fill=COLOR_WHITE, anchor="mm")
     
     # Away Team
     _draw_team_emblem_placeholder(draw, 800, 750, away, radius=130)
-    draw.text((800, 930), away.upper(), font=_get_font(56, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (800, 930), away.upper(), font=_get_font(56, bold=True), fill=COLOR_WHITE, anchor="mm")
     
     # Score Box
     draw.rounded_rectangle([440, 700, 640, 800], radius=20, fill=ACCENT_AMBER + (255,), outline=COLOR_WHITE + (255,), width=4)
-    draw.text((540, 747), f"{hs} - {as_}", font=_get_font(56, bold=True), fill=DARK_BG, anchor="mm")
+    _draw_text(draw, (540, 747), f"{hs} - {as_}", font=_get_font(56, bold=True), fill=DARK_BG, anchor="mm")
     
     # FT status box
     draw.rounded_rectangle([420, 1050, 660, 1130], radius=10, fill=CARD_BG + (255,), outline=ACCENT_BLUE + (150,), width=2)
-    draw.text((540, 1090), "FULL TIME", font=_get_font(32, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (540, 1090), "FULL TIME", font=_get_font(32, bold=True), fill=COLOR_WHITE, anchor="mm")
     
     img.convert("RGB").save(output_path, "JPEG", quality=95)
     logger.info(f"[CardGen] Saved post-match Score card: {output_path}")
@@ -381,22 +386,22 @@ def draw_post_match_card_2_timeline(home: str, away: str, scorers: list, output_
         # Center Node
         draw.ellipse([520, y_offset - 20, 560, y_offset + 20], fill=circ_color + (255,))
         # Text inside center node
-        draw.text((540, y_offset - 2), f"{minute}'", font=_get_font(22, bold=True), fill=DARK_BG, anchor="mm")
+        _draw_text(draw, (540, y_offset - 2), f"{minute}'", font=_get_font(22, bold=True), fill=DARK_BG, anchor="mm")
         
         # Content layout
         if team == "Home":
-            draw.text((500, y_offset - 2), player.upper(), font=_get_font(28, bold=True), fill=COLOR_WHITE, anchor="rm")
+            _draw_text(draw, (500, y_offset - 2), player.upper(), font=_get_font(28, bold=True), fill=COLOR_WHITE, anchor="rm")
             # draw icon label next to name
             if ev_type == "Goal":
-                draw.text((500, y_offset + 20), "⚽ GOAL", font=_get_font(20, bold=False), fill=COLOR_GREEN, anchor="rm")
+                _draw_text(draw, (500, y_offset + 20), "⚽ GOAL", font=_get_font(20, bold=False), fill=COLOR_GREEN, anchor="rm")
             else:
-                draw.text((500, y_offset + 20), detail.upper(), font=_get_font(20, bold=False), fill=circ_color, anchor="rm")
+                _draw_text(draw, (500, y_offset + 20), detail.upper(), font=_get_font(20, bold=False), fill=circ_color, anchor="rm")
         else:
-            draw.text((580, y_offset - 2), player.upper(), font=_get_font(28, bold=True), fill=COLOR_WHITE, anchor="lm")
+            _draw_text(draw, (580, y_offset - 2), player.upper(), font=_get_font(28, bold=True), fill=COLOR_WHITE, anchor="lm")
             if ev_type == "Goal":
-                draw.text((580, y_offset + 20), "⚽ GOAL", font=_get_font(20, bold=False), fill=COLOR_GREEN, anchor="lm")
+                _draw_text(draw, (580, y_offset + 20), "⚽ GOAL", font=_get_font(20, bold=False), fill=COLOR_GREEN, anchor="lm")
             else:
-                draw.text((580, y_offset + 20), detail.upper(), font=_get_font(20, bold=False), fill=circ_color, anchor="lm")
+                _draw_text(draw, (580, y_offset + 20), detail.upper(), font=_get_font(20, bold=False), fill=circ_color, anchor="lm")
                 
         y_offset += 100
         
@@ -431,11 +436,11 @@ def draw_post_match_card_3_stats(home: str, away: str, stats_dict: dict, output_
         val_b = str(pair.get("away", "0"))
         
         # Draw Label in center
-        draw.text((540, y_pos), label, font=_get_font(30, bold=True), fill=ACCENT_BLUE, anchor="mm")
+        _draw_text(draw, (540, y_pos), label, font=_get_font(30, bold=True), fill=ACCENT_BLUE, anchor="mm")
         
         # Draw Values
-        draw.text((150, y_pos), val_a, font=_get_font(42, bold=True), fill=COLOR_WHITE, anchor="mm")
-        draw.text((930, y_pos), val_b, font=_get_font(42, bold=True), fill=COLOR_WHITE, anchor="mm")
+        _draw_text(draw, (150, y_pos), val_a, font=_get_font(42, bold=True), fill=COLOR_WHITE, anchor="mm")
+        _draw_text(draw, (930, y_pos), val_b, font=_get_font(42, bold=True), fill=COLOR_WHITE, anchor="mm")
         
         # Clean values for bars (strip % sign if present)
         try:
@@ -475,20 +480,20 @@ def draw_post_match_card_4_motm(player: str, team: str, rating: float, stat_desc
     # Glow ring on profile pic
     draw.ellipse([390, 540, 690, 840], fill=(14, 18, 36, 255), outline=ACCENT_AMBER + (255,), width=6)
     # Initials representation
-    draw.text((540, 690), player.strip()[:2].upper(), font=_get_font(90, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (540, 690), player.strip()[:2].upper(), font=_get_font(90, bold=True), fill=COLOR_WHITE, anchor="mm")
     
     # MOTM Rating Badge
     draw.rounded_rectangle([590, 520, 710, 600], radius=15, fill=COLOR_GREEN + (255,), outline=COLOR_WHITE + (255,), width=3)
-    draw.text((650, 560), f"{rating:.1f}", font=_get_font(34, bold=True), fill=DARK_BG, anchor="mm")
+    _draw_text(draw, (650, 560), f"{rating:.1f}", font=_get_font(34, bold=True), fill=DARK_BG, anchor="mm")
     
     # Player Name
-    draw.text((540, 920), player.upper(), font=_get_font(54, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (540, 920), player.upper(), font=_get_font(54, bold=True), fill=COLOR_WHITE, anchor="mm")
     # Player Team
-    draw.text((540, 980), team.upper(), font=_get_font(32, bold=False), fill=ACCENT_BLUE, anchor="mm")
+    _draw_text(draw, (540, 980), team.upper(), font=_get_font(32, bold=False), fill=ACCENT_BLUE, anchor="mm")
     
     # Stat callout
     draw.rounded_rectangle([180, 1050, 900, 1180], radius=15, fill=(14, 18, 36, 200), outline=ACCENT_AMBER + (100,), width=2)
-    draw.text((540, 1115), stat_desc.upper(), font=_get_font(36, bold=True), fill=ACCENT_AMBER, anchor="mm")
+    _draw_text(draw, (540, 1115), stat_desc.upper(), font=_get_font(36, bold=True), fill=ACCENT_AMBER, anchor="mm")
     
     img.convert("RGB").save(output_path, "JPEG", quality=95)
     logger.info(f"[CardGen] Saved post-match MOTM card: {output_path}")
@@ -506,10 +511,10 @@ def draw_post_match_card_5_standings(group: str, standings_list: list, output_pa
     font_bold_cell = _get_font(36, bold=True)
     
     # Header row
-    draw.text((120, 540), "POS  TEAM", font=font_header, fill=ACCENT_BLUE, anchor="ls")
-    draw.text((620, 540), "PL", font=font_header, fill=ACCENT_BLUE, anchor="ms")
-    draw.text((740, 540), "GD", font=font_header, fill=ACCENT_BLUE, anchor="ms")
-    draw.text((880, 540), "PTS", font=font_header, fill=ACCENT_BLUE, anchor="ms")
+    _draw_text(draw, (120, 540), "POS  TEAM", font=font_header, fill=ACCENT_BLUE, anchor="ls")
+    _draw_text(draw, (620, 540), "PL", font=font_header, fill=ACCENT_BLUE, anchor="ms")
+    _draw_text(draw, (740, 540), "GD", font=font_header, fill=ACCENT_BLUE, anchor="ms")
+    _draw_text(draw, (880, 540), "PTS", font=font_header, fill=ACCENT_BLUE, anchor="ms")
     
     draw.line([(100, 560), (960, 560)], fill=COLOR_GRAY + (100,), width=3)
     
@@ -526,15 +531,15 @@ def draw_post_match_card_5_standings(group: str, standings_list: list, output_pa
         txt_color = COLOR_WHITE if pos <= 2 else COLOR_GRAY
         
         # Draw Rank
-        draw.text((140, y_offset), f"{pos}", font=font_bold_cell, fill=ACCENT_AMBER if pos <= 2 else COLOR_GRAY, anchor="ms")
+        _draw_text(draw, (140, y_offset), f"{pos}", font=font_bold_cell, fill=ACCENT_AMBER if pos <= 2 else COLOR_GRAY, anchor="ms")
         # Draw Team Name
-        draw.text((220, y_offset), team.upper(), font=font_bold_cell if pos <= 2 else font_cell, fill=txt_color, anchor="ls")
+        _draw_text(draw, (220, y_offset), team.upper(), font=font_bold_cell if pos <= 2 else font_cell, fill=txt_color, anchor="ls")
         # Draw Played
-        draw.text((620, y_offset), f"{played}", font=font_cell, fill=txt_color, anchor="ms")
+        _draw_text(draw, (620, y_offset), f"{played}", font=font_cell, fill=txt_color, anchor="ms")
         # Draw Goal Difference
-        draw.text((740, y_offset), f"{gd}", font=font_cell, fill=COLOR_GREEN if str(gd).startswith("+") else (COLOR_RED if str(gd).startswith("-") else txt_color), anchor="ms")
+        _draw_text(draw, (740, y_offset), f"{gd}", font=font_cell, fill=COLOR_GREEN if str(gd).startswith("+") else (COLOR_RED if str(gd).startswith("-") else txt_color), anchor="ms")
         # Draw Points
-        draw.text((880, y_offset), f"{pts}", font=font_bold_cell, fill=COLOR_GREEN if pos <= 2 else txt_color, anchor="ms")
+        _draw_text(draw, (880, y_offset), f"{pts}", font=font_bold_cell, fill=COLOR_GREEN if pos <= 2 else txt_color, anchor="ms")
         
         draw.line([(100, y_offset + 30), (960, y_offset + 30)], fill=COLOR_GRAY + (40,), width=1)
         y_offset += 130
@@ -550,9 +555,9 @@ def draw_post_match_card_6_next(home: str, away: str, next_match_desc: str, outp
     # Outer box
     draw.rounded_rectangle([100, 500, 980, 1100], radius=30, fill=CARD_BG + (230,), outline=ACCENT_AMBER + (255,), width=4)
     
-    draw.text((540, 620), "NEXT MATCH FOR TEAMS:", font=_get_font(36, bold=False), fill=COLOR_GRAY, anchor="mm")
+    _draw_text(draw, (540, 620), "NEXT MATCH FOR TEAMS:", font=_get_font(36, bold=False), fill=COLOR_GRAY, anchor="mm")
     
-    draw.text((540, 730), f"{home.upper()} OR {away.upper()}?", font=_get_font(48, bold=True), fill=COLOR_WHITE, anchor="mm")
+    _draw_text(draw, (540, 730), f"{home.upper()} OR {away.upper()}?", font=_get_font(48, bold=True), fill=COLOR_WHITE, anchor="mm")
     
     # Info badge
     draw.rounded_rectangle([180, 830, 900, 980], radius=15, fill=(14, 18, 36, 255), outline=ACCENT_BLUE + (100,), width=2)
@@ -573,12 +578,12 @@ def draw_post_match_card_6_next(home: str, away: str, next_match_desc: str, outp
         
     y_desc = 885
     for line in desc_lines[:2]:
-        draw.text((540, y_desc), line.upper(), font=_get_font(28, bold=True), fill=ACCENT_AMBER, anchor="mm")
+        _draw_text(draw, (540, y_desc), line.upper(), font=_get_font(28, bold=True), fill=ACCENT_AMBER, anchor="mm")
         y_desc += 40
         
     # Subscribe prompt
     draw.rounded_rectangle([180, 1250, 900, 1370], radius=15, fill=ACCENT_BLUE + (255,))
-    draw.text((540, 1310), "SUBSCRIBE FOR ALL WORLD CUP RECALS! 🏆", font=_get_font(30, bold=True), fill=DARK_BG, anchor="mm")
+    _draw_text(draw, (540, 1310), "SUBSCRIBE FOR ALL WORLD CUP RECALS! 🏆", font=_get_font(30, bold=True), fill=DARK_BG, anchor="mm")
     
     img.convert("RGB").save(output_path, "JPEG", quality=95)
     logger.info(f"[CardGen] Saved post-match Next Match card: {output_path}")

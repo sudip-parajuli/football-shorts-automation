@@ -1,8 +1,10 @@
+from footybitez.utils.gemini_client import create_gemini_client
 import os
 import time
 import json
 import logging
 from dotenv import load_dotenv
+from footybitez.content.quality import contains_term, short_errors, grounding_errors
 from footybitez.utils.llm_models import GROQ_SCRIPT_MODEL, GEMINI_TEXT_MODELS
 
 # Load environment variables
@@ -53,9 +55,9 @@ class ScriptGenerator:
         self.groq_keys = _get_keys("GROQ_API_KEY")
         self.anthropic_api_key = os.getenv("ANTHROPIC_API_KEY")
         if not self.gemini_keys:
-            logger.warning("No GEMINI_API_KEY found. Will rely on Groq or Wikipedia fallback.")
+            logger.warning("No GEMINI_API_KEY found. Will rely on other configured providers; invalid content will be skipped.")
 
-    def _try_claude(self, prompt: str) -> dict | None:
+    def _try_claude(self, prompt: str, context=None) -> dict | None:
         """Try Claude using the Anthropic API key."""
         if not self.anthropic_api_key:
             return None
@@ -77,7 +79,7 @@ class ScriptGenerator:
             if text.endswith("```"):
                 text = text.rsplit("```", 1)[0]
             data = json.loads(text.strip())
-            if self._validate_script_data(data):
+            if self._validate_script_data(data, context=context):
                 logger.info("Claude script generation successful.")
                 return data
         except Exception as e:
@@ -107,7 +109,7 @@ class ScriptGenerator:
         for i, key in enumerate(self.gemini_keys):
             for model_name in GEMINI_TEXT_MODELS:
                 try:
-                    client = genai.Client(api_key=key)
+                    client = create_gemini_client(key)
                     response = client.models.generate_content(
                         model=model_name,
                         contents=prompt,
@@ -129,7 +131,7 @@ class ScriptGenerator:
                     logger.warning(f"Gemini key #{i+1} model={model_name} failed: {e}")
         return None
 
-    def _try_gemini(self, prompt: str) -> dict | None:
+    def _try_gemini(self, prompt: str, context=None) -> dict | None:
         """Try all Gemini keys in order using new google-genai SDK."""
         try:
             from google import genai
@@ -142,7 +144,7 @@ class ScriptGenerator:
             for model_name in GEMINI_TEXT_MODELS:
                 try:
                     logger.info(f"Trying Gemini key #{i+1} model={model_name}...")
-                    client = genai.Client(api_key=key)
+                    client = create_gemini_client(key)
                     response = client.models.generate_content(
                         model=model_name,
                         contents=prompt,
@@ -159,85 +161,106 @@ class ScriptGenerator:
                     if text.endswith("```"):
                         text = text.rsplit("```", 1)[0]
                     data = json.loads(text.strip())
-                    if self._validate_script_data(data):
+                    if self._validate_script_data(data, context=context):
                         logger.info(f"Gemini key #{i+1} ({model_name}) succeeded.")
                         return data
                 except Exception as e:
                     logger.warning(f"Gemini key #{i+1} model={model_name} failed: {e}")
         return None
 
+    def _try_groq_script(self, prompt, context=None):
+        if not self.groq_keys:
+            return None
+        from groq import Groq
+        for index, key in enumerate(self.groq_keys):
+            client = Groq(api_key=key)
+            for temperature in (0.5, 0.2):
+                try:
+                    response = client.chat.completions.create(
+                        model=GROQ_SCRIPT_MODEL,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=temperature, max_tokens=2400,
+                        response_format={"type": "json_object"})
+                    data = json.loads(response.choices[0].message.content)
+                    if self._validate_script_data(data, context=context):
+                        return data
+                except Exception as error:
+                    logger.warning("Groq key #%s script attempt failed (%s)", index + 1, type(error).__name__)
+                    if "429" in str(error):
+                        break
+        return None
+
     def generate_script(self, topic, category="General", context=None):
         """
-        Generates a short video script using Groq (priority), Gemini, or Wikipedia fallback.
+        Generates a researched short via configured providers; skips on failure.
         """
-        # 0. Fetch Context for Factual Grounding (skip for What If?)
+        # Counterfactual stories still need a researched historical baseline.
         if context is None:
             context = ""
-            if category != "What If?":
-                context = self._fetch_context(topic)
-                if context and context != "__NO_CONTEXT__":
-                    logger.info(f"Fetched factual context for grounding ({len(context)} chars).")
-                elif context == "__NO_CONTEXT__":
-                    logger.warning("Context fetch failed after retries — proceeding in conservative mode.")
+            context = self._fetch_context(topic)
+            if context and context != "__NO_CONTEXT__":
+                logger.info(f"Fetched factual context for grounding ({len(context)} chars).")
+            elif context == "__NO_CONTEXT__":
+                logger.warning("Context fetch failed; the topic will be skipped.")
         else:
             logger.info("Using provided custom grounding context.")
 
+        if not context or context == "__NO_CONTEXT__":
+            logger.error("No research context; refusing ungrounded generation for %s", topic)
+            return None
         prompt = self._get_prompt(topic, category, context=context)
+        prompt += """
+EDITORIAL CONTRACT (applies to every category):
+Write 90-140 spoken words. Hook: 6-12 words, a concrete tension or surprising
+supported fact, with no greeting or 'crazy fact' filler. Deliver the answer in
+the first two body beats, then explain cause, evidence and consequence.
+Write 3-5 segments, each with one clear factual point and its own precise visual
+query. Rules/tactics topics need actions, pitch situations or diagrams, not a
+fictional player biography. Do not invent names, scores, quotes or statistics.
+Never turn missing source information into a claim. End on the payoff or one
+short topic-specific question. Output title (under 70 characters, honest and
+specific), music_mood (tense, energetic, reflective or neutral), hook, segments,
+outro and primary_entity in the JSON object. Do not put hashtags in the title.
+"""
 
+        grounding = context
+        if grounding:
+            prompt += """
+EVIDENCE REQUIRED: Every segment must include source_quote: an exact continuous
+quote of at least six words copied from the research supporting that segment.
+Do not invent an example, incident, quote, season, club or player just to make
+an abstract topic vivid. All dates and numbers must occur in that segment's
+source_quote. Visual queries must depict the actual spoken point; never add a
+famous player, club or current year absent from the research and narration.
+For What If topics, source_quote supports the real historical baseline. Clearly
+label alternate outcomes as hypothetical, and never move a real incident to a
+different year or competition. If research is insufficient, return an empty
+segments array instead of guessing.
+"""
         # Try Claude first (preferred for premium/high-quality script writing)
         if self.anthropic_api_key:
-            result = self._try_claude(prompt)
+            result = self._try_claude(prompt, context=grounding)
             if result:
+                result["research_context"] = context
                 return self._sanitize_visual_keywords(result)
 
-        # 1. Try Groq (preferred for factual accuracy)
-        if self.groq_keys:
-            for j, gkey in enumerate(self.groq_keys):
-                try:
-                    from groq import Groq
-                    client = Groq(api_key=gkey)
-                    logger.info(f"Generating script with Groq key #{j+1} ({GROQ_SCRIPT_MODEL}) for category: {category}...")
-                    completion = client.chat.completions.create(
-                        model=GROQ_SCRIPT_MODEL,
-                        messages=[{"role": "user", "content": prompt}],
-                        temperature=0.7,
-                        max_tokens=1024,
-                        response_format={"type": "json_object"}
-                    )
-                    text = completion.choices[0].message.content
-                    data = json.loads(text)
-                    if self._validate_script_data(data):
-                        logger.info(f"Groq key #{j+1} generation successful.")
-                        return self._sanitize_visual_keywords(data)
-                except Exception as e:
-                    logger.error(f"Groq key #{j+1} generation failed: {e}")
+        # Retry malformed JSON once before moving to another provider.
+        result = self._try_groq_script(prompt, context=grounding)
+        if result:
+            result["research_context"] = context
+            return self._sanitize_visual_keywords(result)
 
         # 2. Try Gemini (new SDK)
         if self.gemini_keys:
             logger.info(f"Generating script with Gemini for category: {category}...")
-            result = self._try_gemini(prompt)
+            result = self._try_gemini(prompt, context=grounding)
             if result:
+                result["research_context"] = context
                 return self._sanitize_visual_keywords(result)
 
-        # 3. Fallback: Local Grounded Fallback (if context exists) or Wikipedia
-        if category in ["wc_pre_match", "wc_post_match"] and context:
-            try:
-                details = json.loads(context)
-                teams = topic.split(" World Cup 2026")[0].split(" vs ")
-                home = teams[0].strip()
-                away = teams[1].strip() if len(teams) > 1 else "Away"
-                if category == "wc_pre_match":
-                    logger.info("All AI models failed. Using local pre-match grounded fallback.")
-                    return self._generate_local_pre_match_fallback(home, away, details)
-                else:
-                    logger.info("All AI models failed. Using local post-match grounded fallback.")
-                    return self._generate_local_post_match_fallback(home, away, details)
-            except Exception as fe:
-                logger.error(f"Local grounded fallback failed: {fe}")
-
-        # 4. Fallback: Wikipedia
-        logger.warning("All AI models failed. Converting to Wikipedia Mode.")
-        return self._get_wikipedia_script(topic)
+        # Raw encyclopedic summaries are research, not finished narration.
+        logger.error("No provider produced a publishable script. Skipping this topic.")
+        return None
 
     def _fetch_context(self, topic):
         """
@@ -286,7 +309,7 @@ class ScriptGenerator:
                     page_title = None
                     for candidate in search_res:
                         candidate_lower = candidate.lower()
-                        if any(bad in candidate_lower for bad in ScriptGenerator.BAD_TOPIC_KEYWORDS):
+                        if any(contains_term(candidate_lower, bad) for bad in ScriptGenerator.BAD_TOPIC_KEYWORDS):
                             logger.warning(f"[Grounding] Skipping Wikipedia candidate '{candidate}' — matches a banned term.")
                             continue
                         if candidate not in seen_pages:
@@ -299,10 +322,10 @@ class ScriptGenerator:
                     page = wikipedia.page(page_title, auto_suggest=False)
                     # Belt-and-braces: also reject on the actual page summary, in case
                     # the title alone looked clean but the content is not what we want.
-                    if any(bad in page.summary[:700].lower() for bad in ScriptGenerator.BAD_TOPIC_KEYWORDS):
+                    if any(contains_term(page.summary[:700], bad) for bad in ScriptGenerator.BAD_TOPIC_KEYWORDS):
                         logger.warning(f"[Grounding] Skipping Wikipedia page '{page.title}' — summary matches a banned term.")
                         continue
-                    context_parts = [f"ENTITY: {page.title}\nSUMMARY: {page.summary[:700]}"]
+                    context_parts = [f"ENTITY: {page.title}\nSOURCE URL: {page.url}\nSUMMARY: {page.summary[:700]}"]
 
                     sections = page.sections
                     for target in ["Honours", "Career statistics", "Club career",
@@ -326,11 +349,20 @@ class ScriptGenerator:
 
             return "\n\n=====\n\n".join(full_context) if full_context else None
 
+        if topic.lower().startswith(("why ", "how ", "what ")):
+            conceptual = self._fetch_web_text_context(topic)
+            if conceptual:
+                return conceptual
+
         # First attempt
         try:
             result = _do_fetch(topic)
             if result:
-                return result
+                from footybitez.media.relevance import tokens
+                wanted = tokens(topic)
+                if not topic.lower().startswith(("why ", "how ", "what ")) or len(wanted & tokens(result)) >= min(2, len(wanted)):
+                    return result
+                logger.warning("Research page is too weakly related to the conceptual topic")
         except Exception as e:
             logger.warning(f"Context fetch attempt 1 failed: {e}")
 
@@ -339,7 +371,11 @@ class ScriptGenerator:
         try:
             result = _do_fetch(topic.split(":")[0].split("?")[0])
             if result:
-                return result
+                from footybitez.media.relevance import tokens
+                wanted = tokens(topic)
+                if not topic.lower().startswith(("why ", "how ", "what ")) or len(wanted & tokens(result)) >= min(2, len(wanted)):
+                    return result
+                logger.warning("Research page is too weakly related to the conceptual topic")
         except Exception as e:
             logger.warning(f"Context fetch attempt 2 failed: {e}")
 
@@ -388,7 +424,7 @@ class ScriptGenerator:
             clean = []
             for r in results:
                 combined = f"{r.get('title', '')} {r.get('body', '')}".lower()
-                if any(bad in combined for bad in self.BAD_TOPIC_KEYWORDS):
+                if any(contains_term(combined, bad) for bad in self.BAD_TOPIC_KEYWORDS):
                     logger.warning(f"[Grounding] Skipping web result '{r.get('title', '')[:60]}' — matches a banned term.")
                     continue
                 clean.append(r)
@@ -397,7 +433,7 @@ class ScriptGenerator:
                 return None
 
             parts = [
-                f"WEB SOURCE: {r.get('title', '')}\nSNIPPET: {r.get('body', '')[:500]}"
+                f"WEB SOURCE: {r.get('title', '')}\nSOURCE URL: {r.get('href', '')}\nSNIPPET: {r.get('body', '')[:500]}"
                 for r in clean[:4]
             ]
             logger.info(f"[Grounding] Found {len(parts)} web snippets for conceptual topic '{topic}'.")
@@ -722,7 +758,7 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
             kw = seg.get("visual_keyword", "")
             kw_lower = kw.lower()
             for bad in BAD_KW:
-                if bad in kw_lower:
+                if contains_term(kw_lower, bad):
                     logger.warning(
                         f"[Sanitizer] Rejected visual_keyword '{kw}' — contains '{bad}'. "
                         f"Replacing with fallback: '{fallback_kw}'"
@@ -732,7 +768,16 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
 
         return script_data
 
-    def _validate_script_data(self, data):
+    def _validate_script_data(self, data, context=None):
+        errors = short_errors(data)
+        if errors:
+            logger.warning("Editorial quality rejected script: %s", "; ".join(errors))
+            return False
+        if context:
+            evidence_errors = grounding_errors(data, context)
+            if evidence_errors:
+                logger.warning("Grounding rejected script: %s", "; ".join(evidence_errors))
+                return False
         if "hook" in data and "segments" in data:
             new_segments = []
             for s in data["segments"]:
@@ -769,7 +814,7 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
             # Rejecting here sends the pipeline back to try the next model/key, or
             # the Wikipedia/local fallback if every model keeps getting it wrong.
             for bad in self.BAD_TOPIC_KEYWORDS:
-                if bad in lower_text:
+                if contains_term(lower_text, bad):
                     logger.warning(
                         f"[ContentPolicy] Rejected script — narration contains banned "
                         f"term '{bad}' (men's-football-only rule). Full text: {full_text[:150]}..."
@@ -826,15 +871,7 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
 
         except Exception as e:
             logger.error(f"Wikipedia fallback failed: {e}")
-            return {
-                "hook": f"Here is a crazy fact about *{topic}*!",
-                "segments": [
-                    {"text": f"*{topic}* is a true legend of football.", "visual_keyword": f"{topic} player"},
-                    {"text": "Their story inspires millions around the globe.", "visual_keyword": "football stadium crowd"}
-                ],
-                "outro": "Comment below!",
-                "full_text": f"Here is a crazy fact about {topic}!"
-            }
+            return None
 
     def _generate_local_pre_match_fallback(self, home, away, details):
         h2h = details.get("h2h", "First meeting in World Cup history")
@@ -1047,7 +1084,7 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
                             model=GROQ_SCRIPT_MODEL,
                             messages=[{"role": "user", "content": attempt_prompt}],
                             temperature=0.3,
-                            max_tokens=1024,
+                            max_tokens=2400,
                             response_format={"type": "json_object"}
                         )
                         data = json.loads(completion.choices[0].message.content)

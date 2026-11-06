@@ -1,3 +1,4 @@
+from footybitez.utils.gemini_client import create_gemini_client
 """
 FIFA World Cup Daily Content Pipeline.
 
@@ -436,7 +437,7 @@ class WorldCupPipeline:
                 try:
                     from google import genai
                     from google.genai import types
-                    client = genai.Client(api_key=key)
+                    client = create_gemini_client(key)
                     search_prompt = (
                         f"Search for the head-to-head history (total matches played, wins for each team, draws), "
                         f"recent form of both teams, and winning probabilities or match predictions for the upcoming "

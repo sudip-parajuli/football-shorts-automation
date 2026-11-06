@@ -69,204 +69,7 @@ _KB_STYLES = [
 ]
 
 
-def assign_scene_durations(scenes: list, total_frames: int):
-    """
-    Distribute total_frames across scenes proportionally by narration_snippet
-    word count, then enforce per-type caps/minimums and redistribute excess.
-    """
-    if not scenes:
-        return
-
-    # --- word-count weights ---
-    word_counts = []
-    for scene in scenes:
-        snippet = scene.get("narration_snippet", "")
-        words = max(1, len(snippet.split()) if snippet else 5)
-        v = scene.get("visual_type", "image")
-        if v in _DATA_TYPES:
-            words = max(words, 20)      # charts need reading time
-        elif v in _TEXT_TYPES:
-            words = max(words, 10)
-        elif v in _MG_TYPES:
-            words = max(words, 8)
-        word_counts.append(words)
-
-    total_words = sum(word_counts)
-
-    # --- first pass: proportional ---
-    raw = [max(1, int((wc / total_words) * total_frames)) for wc in word_counts]
-
-    # --- second pass: apply caps + collect excess ---
-    final = list(raw)
-    excess = 0
-    for idx, scene in enumerate(scenes):
-        v = scene.get("visual_type", "image")
-        d = raw[idx]
-        if v in _IMAGE_TYPES:
-            if d > _MAX_IMAGE_FRAMES:
-                excess += d - _MAX_IMAGE_FRAMES
-                d = _MAX_IMAGE_FRAMES
-        elif v in _DATA_TYPES:
-            d = max(d, _MIN_DATA_FRAMES)
-        elif v in _TEXT_TYPES:
-            d = max(d, _MIN_TEXT_FRAMES)
-        elif v in _MG_TYPES:
-            d = max(d, _MIN_MG_FRAMES)
-        final[idx] = max(1, d)
-
-    # --- redistribute excess to data/text scenes ---
-    if excess > 0:
-        recipients = [
-            i for i, s in enumerate(scenes)
-            if s.get("visual_type", "image") in (_DATA_TYPES | _TEXT_TYPES | _MG_TYPES)
-        ] or list(range(len(scenes)))
-        extra_each = excess // len(recipients)
-        remainder  = excess % len(recipients)
-        for j, ridx in enumerate(recipients):
-            final[ridx] += extra_each + (1 if j < remainder else 0)
-
-    # --- assign + fix rounding diff on last scene ---
-    for idx, scene in enumerate(scenes):
-        scene["duration_frames"] = max(1, final[idx])
-
-    diff = total_frames - sum(s["duration_frames"] for s in scenes)
-    if diff and scenes:
-        scenes[-1]["duration_frames"] = max(1, scenes[-1]["duration_frames"] + diff)
-
-
-def align_scenes_with_voice_timings(scenes: list, timing_data: list, total_frames: int):
-    """
-    Align scenes to exact spoken word timings using sequential matching.
-    """
-    if not scenes:
-        return
-    
-    if not timing_data:
-        assign_scene_durations(scenes, total_frames)
-        return
-
-    # Clean punctuation helper
-    def clean_w(w):
-        return "".join(c.lower() for c in w if c.isalnum())
-
-    # Prep timed words
-    timed_words = []
-    for t in timing_data:
-        w_clean = clean_w(t.get("word", ""))
-        if w_clean:
-            timed_words.append({
-                "word": w_clean,
-                "raw_word": t.get("word", ""),
-                "start": t.get("start", 0.0),
-                "duration": t.get("duration", 0.0)
-            })
-
-    # If timing_data has no clean words, fallback
-    if not timed_words:
-        assign_scene_durations(scenes, total_frames)
-        return
-
-    # Match sequentially
-    timed_idx = 0
-    num_timed = len(timed_words)
-
-    for s_idx, scene in enumerate(scenes):
-        snippet = scene.get("narration_snippet", "")
-        if not snippet:
-            snippet_words = []
-        else:
-            snippet_words = [clean_w(w) for w in snippet.split() if clean_w(w)]
-
-        start_time = None
-        end_time = None
-        matched_timed_words = []
-
-        if not snippet_words:
-            # Naive fallback for this specific scene: consume next few words or use current time
-            if timed_idx < num_timed:
-                start_time = timed_words[timed_idx]["start"]
-                # Consume up to 5 words or remaining
-                consume_count = min(5, num_timed - timed_idx)
-                end_time = timed_words[timed_idx + consume_count - 1]["start"] + timed_words[timed_idx + consume_count - 1]["duration"]
-                matched_timed_words = timed_words[timed_idx : timed_idx + consume_count]
-                timed_idx += consume_count
-            else:
-                # No more words left
-                start_time = timed_words[-1]["start"] + timed_words[-1]["duration"]
-                end_time = start_time
-        else:
-            # Find candidate start match index
-            best_match_idx = timed_idx
-            min_diff = len(snippet_words)
-            
-            # Lookahead window of up to 15 words to handle minor omissions/insertions
-            for lookahead in range(min(15, num_timed - timed_idx)):
-                candidate_idx = timed_idx + lookahead
-                # Calculate how many of the snippet_words match starting here
-                matches = 0
-                for offset in range(min(len(snippet_words), num_timed - candidate_idx)):
-                    if timed_words[candidate_idx + offset]["word"] == snippet_words[offset]:
-                        matches += 1
-                diff = len(snippet_words) - matches
-                if diff < min_diff:
-                    min_diff = diff
-                    best_match_idx = candidate_idx
-                    if min_diff == 0:
-                        break # perfect match
-
-            # Consume matching range
-            consume_len = len(snippet_words)
-            end_match_idx = min(best_match_idx + consume_len, num_timed)
-            
-            # Extract timings
-            matched_slice = timed_words[best_match_idx:end_match_idx]
-            if matched_slice:
-                start_time = matched_slice[0]["start"]
-                end_time = matched_slice[-1]["start"] + matched_slice[-1]["duration"]
-                matched_timed_words = matched_slice
-                timed_idx = end_match_idx
-            else:
-                start_time = timed_words[min(timed_idx, num_timed - 1)]["start"]
-                end_time = start_time
-
-        # Convert times to frames
-        start_frame = int(start_time * 24)
-        end_frame = int(end_time * 24)
-        duration_frames = max(24, end_frame - start_frame) # minimum 1 second duration
-        
-        scene["duration_frames"] = duration_frames
-        scene["_matched_words"] = matched_timed_words
-
-    # Resolve any rounding diffs on the last scene
-    diff = total_frames - sum(s["duration_frames"] for s in scenes)
-    if diff and scenes:
-        scenes[-1]["duration_frames"] = max(24, scenes[-1]["duration_frames"] + diff)
-
-    # Now populate typewriter word timestamps with exact timings relative to the start of the scene
-    for scene in scenes:
-        if scene.get("visual_type") == "typewriter_text":
-            matched = scene.get("_matched_words", [])
-            word_timestamps = []
-            if matched:
-                scene_start_sec = matched[0]["start"]
-                for w in matched:
-                    rel_start_frame = max(0, int((w["start"] - scene_start_sec) * 24))
-                    word_timestamps.append({
-                        "word": w["raw_word"],
-                        "startFrame": rel_start_frame
-                    })
-            else:
-                # Fallback to linear distribution if no matches
-                words = scene.get("typewriter_words", [])
-                num_words = len(words)
-                for w_idx, w_item in enumerate(words):
-                    start_frame = int((w_idx / num_words) * scene["duration_frames"])
-                    word_timestamps.append({
-                        "word": w_item["word"],
-                        "startFrame": start_frame
-                    })
-            scene["word_timestamps"] = word_timestamps
-
+from footybitez.video.scene_timing import assign_scene_durations, align_scenes_with_voice_timings
 
 
 def _split_long_image_scenes(visual_scenes: list) -> list:
@@ -431,6 +234,8 @@ def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourc
 
 def main():
     load_dotenv()
+    from footybitez.video.preflight import require_media_tools
+    require_media_tools()
     parser = argparse.ArgumentParser(description="FootyBitez Documentary Pipeline")
     parser.add_argument("--topic", help="Topic for the documentary")
     args = parser.parse_args()
@@ -514,22 +319,15 @@ def main():
             audio_filename = f"chapter_{i+1}_{hash(topic)}.mp3"
             audio_path = voice_gen.generate(chapter["script"], audio_filename, voice_index=voice_index)
             duration_sec = get_audio_duration(audio_path)
-            duration_frames = int(duration_sec * 24)
+            if duration_sec <= 0.1:
+                raise ValueError(f"Missing narration for chapter {i+1}")
+            duration_frames = round(duration_sec * 24)
 
             # B. Visual Assets (orchestrated with fallback chain)
             chapter_images, visual_scenes_props = _fetch_chapter_visuals(chapter, job_id, media_sourcer, media_dir, topic)
 
-            # Guard: ensure at least 1 image per chapter
-            if not chapter_images:
-                logger.warning(f"  Chapter {i+1}: No images sourced — using color card placeholder.")
-                placeholder = os.path.join(media_dir, "placeholder.jpg")
-                if not os.path.exists(placeholder):
-                    try:
-                        from PIL import Image
-                        Image.new("RGB", (1920, 1080), color=(10, 10, 10)).save(placeholder)
-                    except Exception:
-                        pass
-                chapter_images = ["assets/images/placeholder.jpg"]
+            if not chapter_images and not visual_scenes_props:
+                raise ValueError(f"Chapter {i+1} has no usable visuals")
 
             # Distribute scene durations and generate typewriter timestamps
             if visual_scenes_props:
@@ -581,7 +379,7 @@ def main():
         ai_prompt = script_data.get("thumbnail_prompt")
         thumb_generated = False
 
-        if ai_prompt:
+        if ai_prompt and os.getenv("ENABLE_AI_THUMBNAILS", "false").lower() == "true":
             logger.info("Attempting AI thumbnail generation with Gemini...")
             result = thumb_gen.generate_ai_thumbnail(ai_prompt, thumb_out)
             if result:
@@ -594,22 +392,22 @@ def main():
             thumb_assets = media_sourcer.get_media_for_script([], thumbnail_query=bg_query)
             bg_path = thumb_assets.get("thumbnail")
             if bg_path:
-                thumb_gen.generate_thumbnail(bg_path, script_data["title"], thumb_out)
+                thumb_text = script_data.get("thumbnail_data", {}).get("hook_phrase") or script_data["title"]
+                thumb_text = " ".join(thumb_text.replace(":", "").split()[:5])
+                thumb_gen.generate_thumbnail(bg_path, thumb_text, thumb_out)
 
         # 6. Prepare Remotion Props
         music_file = None
         music_dir = "footybitez/music"
         public_music_dir = "remotion-video/public/music"
         os.makedirs(public_music_dir, exist_ok=True)
-        if os.path.exists(music_dir):
-            files = [f for f in os.listdir(music_dir) if f.endswith(".mp3")]
-            if files:
-                import shutil, re
-                chosen = random.choice(files)
-                safe_name = re.sub(r"[^a-zA-Z0-9._-]", "_", chosen)
-                safe_dest = os.path.join(public_music_dir, safe_name)
-                shutil.copy2(os.path.join(music_dir, chosen), safe_dest)
-                music_file = f"music/{safe_name}"
+        from footybitez.media.music_selector import select_music
+        chosen = select_music(script_data.get("music_mood", "neutral"))
+        if chosen:
+            import shutil
+            safe_dest = os.path.join(public_music_dir, os.path.basename(chosen))
+            shutil.copy2(chosen, safe_dest)
+            music_file = f"music/{os.path.basename(chosen)}"
 
         image_credits = []
         credits_file = os.path.join(media_sourcer.download_dir, "image_credits.txt")
@@ -657,36 +455,6 @@ def main():
 
         # Save Metadata for Uploader with template titles
         title = script_data["title"]
-        thumbnail_data = script_data.get("thumbnail_data", {})
-        hook_phrase = thumbnail_data.get("hook_phrase", "").strip()
-        
-        # Read category directly from script JSON top-level field
-        script_category = script_data.get("category", "").strip()
-        category_map = {
-            "What If?": "what_if",
-            "Shocking Moments": "shocking",
-            "Stats": "stats",
-            "Tactics": "tactics",
-        }
-        t_type = category_map.get(script_category, "player") if script_category else "player"
-        
-        if hook_phrase:
-            if hook_phrase.endswith(":"):
-                hook_phrase = hook_phrase[:-1].strip()
-            
-            templates = {
-                "what_if":   "{hook_phrase}: What History Could Have Looked Like",
-                "stats":     "{hook_phrase}: The Numbers That Changed Football",
-                "history":   "{hook_phrase}: The Story Nobody Told",
-                "tactics":   "{hook_phrase}: How It Really Works",
-                "shocking":  "{hook_phrase}: The Truth Behind the Headlines",
-                "player":    "{hook_phrase}: The Career That Defined a Generation",
-            }
-            if t_type in templates:
-                title = templates[t_type].format(hook_phrase=hook_phrase)
-            else:
-                title = f"{hook_phrase}: The Full Story"
-
         metadata = {
             "title": title,
             "tags": script_data.get("tags", ["football", "documentary"]),
@@ -699,7 +467,7 @@ def main():
         logger.info("Props and Metadata generated. Content phase COMPLETE.")
         logger.info(f"Job ID: {job_id}")
         logger.info("=" * 60)
-        topic_gen.mark_topic_as_used(topic)
+
 
         # 7. Render Video via Remotion CLI
         import platform
@@ -712,7 +480,7 @@ def main():
             "--props=public/props.json",
             "--concurrency=1",
             "--timeout=60000",
-            "--video-bitrate=4000k",
+            "--video-bitrate=8000k",
         ]
 
         remotion_dir = "remotion-video"
@@ -741,6 +509,12 @@ def main():
                 
             logger.info("Remotion rendering completed successfully (exit code 0).")
             
+            from footybitez.video.preflight import inspect_video
+            report = inspect_video("remotion-video/output/video.mp4")
+            with open("remotion-video/output/quality.json", "w", encoding="utf-8") as f:
+                json.dump({"script": script_data, "render": report}, f, indent=2)
+            topic_gen.mark_topic_as_used(topic)
+
             # Clean up temp assets on success
             temp_dir = os.path.join("remotion-video", "public", "assets", "temp", job_id)
             if os.path.exists(temp_dir):

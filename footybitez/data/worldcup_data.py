@@ -1,3 +1,4 @@
+from footybitez.utils.gemini_client import create_gemini_client
 """
 Football-data.org v4 API wrapper for World Cup 2026 data.
 
@@ -306,7 +307,7 @@ class WorldCupData:
                             from google import genai
                             from google.genai import types
                             
-                            client = genai.Client(api_key=key)
+                            client = create_gemini_client(key)
                             
                             # Step 1: Search match details
                             search_prompt = (

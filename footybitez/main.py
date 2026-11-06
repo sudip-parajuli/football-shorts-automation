@@ -40,6 +40,8 @@ def main():
     load_dotenv()
     
     try:
+        from footybitez.video.preflight import require_media_tools
+        require_media_tools()
         logger.info("Starting FootyBitez Automation...")
         
         # 1-2. Select Topic & Generate Script (With Retry Logic)
@@ -58,8 +60,12 @@ def main():
             
         if not script:
             logger.error("Failed to generate a valid script after 3 attempts. Aborting.")
-            return
+            raise RuntimeError("All topics failed editorial quality checks")
 
+        import json
+        os.makedirs("footybitez/output", exist_ok=True)
+        with open("footybitez/output/script.json", "w", encoding="utf-8") as report:
+            json.dump({"topic": topic, "category": category, "script": script}, report, indent=2)
         logger.info(f"Script Generated: {script['full_text']}")
         # 3. Get Visuals (Pexels)
         logger.info(f"Fetching media for topic: {topic}")
@@ -69,6 +75,11 @@ def main():
         logger.info("Fetching Title Card...")
         title_card_path = media_sourcer.get_title_card_image(topic, allow_ai=False)
         
+        # Replace a generic emergency title card with the actual hook graphic.
+        if not title_card_path or os.path.basename(title_card_path).startswith("card_"):
+            from footybitez.media.editorial_cards import make_beat_cards
+            title_card_path = make_beat_cards(topic, script["hook"], media_sourcer.download_dir)[0]
+
         # 2. Fetch Profile Image
         entity_query = script.get('primary_entity')
         if not entity_query:
@@ -97,8 +108,6 @@ def main():
             
             # Fetch 2-3 clips/images per segment
             logger.info(f"Searching for visual: {visual_kw}")
-            # Fetch 2-3 clips/images per segment
-            logger.info(f"Searching for visual: {visual_kw}")
             paths = media_sourcer.get_media(visual_kw, count=3)
             segment_media.append(paths) # Append list of paths for this segment
             
@@ -111,14 +120,8 @@ def main():
         logger.info(f"Assets gathered. Title: {bool(title_card_path)}, Profile: {bool(profile_image_path)}, Media: {len(segment_media)}")
         
         # 3.1 Get Random Music (NEW)
-        music_dir = "footybitez/music"
-        background_music = None
-        if os.path.exists(music_dir):
-            music_files = [f for f in os.listdir(music_dir) if f.endswith('.mp3')]
-            if music_files:
-                selected_music = random.choice(music_files)
-                background_music = os.path.join(music_dir, selected_music)
-                logger.info(f"Selected Background Music: {selected_music}")
+        from footybitez.media.music_selector import select_music
+        background_music = select_music(script.get("music_mood", "neutral"))
 
         # 4. Create Video
         video_creator = RemotionVideoCreator()
@@ -126,9 +129,9 @@ def main():
         logger.info(f"Video Created at: {video_path}")
         
         # 5. Metadata
-        title = f"{topic} #shorts #football"
+        title = str(script.get("title") or topic).strip()[:100]
         description = (
-            f"You won't believe this fact about {topic}!\n\n"
+            f"{title}\n\n"
             f"{script['full_text']}\n\n"
             "#football #soccer #didyouknow #footybitez #shorts"
         )
@@ -146,7 +149,7 @@ def main():
             if video_id:
                 logger.info(f"Successfully uploaded video: {video_id}")
             else:
-                logger.error("Upload failed.")
+                raise RuntimeError("YouTube upload failed")
         else:
             logger.info("Upload skipped (ENABLE_UPLOAD not set to true).")
 

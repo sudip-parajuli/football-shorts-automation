@@ -7,6 +7,12 @@ on:
     # 6:45 PM Nepal (UTC+5:45) = 1:00 PM UTC
     - cron: '0 13 * * *'
   workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish publicly to YouTube and social platforms (false creates a downloadable preview)'
+        type: boolean
+        required: false
+        default: false
 
 permissions:
   contents: write
@@ -28,6 +34,9 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Install media inspection dependencies
+      uses: ./.github/actions/setup-media
+
     - name: Install Python dependencies
       run: |
         pip install -r footybitez/requirements.txt
@@ -43,7 +52,7 @@ jobs:
     - name: Install Remotion dependencies
       run: |
         cd remotion-video
-        npm install
+        npm ci
 
     - name: Install System Dependencies (Browsers)
       run: |
@@ -78,8 +87,8 @@ jobs:
         HUME_VOICE_ID: ${{ secrets.HUME_VOICE_ID }}
         HUME_VOICE_ID_1: ${{ secrets.HUME_VOICE_ID_1 }}
         HUME_VOICE_ID_2: ${{ secrets.HUME_VOICE_ID_2 }}
-        ENABLE_UPLOAD: "true"
-        ENABLE_SOCIAL_PUBLISHING: "true"
+        ENABLE_UPLOAD: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
+        ENABLE_SOCIAL_PUBLISHING: ${{ github.event_name != 'workflow_dispatch' || inputs.publish }}
         META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
         FACEBOOK_PAGE_ID: ${{ secrets.FACEBOOK_PAGE_ID }}
         INSTAGRAM_BUSINESS_ACCOUNT_ID: ${{ secrets.INSTAGRAM_BUSINESS_ACCOUNT_ID }}
@@ -126,7 +135,13 @@ jobs:
         path: footybitez/logs/
 
     - name: Upload Generated Video (Debug)
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: final-video
-        path: footybitez/output/final_short.mp4
+        if-no-files-found: ignore
+        path: |
+          footybitez/output/final_short.mp4
+          footybitez/output/final_short.mp4.quality.json
+          footybitez/output/script.json
+          footybitez/output/remotion-render.log

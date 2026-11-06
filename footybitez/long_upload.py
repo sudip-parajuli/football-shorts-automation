@@ -38,11 +38,11 @@ def main():
 
     if not os.path.exists(video_path):
         logger.error(f"Video file not found: {video_path}")
-        return
+        sys.exit(1)
 
     if not os.path.exists(metadata_path):
         logger.error(f"Metadata file not found: {metadata_path}")
-        return
+        sys.exit(1)
 
     with open(metadata_path, "r", encoding="utf-8") as f:
         metadata = json.load(f)
@@ -91,7 +91,7 @@ If you enjoyed this documentary, please Like and Subscribe for more high-quality
         if comment_manager.pin_comment(video_id, comment_text):
             logger.info("Comment pinned successfully.")
     else:
-        logger.error("Upload FAILED.")
+        raise RuntimeError("Long-form YouTube upload failed")
 
     # Social Publishing (Facebook, Instagram, TikTok)
     should_publish_socials = os.getenv("ENABLE_SOCIAL_PUBLISHING", "false").lower() == "true"

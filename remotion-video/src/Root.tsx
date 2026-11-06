@@ -1,5 +1,6 @@
 import { Composition, getInputProps } from 'remotion';
-import { MainVideo, MainVideoProps } from './compositions/MainVideo';
+import { MainVideo } from './compositions/MainVideo';
+import { MainVideoProps } from './types';
 import { Main } from './Main';
 import './style.css';
 
@@ -11,8 +12,8 @@ export const RemotionRoot: React.FC = () => {
   let totalDuration = 0;
   
   if (inputProps.chapters) {
-    inputProps.chapters.forEach(chapter => {
-      totalDuration += CHAPTER_INTRO_DURATION + chapter.duration_in_frames;
+    inputProps.chapters.forEach((chapter, index) => {
+      totalDuration += (index === 0 ? 0 : 24) + chapter.duration_in_frames;
     });
   }
 

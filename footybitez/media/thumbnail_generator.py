@@ -1,3 +1,4 @@
+from footybitez.utils.gemini_client import create_gemini_client
 import os
 import io
 import logging
@@ -38,7 +39,7 @@ class ThumbnailGenerator:
                 from google import genai
                 from google.genai import types
 
-                client = genai.Client(api_key=key)
+                client = create_gemini_client(key)
 
                 full_prompt = (
                     f"{ai_prompt}\n\n"
@@ -82,6 +83,7 @@ class ThumbnailGenerator:
         PIL-based thumbnail — used as fallback when AI generation fails.
         Uses crop-to-fit to preserve aspect ratio.
         """
+        text = text.replace("*", "")
         try:
             img = Image.open(background_path).convert("RGBA")
             img = self._crop_to_fill(img, (1280, 720))
@@ -99,6 +101,10 @@ class ThumbnailGenerator:
                 font = ImageFont.load_default()
 
             lines = self._wrap_text(text, font, 800)
+            while self.font_path and (len(lines) > 3 or any(draw.textbbox((0, 0), line, font=font)[2] > 1100 for line in lines)) and font_size > 48:
+                font_size -= 4
+                font = ImageFont.truetype(self.font_path, font_size)
+                lines = self._wrap_text(text, font, 800)
             y_offset = 60
             x_offset = 60
 

@@ -1,0 +1,36 @@
+name: Content quality regression checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  editorial:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: ./.github/actions/setup-media
+      - run: pip install python-dotenv pillow requests google-genai
+      - run: python -m unittest test_content_quality test_media_recovery test_video_preflight_integration -v
+      - run: python -m compileall -q footybitez
+  remotion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: remotion-video/package-lock.json
+      - run: npm ci
+        working-directory: remotion-video
+      - run: npm run typecheck
+        working-directory: remotion-video
+      - run: npm run test:captions
+        working-directory: remotion-video
+      - run: npx remotion bundle src/index.ts --out-dir=out/ci-bundle
+        working-directory: remotion-video

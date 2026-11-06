@@ -359,12 +359,8 @@ def _fetch_ai_image(scene: dict, out_dir: str) -> dict:
     }
 
 def _fetch_image(scene: dict, out_dir: str, media_sourcer=None) -> dict:
-    """Tier: Wikimedia → Unsplash → Pixabay → Gemini image → Pollinations → ColorCard"""
-    from footybitez.media import quota_tracker, football_visual_generator
-
+    """Verified documentary photo, or a clearly labelled local illustration."""
     image_cue = scene.get("image_cue", scene.get("ai_video_prompt", "football stadium"))
-    img_path = os.path.join(out_dir, "image.jpg")
-
     if media_sourcer is None:
         from footybitez.media.media_sourcer import MediaSourcer
         media_sourcer = MediaSourcer(download_dir=out_dir)
@@ -372,7 +368,7 @@ def _fetch_image(scene: dict, out_dir: str, media_sourcer=None) -> dict:
     # Tier 0: Wikipedia Entity Lookup
     named_entities = scene.get("named_entities", [])
     for entity in named_entities:
-        if isinstance(entity, dict) and entity.get("wikipedia_lookup") is True:
+        if isinstance(entity, dict) and entity.get("wikipedia_lookup") is True and image_cue.strip().lower() == str(entity.get("name", "")).strip().lower():
             entity_name = entity.get("name")
             if entity_name:
                 logger.info(f"[Orchestrator] Performing Wikipedia entity image lookup for: '{entity_name}'")
@@ -394,30 +390,12 @@ def _fetch_image(scene: dict, out_dir: str, media_sourcer=None) -> dict:
     if paths:
         return {"asset_type": "image", "asset_path": paths[0], "overlay_text": None, "kinetic_stat": None}
 
-    if quota_tracker.can_use("gemini_image"):
-        logger.info(f"[Orchestrator] Trying Gemini image for: {image_cue[:60]}...")
-        success = football_visual_generator.generate_ai_image(image_cue, img_path, aspect_ratio="16:9")
-        if success:
-            quota_tracker.record_use("gemini_image")
-            _write_meta(img_path, "AI Generated / Google Gemini")
-            return {"asset_type": "image", "asset_path": img_path, "overlay_text": None, "kinetic_stat": None}
+    from footybitez.media.editorial_cards import make_beat_cards
+    cards = make_beat_cards(image_cue, scene.get("narration_snippet") or scene.get("caption") or "Football explained",
+                            out_dir, size=(1920, 1080))
+    _write_meta(cards[0], "FootyBitez editorial illustration (not match footage)")
+    return {"asset_type": "image", "asset_path": cards[0], "overlay_text": None, "kinetic_stat": None}
 
-    poll_success = media_sourcer._fetch_pollinations_image(
-        f"photorealistic football documentary, {image_cue}",
-        img_path
-    )
-    if poll_success:
-        _write_meta(img_path, "AI Generated / Pollinations.ai")
-        return {"asset_type": "image", "asset_path": img_path, "overlay_text": None, "kinetic_stat": None}
-
-    logger.warning(f"[Orchestrator] All image tiers failed for: {image_cue[:60]}. Using color card.")
-    return {
-        "asset_type": "color_card",
-        "asset_path": None,
-        "color": "#111111",
-        "overlay_text": image_cue[:80],
-        "kinetic_stat": None,
-    }
 
 def _write_meta(img_path: str, source: str, artist: str = ""):
     try:

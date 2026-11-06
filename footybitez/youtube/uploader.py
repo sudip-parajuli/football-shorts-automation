@@ -54,7 +54,7 @@ class YouTubeUploader:
                 with open(self.token_file, "w") as token:
                     token.write(creds.to_json())
 
-            return googleapiclient.discovery.build("youtube", "v3", credentials=creds)
+            return googleapiclient.discovery.build("youtube", "v3", credentials=creds, cache_discovery=False)
 
         except Exception as e:
             print(f"Auth Error: {e}")
@@ -65,6 +65,9 @@ class YouTubeUploader:
         if not self.youtube:
             print("Cannot upload: Service not authenticated.")
             return None
+
+        from footybitez.video.preflight import inspect_video
+        inspect_video(file_path)
 
         # Metadata handling
         is_short = tags and "shorts" in [t.lower() for t in tags]
