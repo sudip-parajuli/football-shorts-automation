@@ -1,0 +1,167 @@
+{
+  "2026-11-06": {
+    "plan": {
+      "slot": "2026-11-06",
+      "topic": "Manchester United 1999 Champions League final comeback",
+      "category": "matches",
+      "format": "photo",
+      "title": "Manchester United 1999 Champions League Final Comeback",
+      "caption": "How did Manchester United pull off the most dramatic European comeback ever?\n\nOn 26 May 1999, Manchester United met Bayern Munich at the Camp Nou in Barcelona.\n\nSir Alex Ferguson's side were hunting history during an incredible 1998 to 99 campaign.\n\nThey needed a win to complete a historic treble. That meant lifting the Premier League, FA Cup, and Champions League.\n\nDespite facing defeat, United displayed incredible resilience and belief at the Camp Nou.\n\nTheir dramatic victory made them the first English club to complete that iconic treble.\n\nWas this the most dramatic ending to a European final you have ever seen?\n\nSources: https://en.wikipedia.org/wiki/1999_UEFA_Champions_League_Final https://en.wikipedia.org/wiki/1998\u201399_Manchester_United_F.C._season\n\n#football #footballstories #FootyBitez\n\nPhoto: Oh-Barcelona.com from Barcelona, Spain / CC BY 2.0 / https://commons.wikimedia.org/wiki/File:Camp_Nou_aerial.jpg / https://creativecommons.org/licenses/by/2.0. Cropped with text overlay; entity photograph, not a photograph of this match.",
+      "entities": [
+        "Manchester United",
+        "Bayern Munich",
+        "Camp Nou",
+        "Sir Alex Ferguson",
+        "1999 UEFA Champions League Final"
+      ],
+      "evidence": {
+        "title": "Manchester United 1999 Champions League Final Comeback",
+        "hook": "How did Manchester United pull off the most dramatic European comeback ever?",
+        "primary_entity": "Manchester United",
+        "music_mood": "tense",
+        "segments": [
+          {
+            "text": "On 26 May 1999, Manchester United met Bayern Munich at the Camp Nou in Barcelona.",
+            "visual_keyword": "26 may 1999 manchester united met bayern munich camp nou football illustration",
+            "visual_entities": [
+              "Manchester United",
+              "Bayern Munich",
+              "Camp Nou"
+            ],
+            "evidence_ids": [
+              "S1",
+              "S4"
+            ],
+            "source_quotes": [
+              "SNIPPET: The 1999 UEFA Champions League final was an association football match between Manchester United of England and Bayern Munich of Germany, played at Camp Nou in Barcelona, Spain, on 26 May 1999, to determine the winner of the 1998-99 UEFA Champions League.",
+              "SNIPPET: This documentary revisits the unforgettable 1999 UEFA Champions League Final between Manchester United and Bayern Munich at the Camp Nou in Barcelona\u2014a match that redefined belief, resilience ..."
+            ],
+            "source_quote": "SNIPPET: The 1999 UEFA Champions League final was an association football match between Manchester United of England and Bayern Munich of Germany, played at Camp Nou in Barcelona, Spain, on 26 May 1999, to determine the winner of the 1998-99 UEFA Champions League.",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/1999_UEFA_Champions_League_Final",
+              "https://m.youtube.com/watch?v=lNxWEqju2ds"
+            ]
+          },
+          {
+            "text": "Sir Alex Ferguson's side were hunting history during an incredible 1998 to 99 campaign.",
+            "visual_keyword": "sir alex ferguson s side hunting history during incredible 1998 football illustration",
+            "visual_entities": [
+              "Sir Alex Ferguson",
+              "Manchester United"
+            ],
+            "evidence_ids": [
+              "S2",
+              "S3"
+            ],
+            "source_quotes": [
+              "SNIPPET: The 1998-99 season was Manchester United Football Club 's seventh season in the FA Premier League and their 24th consecutive season in the top division of English football. [3] After finishing the previous season without winning any trophies, United won the Treble of the Premier League, FA Cup, and UEFA Champions League in 1998-99, the first side in English football to do so. [4] During ...",
+              "SNIPPET: Relive Manchester United's dramatic 1999 Champions League Final victory and the historic treble under Sir Alex Ferguson."
+            ],
+            "source_quote": "SNIPPET: The 1998-99 season was Manchester United Football Club 's seventh season in the FA Premier League and their 24th consecutive season in the top division of English football. [3] After finishing the previous season without winning any trophies, United won the Treble of the Premier League, FA Cup, and UEFA Champions League in 1998-99, the first side in English football to do so. [4] During ...",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/1998\u201399_Manchester_United_F.C._season",
+              "https://worldfootballjourney.com/story/manutdbayern/"
+            ]
+          },
+          {
+            "text": "They needed a win to complete a historic treble. That meant lifting the Premier League, FA Cup, and Champions League.",
+            "visual_keyword": "needed win complete historic treble meant lifting premier league fa football illustration",
+            "visual_entities": [
+              "Manchester United"
+            ],
+            "evidence_ids": [
+              "S1",
+              "S2"
+            ],
+            "source_quotes": [
+              "SNIPPET: The 1999 UEFA Champions League final was an association football match between Manchester United of England and Bayern Munich of Germany, played at Camp Nou in Barcelona, Spain, on 26 May 1999, to determine the winner of the 1998-99 UEFA Champions League.",
+              "SNIPPET: The 1998-99 season was Manchester United Football Club 's seventh season in the FA Premier League and their 24th consecutive season in the top division of English football. [3] After finishing the previous season without winning any trophies, United won the Treble of the Premier League, FA Cup, and UEFA Champions League in 1998-99, the first side in English football to do so. [4] During ..."
+            ],
+            "source_quote": "SNIPPET: The 1999 UEFA Champions League final was an association football match between Manchester United of England and Bayern Munich of Germany, played at Camp Nou in Barcelona, Spain, on 26 May 1999, to determine the winner of the 1998-99 UEFA Champions League.",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/1999_UEFA_Champions_League_Final",
+              "https://en.wikipedia.org/wiki/1998\u201399_Manchester_United_F.C._season"
+            ]
+          },
+          {
+            "text": "Despite facing defeat, United displayed incredible resilience and belief at the Camp Nou.",
+            "visual_keyword": "despite facing defeat united displayed incredible resilience belief camp nou football illustration",
+            "visual_entities": [
+              "Manchester United",
+              "Camp Nou"
+            ],
+            "evidence_ids": [
+              "S4"
+            ],
+            "source_quotes": [
+              "SNIPPET: This documentary revisits the unforgettable 1999 UEFA Champions League Final between Manchester United and Bayern Munich at the Camp Nou in Barcelona\u2014a match that redefined belief, resilience ..."
+            ],
+            "source_quote": "SNIPPET: This documentary revisits the unforgettable 1999 UEFA Champions League Final between Manchester United and Bayern Munich at the Camp Nou in Barcelona\u2014a match that redefined belief, resilience ...",
+            "source_urls": [
+              "https://m.youtube.com/watch?v=lNxWEqju2ds"
+            ]
+          },
+          {
+            "text": "Their dramatic victory made them the first English club to complete that iconic treble.",
+            "visual_keyword": "dramatic victory made first english club complete iconic treble football illustration",
+            "visual_entities": [
+              "Manchester United",
+              "1999 UEFA Champions League Final"
+            ],
+            "evidence_ids": [
+              "S2",
+              "S3"
+            ],
+            "source_quotes": [
+              "SNIPPET: The 1998-99 season was Manchester United Football Club 's seventh season in the FA Premier League and their 24th consecutive season in the top division of English football. [3] After finishing the previous season without winning any trophies, United won the Treble of the Premier League, FA Cup, and UEFA Champions League in 1998-99, the first side in English football to do so. [4] During ...",
+              "SNIPPET: Relive Manchester United's dramatic 1999 Champions League Final victory and the historic treble under Sir Alex Ferguson."
+            ],
+            "source_quote": "SNIPPET: The 1998-99 season was Manchester United Football Club 's seventh season in the FA Premier League and their 24th consecutive season in the top division of English football. [3] After finishing the previous season without winning any trophies, United won the Treble of the Premier League, FA Cup, and UEFA Champions League in 1998-99, the first side in English football to do so. [4] During ...",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/1998\u201399_Manchester_United_F.C._season",
+              "https://worldfootballjourney.com/story/manutdbayern/"
+            ]
+          }
+        ],
+        "outro": "Was this the most dramatic ending to a European final you have ever seen?",
+        "full_text": "How did Manchester United pull off the most dramatic European comeback ever? On 26 May 1999, Manchester United met Bayern Munich at the Camp Nou in Barcelona. Sir Alex Ferguson's side were hunting history during an incredible 1998 to 99 campaign. They needed a win to complete a historic treble. That meant lifting the Premier League, FA Cup, and Champions League. Despite facing defeat, United displayed incredible resilience and belief at the Camp Nou. Their dramatic victory made them the first English club to complete that iconic treble. Was this the most dramatic ending to a European final you have ever seen?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SNIPPET: The 1999 UEFA Champions League final was an association football match between Manchester United of England and Bayern Munich of Germany, played at Camp Nou in Barcelona, Spain, on 26 May 1999, to determine the winner of the 1998-99 UEFA Champions League.",
+            "url": "https://en.wikipedia.org/wiki/1999_UEFA_Champions_League_Final"
+          },
+          {
+            "id": "S2",
+            "text": "SNIPPET: The 1998-99 season was Manchester United Football Club 's seventh season in the FA Premier League and their 24th consecutive season in the top division of English football. [3] After finishing the previous season without winning any trophies, United won the Treble of the Premier League, FA Cup, and UEFA Champions League in 1998-99, the first side in English football to do so. [4] During ...",
+            "url": "https://en.wikipedia.org/wiki/1998\u201399_Manchester_United_F.C._season"
+          },
+          {
+            "id": "S3",
+            "text": "SNIPPET: Relive Manchester United's dramatic 1999 Champions League Final victory and the historic treble under Sir Alex Ferguson.",
+            "url": "https://worldfootballjourney.com/story/manutdbayern/"
+          },
+          {
+            "id": "S4",
+            "text": "SNIPPET: This documentary revisits the unforgettable 1999 UEFA Champions League Final between Manchester United and Bayern Munich at the Camp Nou in Barcelona\u2014a match that redefined belief, resilience ...",
+            "url": "https://m.youtube.com/watch?v=lNxWEqju2ds"
+          }
+        ],
+        "research_context": "WEB SOURCE: 1999 UEFA Champions League final - Wikipedia\nSOURCE URL: https://en.wikipedia.org/wiki/1999_UEFA_Champions_League_Final\nSNIPPET: The 1999 UEFA Champions League final was an association football match between Manchester United of England and Bayern Munich of Germany, played at Camp Nou in Barcelona, Spain, on 26 May 1999, to determine the winner of the 1998-99 UEFA Champions League.\n\n=====\n\nWEB SOURCE: 1998-99 Manchester United F.C. season - Wikipedia\nSOURCE URL: https://en.wikipedia.org/wiki/1998\u201399_Manchester_United_F.C._season\nSNIPPET: The 1998-99 season was Manchester United Football Club 's seventh season in the FA Premier League and their 24th consecutive season in the top division of English football. [3] After finishing the previous season without winning any trophies, United won the Treble of the Premier League, FA Cup, and UEFA Champions League in 1998-99, the first side in English football to do so. [4] During ...\n\n=====\n\nWEB SOURCE: The Treble Miracle - Manchester United's 1999 Champions League Final ...\nSOURCE URL: https://worldfootballjourney.com/story/manutdbayern/\nSNIPPET: Relive Manchester United's dramatic 1999 Champions League Final victory and the historic treble under Sir Alex Ferguson.\n\n=====\n\nWEB SOURCE: 1999 Champions League Final: Manchester United's Greatest Comeback\nSOURCE URL: https://m.youtube.com/watch?v=lNxWEqju2ds\nSNIPPET: This documentary revisits the unforgettable 1999 UEFA Champions League Final between Manchester United and Bayern Munich at the Camp Nou in Barcelona\u2014a match that redefined belief, resilience ..."
+      },
+      "image_path": "footybitez/output/social_posts/post.jpg",
+      "image_source": {
+        "source": "Wikipedia primary entity image",
+        "subject": "Camp Nou",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/a/ad/Camp_Nou_aerial.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=original",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Camp_Nou_aerial.jpg",
+        "license": "CC BY 2.0",
+        "license_url": "https://creativecommons.org/licenses/by/2.0",
+        "creator": "Oh-Barcelona.com from Barcelona, Spain",
+        "verification": "exact football article identity; entity portrait, not match footage"
+      }
+    },
+    "facebook": {},
+    "facebook_pending": {}
+  }
+}
