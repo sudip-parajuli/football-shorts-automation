@@ -161,7 +161,11 @@
         "verification": "exact football article identity; entity portrait, not match footage"
       }
     },
-    "facebook": {},
-    "facebook_pending": {}
+    "facebook": {
+      "1098623579997373": "122119157456340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18122858120062407",
+    "instagram_id": "17992979621862364"
   }
 }
