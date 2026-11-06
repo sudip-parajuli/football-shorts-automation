@@ -7,29 +7,37 @@ def contains_term(text, term):
     return bool(re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text, re.I))
 
 
+QUERY_STOPWORDS = set("a an the and or to of for with in on at by is are was were this that it their its they them as from so can cannot would could should not".split())
+QUERY_DESCRIPTORS = set("football soccer illustration diagram tactical pitch rule explain explained explainer action photo portrait kit shirt jersey launch passing pass defender attacker goalkeeper referee animation formation concept example".split())
+
+
+def visual_query_errors(query, narration, context):
+    words = lambda value: {word.rstrip("s") for word in re.findall(r"\w+", value.lower())}
+    allowed = words(context + " " + narration) | words(" ".join(QUERY_STOPWORDS | QUERY_DESCRIPTORS))
+    if not words(query).issubset(allowed):
+        return ["visual query adds unsupported terms"]
+    return []
+
+
 def grounding_errors(data, context):
-    """Require traceable evidence; this is a guard, not semantic fact checking."""
+    """Validate application-attached source passages, without case-based NER."""
     normalize = lambda value: " ".join(re.findall(r"\w+", value.lower()))
     evidence = normalize(context)
     errors = []
     for index, segment in enumerate(data.get("segments", [])):
-        quote = segment.get("source_quote", "")
-        if not isinstance(quote, str) or len(quote.split()) < 6 or normalize(quote) not in evidence:
+        quotes = segment.get("source_quotes") or [segment.get("source_quote", "")]
+        if not isinstance(quotes, list) or not quotes or any(
+            not isinstance(quote, str) or len(re.findall(r"\w+", quote)) < 6 or normalize(quote) not in evidence
+            for quote in quotes
+        ):
             errors.append(f"Segment {index + 1} needs an exact research quote of at least six words")
             continue
+        cited_text = " ".join(quotes)
         numbers = set(re.findall(r"\d+(?:[.,]\d+)?", segment["text"]))
-        if not numbers.issubset(set(re.findall(r"\d+(?:[.,]\d+)?", quote))):
+        if not numbers.issubset(set(re.findall(r"\d+(?:[.,]\d+)?", cited_text))):
             errors.append(f"Segment {index + 1} adds numbers/dates absent from its evidence")
-        # Catch invented named examples and query combinations such as Messi PSG
-        # 2026 even when the rest of a conceptual explanation is valid.
-        allowed = normalize(context + " " + segment["text"])
-        query = segment.get("visual_keyword", "")
-        query_numbers = set(re.findall(r"\d+", query))
-        if not query_numbers.issubset(set(re.findall(r"\d+", context + " " + segment["text"]))):
-            errors.append(f"Segment {index + 1} visual query invents a date/number")
-        names = re.findall(r"\b[A-Z][a-z]+(?:[- ][A-Z][a-z]+)+\b|\b[A-Z]{2,}\b", query)
-        if any(normalize(name) not in allowed for name in names):
-            errors.append(f"Segment {index + 1} visual query adds an unsupported named subject")
+        for error in visual_query_errors(segment.get("visual_keyword", ""), segment["text"], context):
+            errors.append(f"Segment {index + 1} {error}")
     return errors
 
 
