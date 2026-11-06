@@ -175,7 +175,8 @@ def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourc
                     for path in scene_club_logos(media_sourcer,scene):
                         target=os.path.join('remotion-video/public/assets/images',os.path.basename(path))
                         os.makedirs(os.path.dirname(target),exist_ok=True)
-                        shutil.copy2(path,target)
+                        if os.path.abspath(path)!=os.path.abspath(target):
+                            shutil.copy2(path,target)
                         scene_prop['club_logos'].append(os.path.relpath(target,'remotion-video/public').replace('\\','/'))
 
                 # Copy all relevant generator fields

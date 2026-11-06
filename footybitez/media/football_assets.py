@@ -58,6 +58,15 @@ def _save_image(sourcer,url,entity,source,page,role):
 
 
 def football_logo(sourcer,entity):
+    cache=getattr(sourcer,'_football_logo_cache',{})
+    key=' '.join(sorted(identity_tokens(entity)))
+    if key not in cache:
+        cache[key]=_football_logo(sourcer,entity)
+        sourcer._football_logo_cache=cache
+    return cache[key]
+
+
+def _football_logo(sourcer,entity):
     """Resolve exact club names from the provider's own index and image alt text."""
     expected=identity_tokens(entity)
     if not expected: return None
