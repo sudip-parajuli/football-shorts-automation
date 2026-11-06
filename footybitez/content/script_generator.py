@@ -208,57 +208,14 @@ class ScriptGenerator:
         if not context or context == "__NO_CONTEXT__":
             logger.error("No research context; refusing ungrounded generation for %s", topic)
             return None
-        prompt = self._get_prompt(topic, category, context=context)
-        prompt += """
-EDITORIAL CONTRACT (applies to every category):
-Write 90-140 spoken words. Hook: 6-12 words, a concrete tension or surprising
-supported fact, with no greeting or 'crazy fact' filler. Deliver the answer in
-the first two body beats, then explain cause, evidence and consequence.
-Write 3-5 segments, each with one clear factual point and its own precise visual
-query. Rules/tactics topics need actions, pitch situations or diagrams, not a
-fictional player biography. Do not invent names, scores, quotes or statistics.
-Never turn missing source information into a claim. End on the payoff or one
-short topic-specific question. Output title (under 70 characters, honest and
-specific), music_mood (tense, energetic, reflective or neutral), hook, segments,
-outro and primary_entity in the JSON object. Do not put hashtags in the title.
-"""
-
-        grounding = context
-        if grounding:
-            prompt += """
-EVIDENCE REQUIRED: Every segment must include source_quote: an exact continuous
-quote of at least six words copied from the research supporting that segment.
-Do not invent an example, incident, quote, season, club or player just to make
-an abstract topic vivid. All dates and numbers must occur in that segment's
-source_quote. Visual queries must depict the actual spoken point; never add a
-famous player, club or current year absent from the research and narration.
-For What If topics, source_quote supports the real historical baseline. Clearly
-label alternate outcomes as hypothetical, and never move a real incident to a
-different year or competition. If research is insufficient, return an empty
-segments array instead of guessing.
-"""
-        # Try Claude first (preferred for premium/high-quality script writing)
-        if self.anthropic_api_key:
-            result = self._try_claude(prompt, context=grounding)
-            if result:
-                result["research_context"] = context
-                return self._sanitize_visual_keywords(result)
-
-        # Retry malformed JSON once before moving to another provider.
-        result = self._try_groq_script(prompt, context=grounding)
+        # Daily/general/match writing uses one explicit schema instead of the
+        # legacy prompt's contradictory JSON examples and mandatory player names.
+        from footybitez.content.short_writer import ShortWriter
+        if not hasattr(self, "_short_writer"):
+            self._short_writer = ShortWriter(self.groq_keys, self.gemini_keys, self.anthropic_api_key)
+        result = self._short_writer.write(topic, category, context, self._validate_script_data)
         if result:
-            result["research_context"] = context
             return self._sanitize_visual_keywords(result)
-
-        # 2. Try Gemini (new SDK)
-        if self.gemini_keys:
-            logger.info(f"Generating script with Gemini for category: {category}...")
-            result = self._try_gemini(prompt, context=grounding)
-            if result:
-                result["research_context"] = context
-                return self._sanitize_visual_keywords(result)
-
-        # Raw encyclopedic summaries are research, not finished narration.
         logger.error("No provider produced a publishable script. Skipping this topic.")
         return None
 

@@ -73,6 +73,30 @@ Counterfactual topics now require research and source-quote checks for their rea
 historical baseline rather than bypassing grounding altogether. Alternate outcomes
 must be labelled hypothetical; normal source-validation limitations still apply.
 
+## Generation reliability follow-up
+
+The next run exhausted all topics before rendering. Scripts were returned without
+copied quotes, the capital-letter query heuristic misclassified diagram labels,
+and Groq JSON-object requests repeatedly failed while SDK retries waited on quotas.
+
+General/daily/match Shorts now use one schema-driven writer. The program assigns
+source IDs to intact research passages; models cite IDs and the program attaches
+quotes and URLs. It no longer asks models to reproduce a six-word quote verbatim.
+Groq GPT-OSS uses strict JSON Schema mode; Gemini receives the same response schema.
+Malformed outputs receive one repair attempt with explicit validation feedback.
+Rate-limited model/key pairs are skipped for subsequent topics in the same run,
+Groq SDK retries are disabled, and a shared twelve-call run budget bounds costs.
+
+Visual-query terms are compared with narration/research independently of title
+case. Unsupported queries are replaced with narration-derived search terms, while
+unsupported narration numbers/dates and unknown evidence IDs remain errors. The
+legacy prompt's contradictory schema examples and mandatory player-name searches
+are no longer used by `generate_script()`. Specialized legacy helper callers remain
+separate. Quotation IDs prove source traceability, not factual entailment.
+
+References: [Groq structured outputs](https://console.groq.com/docs/structured-outputs),
+[Gemini structured outputs](https://ai.google.dev/gemini-api/docs/generate-content/structured-output).
+
 ## Implemented
 
 - Whole-word sport filters across narration, grounding, visual query sanitation
