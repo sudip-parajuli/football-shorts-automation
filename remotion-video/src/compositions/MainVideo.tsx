@@ -1,3 +1,4 @@
+import { cleanDisplayFields } from '../displayText';
 import React from 'react';
 import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig } from 'remotion';
 import { TransitionSeries, linearTiming } from '@remotion/transitions';
@@ -49,6 +50,8 @@ export const MainVideo: React.FC<MainVideoProps> = ({
   sound_effects = {},
 }) => {
   const { fps } = useVideoConfig();
+  chapters = cleanDisplayFields(chapters);
+  quiz = cleanDisplayFields(quiz);
 
   let currentFrame = 0;
 

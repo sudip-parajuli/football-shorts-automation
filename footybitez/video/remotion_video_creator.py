@@ -185,8 +185,13 @@ class RemotionVideoCreator:
                         if not isinstance(pool, list): pool = [pool]
                         media_files = [self._copy_to_public(p) for p in pool if p]
                 
-            if not any(media_files):
-                raise ValueError(f"No verified visual for {chunk['type']}; refusing blank video")
+            media_files = [path for path in media_files if path]
+            if not media_files:
+                from footybitez.media.editorial_cards import make_beat_cards
+                logger.warning("No verified photo for %s; using labelled narration graphics", chunk['type'])
+                cards = make_beat_cards(script_data.get("title", "Football explained"), chunk["text"],
+                                        os.path.join(self.output_dir, "editorial_cards"))
+                media_files = [self._copy_to_public(path) for path in cards]
 
             # Append segment
             remotion_props["segments"].append({

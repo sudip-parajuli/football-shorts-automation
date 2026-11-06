@@ -1,3 +1,4 @@
+from footybitez.utils.gemini_client import create_gemini_client
 import os
 import io
 import time
@@ -45,6 +46,8 @@ class MediaSourcer:
         # image — observed burning 5+ minutes per image once the free-tier daily
         # quota was hit, because every candidate re-tried the same dead combination.
         self._gemini_unusable = set()
+        self._vision_calls = 0
+        self._vision_budget = max(0, int(os.getenv("GEMINI_VISION_MAX_CALLS", "8")))
         
         # Clean directory at startup to ensure no stale cached assets are reused
         self.startup_cleanup()
@@ -147,6 +150,8 @@ class MediaSourcer:
             self._rejected_downloads = set()
         cache_key = (url, context_query, strict)
         if cache_key in self._rejected_downloads:
+            return
+        if strict and not self._vision_available():
             return
         if os.path.exists(filepath):
             return
@@ -345,6 +350,12 @@ class MediaSourcer:
         haystack = f"{title} {tags}".lower().replace("_", " ").replace("-", " ")
         return token not in haystack
 
+    def _vision_available(self):
+        if getattr(self, "_vision_calls", 0) >= getattr(self, "_vision_budget", 8):
+            return False
+        return any((key, model) not in self._gemini_unusable
+                   for key in self.gemini_keys for model in GEMINI_VISION_MODELS)
+
     def _check_image_safety_and_relevance(self, filepath: str, context_query: str = "", strict: bool = True) -> bool:
         """
         MIDDLEWARE: sits between "image downloaded/generated" and "image is allowed
@@ -370,6 +381,8 @@ class MediaSourcer:
         Returns False if the image should be rejected/deleted.
         """
         filename = os.path.basename(filepath)
+        if self.gemini_keys and not self._vision_available():
+            return not strict
 
         if not self.gemini_keys:
             if strict:
@@ -380,9 +393,10 @@ class MediaSourcer:
 
         from PIL import Image
         try:
-            img = Image.open(filepath)
-            img.verify()
-            img = Image.open(filepath)
+            with Image.open(filepath) as source:
+                source.verify()
+            with Image.open(filepath) as source:
+                img = source.convert("RGB")
         except Exception as e:
             print(f"[Safety] Failed to open image for visual check {filepath}: {e}")
             return False
@@ -425,9 +439,12 @@ class MediaSourcer:
                     # Already known dead/exhausted this run — skip straight past it
                     # instead of re-discovering the same 429/404 on every image.
                     continue
+                if not self._vision_available():
+                    continue
                 attempted_any = True
+                self._vision_calls = getattr(self, "_vision_calls", 0) + 1
                 try:
-                    client = genai.Client(api_key=key)
+                    client = create_gemini_client(key)
                     response = client.models.generate_content(
                         model=model,
                         contents=[img, prompt],
@@ -442,9 +459,13 @@ class MediaSourcer:
                         return False
 
                     data = json.loads(response.text)
-                    is_nsfw = data.get("is_nsfw", False)
-                    is_football = data.get("is_football_related", True)
-                    matches_context = data.get("matches_context", True)
+                    required = ("is_nsfw", "is_football_related", "matches_context")
+                    if not isinstance(data, dict) or any(type(data.get(key)) is not bool for key in required):
+                        print("[Safety] Invalid vision response schema. Rejecting.")
+                        return False
+                    is_nsfw = data["is_nsfw"]
+                    is_football = data["is_football_related"]
+                    matches_context = data["matches_context"]
 
                     if is_nsfw:
                         print(f"[Safety] Gemini classified image {filename} as NSFW. REJECTED.")
@@ -468,6 +489,7 @@ class MediaSourcer:
                     is_quota_or_missing = (
                         "429" in err_str or "resource_exhausted" in err_str or "quota" in err_str
                         or "404" in err_str or "not_found" in err_str
+                        or "400" in err_str or "invalid_argument" in err_str
                     )
                     if is_quota_or_missing:
                         # Daily/rate quota exceeded, or the model no longer exists —
@@ -787,7 +809,7 @@ class MediaSourcer:
         safe_query = self._make_football_query(visual_keyword)
 
         # 1. If the keyword looks like a named entity, try Wikipedia + TheSportsDB first
-        if self._is_player_query(visual_keyword) or len(visual_keyword.split()) <= 4:
+        if len(visual_keyword.split()) <= 3 and not re.search(r"\d", visual_keyword):
             wiki_entity = self.get_wikipedia_entity_image(visual_keyword)
             if wiki_entity:
                 results.append(wiki_entity)
@@ -1083,7 +1105,7 @@ class MediaSourcer:
                     # the same failure on every attempt.
                     continue
                 try:
-                    client = genai.Client(api_key=key)
+                    client = create_gemini_client(key)
                     response = client.models.generate_content(
                         model=image_model,
                         contents=full_prompt,
@@ -1144,6 +1166,8 @@ class MediaSourcer:
         return results[0] if results else None
 
     def _fetch_wikimedia_images(self, query, count=3):
+        if not self._vision_available():
+            return []
         """Fetches up to `count` images from Wikimedia Commons with football-only filter."""
         results = []
 
@@ -1153,13 +1177,7 @@ class MediaSourcer:
         clean_query = re.sub(r"[^\w\s-]", "", safe_q)
         clean_query = re.sub(r"\s+", " ", clean_query).strip()[:60]
 
-        queries_to_try = [
-            clean_query,
-            f"{clean_query} soccer"[:60],
-            f"{clean_query} football"[:60],
-            ("stadium football soccer men" if "stadium" in clean_query.lower()
-             else f"{clean_query.split()[0] if clean_query.split() else ''} football soccer")[:60],
-]
+        queries_to_try = [clean_query]
 
         for attempt_query in queries_to_try:
             if len(results) >= count:
@@ -1222,17 +1240,15 @@ class MediaSourcer:
                     if self._name_mismatch(query, title=img_title, tags=categories):
                         continue
 
+                    from footybitez.media.relevance import metadata_matches
+                    description = meta.get("ImageDescription", {}).get("value", "")
+                    if not metadata_matches(query, img_title, description, categories):
+                        continue
+
                     fname = f"wiki_{hash(url)}.jpg"
                     fpath = os.path.join(self.download_dir, fname)
-                    # strict=False: Wikimedia Commons has its own community
-                    # moderation/deletion policy against NSFW content (unlike raw DDG
-                    # web search, which is the actual high-risk source). Fail-closed
-                    # here meant that once the small free-tier Gemini quota was
-                    # exhausted mid-run, every remaining Commons candidate got
-                    # auto-rejected too, cascading all the way down to blank solid-
-                    # color fallback cards instead of a real (still text-filtered)
-                    # image.
-                    self._download_file(url, fpath, context_query=query, strict=False)
+                    # Commons metadata plus vision must match this exact query.
+                    self._download_file(url, fpath, context_query=query, strict=True)
 
                     if os.path.exists(fpath) and os.path.getsize(fpath) > 5000:
                         self.used_urls.add(url)
@@ -1277,7 +1293,7 @@ class MediaSourcer:
                         continue
                     user = photo['user']['name']
                     fpath = os.path.join(self.download_dir, f"unsplash_{photo['id']}.jpg")
-                    self._download_file(src, fpath, context_query=query, strict=False)
+                    self._download_file(src, fpath, context_query=query, strict=True)
                     if os.path.exists(fpath):
                         self.used_urls.add(src)
                         paths.append(fpath)
@@ -1319,7 +1335,7 @@ class MediaSourcer:
                         continue
                     user = hit['user']
                     fpath = os.path.join(self.download_dir, f"pixabay_{hit['id']}.jpg")
-                    self._download_file(src, fpath, context_query=query, strict=False)
+                    self._download_file(src, fpath, context_query=query, strict=True)
                     if os.path.exists(fpath):
                         self.used_urls.add(src)
                         paths.append(fpath)
@@ -1394,6 +1410,8 @@ class MediaSourcer:
         return ext if ext in self._VALID_IMAGE_EXTS else "jpg"
 
     def _fetch_ddg_image(self, query, suffix):
+        if not self._vision_available():
+            return None
         """Fetches an image using DuckDuckGo as final free fallback with football-only filter."""
         if DDGS is None:
             print("[DDG] Neither 'ddgs' nor 'duckduckgo_search' is installed. Skipping.")
@@ -1427,6 +1445,8 @@ class MediaSourcer:
         return None
 
     def _fetch_ddg_images(self, query, suffix, count=3):
+        if not self._vision_available():
+            return []
         """Fetches multiple images using DuckDuckGo."""
         if DDGS is None:
             print("[DDG] Neither 'ddgs' nor 'duckduckgo_search' is installed. Skipping.")

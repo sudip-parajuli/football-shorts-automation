@@ -81,6 +81,10 @@ export const ImageScene: React.FC<ImageSceneProps> = ({
   const cleanSrc = assetPath.replace(/^(\.\.\/)+ /, '').replace(/^(\.\.\/)/, '');
   const cleanSecondarySrc = secondary_asset_path?.replace(/^(\.\.\/)+ /, '').replace(/^(\.\.\/)/, '');
 
+  if (/(^|\/)editorial_/.test(cleanSrc)) {
+    return <AbsoluteFill><Img src={staticFile(cleanSrc)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></AbsoluteFill>;
+  }
+
   // ── Ken Burns ─────────────────────────────────────────────────────────────
   let scale = 1.0;
   let translateX = 0;

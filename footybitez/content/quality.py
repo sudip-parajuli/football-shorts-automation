@@ -7,6 +7,32 @@ def contains_term(text, term):
     return bool(re.search(r"(?<!\w)" + re.escape(term) + r"(?!\w)", text, re.I))
 
 
+def grounding_errors(data, context):
+    """Require traceable evidence; this is a guard, not semantic fact checking."""
+    normalize = lambda value: " ".join(re.findall(r"\w+", value.lower()))
+    evidence = normalize(context)
+    errors = []
+    for index, segment in enumerate(data.get("segments", [])):
+        quote = segment.get("source_quote", "")
+        if not isinstance(quote, str) or len(quote.split()) < 6 or normalize(quote) not in evidence:
+            errors.append(f"Segment {index + 1} needs an exact research quote of at least six words")
+            continue
+        numbers = set(re.findall(r"\d+(?:[.,]\d+)?", segment["text"]))
+        if not numbers.issubset(set(re.findall(r"\d+(?:[.,]\d+)?", quote))):
+            errors.append(f"Segment {index + 1} adds numbers/dates absent from its evidence")
+        # Catch invented named examples and query combinations such as Messi PSG
+        # 2026 even when the rest of a conceptual explanation is valid.
+        allowed = normalize(context + " " + segment["text"])
+        query = segment.get("visual_keyword", "")
+        query_numbers = set(re.findall(r"\d+", query))
+        if not query_numbers.issubset(set(re.findall(r"\d+", context + " " + segment["text"]))):
+            errors.append(f"Segment {index + 1} visual query invents a date/number")
+        names = re.findall(r"\b[A-Z][a-z]+(?:[- ][A-Z][a-z]+)+\b|\b[A-Z]{2,}\b", query)
+        if any(normalize(name) not in allowed for name in names):
+            errors.append(f"Segment {index + 1} visual query adds an unsupported named subject")
+    return errors
+
+
 FILLER = (
     "here is a crazy fact about", "is a true legend of football",
     "their story inspires millions", "you won't believe this fact",

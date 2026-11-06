@@ -1,9 +1,10 @@
+from footybitez.utils.gemini_client import create_gemini_client
 import os
 import time
 import json
 import logging
 from dotenv import load_dotenv
-from footybitez.content.quality import contains_term, short_errors
+from footybitez.content.quality import contains_term, short_errors, grounding_errors
 from footybitez.utils.llm_models import GROQ_SCRIPT_MODEL, GEMINI_TEXT_MODELS
 
 # Load environment variables
@@ -56,7 +57,7 @@ class ScriptGenerator:
         if not self.gemini_keys:
             logger.warning("No GEMINI_API_KEY found. Will rely on other configured providers; invalid content will be skipped.")
 
-    def _try_claude(self, prompt: str) -> dict | None:
+    def _try_claude(self, prompt: str, context=None) -> dict | None:
         """Try Claude using the Anthropic API key."""
         if not self.anthropic_api_key:
             return None
@@ -78,7 +79,7 @@ class ScriptGenerator:
             if text.endswith("```"):
                 text = text.rsplit("```", 1)[0]
             data = json.loads(text.strip())
-            if self._validate_script_data(data):
+            if self._validate_script_data(data, context=context):
                 logger.info("Claude script generation successful.")
                 return data
         except Exception as e:
@@ -108,7 +109,7 @@ class ScriptGenerator:
         for i, key in enumerate(self.gemini_keys):
             for model_name in GEMINI_TEXT_MODELS:
                 try:
-                    client = genai.Client(api_key=key)
+                    client = create_gemini_client(key)
                     response = client.models.generate_content(
                         model=model_name,
                         contents=prompt,
@@ -130,7 +131,7 @@ class ScriptGenerator:
                     logger.warning(f"Gemini key #{i+1} model={model_name} failed: {e}")
         return None
 
-    def _try_gemini(self, prompt: str) -> dict | None:
+    def _try_gemini(self, prompt: str, context=None) -> dict | None:
         """Try all Gemini keys in order using new google-genai SDK."""
         try:
             from google import genai
@@ -143,7 +144,7 @@ class ScriptGenerator:
             for model_name in GEMINI_TEXT_MODELS:
                 try:
                     logger.info(f"Trying Gemini key #{i+1} model={model_name}...")
-                    client = genai.Client(api_key=key)
+                    client = create_gemini_client(key)
                     response = client.models.generate_content(
                         model=model_name,
                         contents=prompt,
@@ -160,14 +161,14 @@ class ScriptGenerator:
                     if text.endswith("```"):
                         text = text.rsplit("```", 1)[0]
                     data = json.loads(text.strip())
-                    if self._validate_script_data(data):
+                    if self._validate_script_data(data, context=context):
                         logger.info(f"Gemini key #{i+1} ({model_name}) succeeded.")
                         return data
                 except Exception as e:
                     logger.warning(f"Gemini key #{i+1} model={model_name} failed: {e}")
         return None
 
-    def _try_groq_script(self, prompt):
+    def _try_groq_script(self, prompt, context=None):
         if not self.groq_keys:
             return None
         from groq import Groq
@@ -181,7 +182,7 @@ class ScriptGenerator:
                         temperature=temperature, max_tokens=2400,
                         response_format={"type": "json_object"})
                     data = json.loads(response.choices[0].message.content)
-                    if self._validate_script_data(data):
+                    if self._validate_script_data(data, context=context):
                         return data
                 except Exception as error:
                     logger.warning("Groq key #%s script attempt failed (%s)", index + 1, type(error).__name__)
@@ -223,22 +224,36 @@ specific), music_mood (tense, energetic, reflective or neutral), hook, segments,
 outro and primary_entity in the JSON object. Do not put hashtags in the title.
 """
 
+        grounding = context if category != "What If?" else None
+        if grounding:
+            prompt += """
+EVIDENCE REQUIRED: Every segment must include source_quote: an exact continuous
+quote of at least six words copied from the research supporting that segment.
+Do not invent an example, incident, quote, season, club or player just to make
+an abstract topic vivid. All dates and numbers must occur in that segment's
+source_quote. Visual queries must depict the actual spoken point; never add a
+famous player, club or current year absent from the research and narration.
+If research is insufficient, return an empty segments array instead of guessing.
+"""
         # Try Claude first (preferred for premium/high-quality script writing)
         if self.anthropic_api_key:
-            result = self._try_claude(prompt)
+            result = self._try_claude(prompt, context=grounding)
             if result:
+                result["research_context"] = context
                 return self._sanitize_visual_keywords(result)
 
         # Retry malformed JSON once before moving to another provider.
-        result = self._try_groq_script(prompt)
+        result = self._try_groq_script(prompt, context=grounding)
         if result:
+            result["research_context"] = context
             return self._sanitize_visual_keywords(result)
 
         # 2. Try Gemini (new SDK)
         if self.gemini_keys:
             logger.info(f"Generating script with Gemini for category: {category}...")
-            result = self._try_gemini(prompt)
+            result = self._try_gemini(prompt, context=grounding)
             if result:
+                result["research_context"] = context
                 return self._sanitize_visual_keywords(result)
 
         # Raw encyclopedic summaries are research, not finished narration.
@@ -308,7 +323,7 @@ outro and primary_entity in the JSON object. Do not put hashtags in the title.
                     if any(contains_term(page.summary[:700], bad) for bad in ScriptGenerator.BAD_TOPIC_KEYWORDS):
                         logger.warning(f"[Grounding] Skipping Wikipedia page '{page.title}' — summary matches a banned term.")
                         continue
-                    context_parts = [f"ENTITY: {page.title}\nSUMMARY: {page.summary[:700]}"]
+                    context_parts = [f"ENTITY: {page.title}\nSOURCE URL: {page.url}\nSUMMARY: {page.summary[:700]}"]
 
                     sections = page.sections
                     for target in ["Honours", "Career statistics", "Club career",
@@ -332,11 +347,20 @@ outro and primary_entity in the JSON object. Do not put hashtags in the title.
 
             return "\n\n=====\n\n".join(full_context) if full_context else None
 
+        if topic.lower().startswith(("why ", "how ", "what ")):
+            conceptual = self._fetch_web_text_context(topic)
+            if conceptual:
+                return conceptual
+
         # First attempt
         try:
             result = _do_fetch(topic)
             if result:
-                return result
+                from footybitez.media.relevance import tokens
+                wanted = tokens(topic)
+                if not topic.lower().startswith(("why ", "how ", "what ")) or len(wanted & tokens(result)) >= min(2, len(wanted)):
+                    return result
+                logger.warning("Research page is too weakly related to the conceptual topic")
         except Exception as e:
             logger.warning(f"Context fetch attempt 1 failed: {e}")
 
@@ -345,7 +369,11 @@ outro and primary_entity in the JSON object. Do not put hashtags in the title.
         try:
             result = _do_fetch(topic.split(":")[0].split("?")[0])
             if result:
-                return result
+                from footybitez.media.relevance import tokens
+                wanted = tokens(topic)
+                if not topic.lower().startswith(("why ", "how ", "what ")) or len(wanted & tokens(result)) >= min(2, len(wanted)):
+                    return result
+                logger.warning("Research page is too weakly related to the conceptual topic")
         except Exception as e:
             logger.warning(f"Context fetch attempt 2 failed: {e}")
 
@@ -403,7 +431,7 @@ outro and primary_entity in the JSON object. Do not put hashtags in the title.
                 return None
 
             parts = [
-                f"WEB SOURCE: {r.get('title', '')}\nSNIPPET: {r.get('body', '')[:500]}"
+                f"WEB SOURCE: {r.get('title', '')}\nSOURCE URL: {r.get('href', '')}\nSNIPPET: {r.get('body', '')[:500]}"
                 for r in clean[:4]
             ]
             logger.info(f"[Grounding] Found {len(parts)} web snippets for conceptual topic '{topic}'.")
@@ -738,11 +766,16 @@ VISUAL KEYWORD RULES — MANDATORY (image search will fail if these are violated
 
         return script_data
 
-    def _validate_script_data(self, data):
+    def _validate_script_data(self, data, context=None):
         errors = short_errors(data)
         if errors:
             logger.warning("Editorial quality rejected script: %s", "; ".join(errors))
             return False
+        if context:
+            evidence_errors = grounding_errors(data, context)
+            if evidence_errors:
+                logger.warning("Grounding rejected script: %s", "; ".join(evidence_errors))
+                return False
         if "hook" in data and "segments" in data:
             new_segments = []
             for s in data["segments"]:

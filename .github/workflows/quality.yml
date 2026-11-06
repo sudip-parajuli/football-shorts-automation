@@ -13,8 +13,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install python-dotenv
-      - run: python -m unittest test_content_quality -v
+      - run: pip install python-dotenv pillow requests google-genai
+      - run: python -m unittest test_content_quality test_media_recovery -v
       - run: python -m compileall -q footybitez
   remotion:
     runs-on: ubuntu-latest
@@ -28,4 +28,8 @@ jobs:
       - run: npm ci
         working-directory: remotion-video
       - run: npm run typecheck
+        working-directory: remotion-video
+      - run: npm run test:captions
+        working-directory: remotion-video
+      - run: npx remotion bundle src/index.ts --out-dir=out/ci-bundle
         working-directory: remotion-video

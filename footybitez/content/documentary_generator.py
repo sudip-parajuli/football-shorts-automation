@@ -1,3 +1,4 @@
+from footybitez.utils.gemini_client import create_gemini_client
 import os
 import re
 import json
@@ -54,7 +55,7 @@ class DocumentaryGenerator:
             for attempt in range(2):  # 2 attempts per key (initial + 1 retry after 429)
                 try:
                     logger.info(f"Attempting script generation with Gemini key #{i+1} (attempt {attempt+1})...")
-                    client = genai.Client(api_key=key)
+                    client = create_gemini_client(key)
                     response = client.models.generate_content(
                         model=GEMINI_TEXT_MODELS[0],
                         contents=f"{system_prompt}\n\n{user_prompt}",

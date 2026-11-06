@@ -60,6 +60,10 @@ def main():
             logger.error("Failed to generate a valid script after 3 attempts. Aborting.")
             raise RuntimeError("All topics failed editorial quality checks")
 
+        import json
+        os.makedirs("footybitez/output", exist_ok=True)
+        with open("footybitez/output/script.json", "w", encoding="utf-8") as report:
+            json.dump({"topic": topic, "category": category, "script": script}, report, indent=2)
         logger.info(f"Script Generated: {script['full_text']}")
         # 3. Get Visuals (Pexels)
         logger.info(f"Fetching media for topic: {topic}")
@@ -69,6 +73,11 @@ def main():
         logger.info("Fetching Title Card...")
         title_card_path = media_sourcer.get_title_card_image(topic, allow_ai=False)
         
+        # Replace a generic emergency title card with the actual hook graphic.
+        if not title_card_path or os.path.basename(title_card_path).startswith("card_"):
+            from footybitez.media.editorial_cards import make_beat_cards
+            title_card_path = make_beat_cards(topic, script["hook"], media_sourcer.download_dir)[0]
+
         # 2. Fetch Profile Image
         entity_query = script.get('primary_entity')
         if not entity_query:
@@ -95,8 +104,6 @@ def main():
             if isinstance(seg, dict):
                 visual_kw = seg.get('visual_keyword', visual_kw)
             
-            # Fetch 2-3 clips/images per segment
-            logger.info(f"Searching for visual: {visual_kw}")
             # Fetch 2-3 clips/images per segment
             logger.info(f"Searching for visual: {visual_kw}")
             paths = media_sourcer.get_media(visual_kw, count=3)

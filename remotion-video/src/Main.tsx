@@ -1,3 +1,4 @@
+import { stripCaptionMarkup } from './displayText';
 import { AbsoluteFill, Audio, Img, Sequence, useVideoConfig, spring, useCurrentFrame, interpolate, staticFile, Video } from 'remotion';
 import { z } from 'zod';
 import React, { useMemo } from 'react';
@@ -69,7 +70,7 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
     let currentChars = 0;
 
     for (const t of timing) {
-      const cleanLen = t.word.replace(/\*/g, '').length;
+      const cleanLen = stripCaptionMarkup(t.word).length;
       const wouldOverflow = currentChunk.length > 0 && (currentChars + cleanLen) > MAX_CHUNK_CHARS;
 
       if (wouldOverflow) {
@@ -143,7 +144,7 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
         const isActive = frame >= startFrame && frame < endFrame;
         const isPast = frame >= endFrame;
         const isHighlighted = t.word.includes('*');
-        const displayWord = t.word.replace(/\*/g, '').toUpperCase();
+        const displayWord = stripCaptionMarkup(t.word).toUpperCase();
 
         const pop = spring({
            frame: isActive ? frame - startFrame : 0,
@@ -210,7 +211,7 @@ const TikTokCaptions: React.FC<{ timing: z.infer<typeof WordTimingSchema>[], fps
 // before render, plus a single fade/scale-in for the whole block.
 const HookText: React.FC<{ text: string, fps: number }> = ({ text, fps }) => {
   const frame = useCurrentFrame();
-  const cleanText = text.replace(/\*/g, '');
+  const cleanText = stripCaptionMarkup(text);
 
   // Longer hooks get a smaller font so two lines is actually enough room —
   // rather than hoping a fixed size happens to fit and clipping/overflowing
@@ -229,7 +230,7 @@ const HookText: React.FC<{ text: string, fps: number }> = ({ text, fps }) => {
   // than as separately-scaled flex items — keeping the whole line a single
   // text flow is what lets the 2-line clamp below work reliably. Split the
   // ORIGINAL text (not cleanText) so the asterisk markers survive the split.
-  const rawParts = text.split(/(\*[^*]+\*)/g).filter(Boolean);
+  const rawParts = text.split(/(\*+[^*]+\*+)/g).filter(Boolean);
 
   return (
     <div style={{
@@ -269,7 +270,7 @@ const HookText: React.FC<{ text: string, fps: number }> = ({ text, fps }) => {
       }}>
         {rawParts.map((part, idx) => {
           const isHighlighted = part.startsWith('*') && part.endsWith('*');
-          const word = isHighlighted ? part.slice(1, -1) : part;
+          const word = stripCaptionMarkup(part);
           return (
             <span key={idx} style={{ color: isHighlighted ? '#FDE047' : '#FFFFFF' }}>
               {word.toUpperCase()}
@@ -286,6 +287,11 @@ const KenBurnsMedia: React.FC<{ src: string | null, durationInFrames: number, in
   const frame = useCurrentFrame();
   
   if (!src) return <AbsoluteFill style={{ background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' }} />;
+
+  // Text graphics must retain their safe margins; photo zoom/pan crops words.
+  if (/(^|\/)editorial_/.test(src)) {
+    return <AbsoluteFill><Img src={staticFile(src)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></AbsoluteFill>;
+  }
 
   // Motion patterns
   const motionTypes = ['zoom-in', 'pan-right', 'zoom-out', 'pan-left', 'tilt-up', 'tilt-down'];

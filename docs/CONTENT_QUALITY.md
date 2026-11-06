@@ -10,6 +10,51 @@ remaining model and Wikipedia lookup failed, hardcoded filler was accepted.
 The fallback's `full_text` also contained only its hook, hiding the body in logs.
 The actual uploaded video has not been retrieved or listened to during this audit.
 
+## November 6 follow-up
+
+The test run failed because Gemini vision requests used `/v1` with JSON mode
+(which returned 400), then the project hit its 20-request daily free quota.
+Wikimedia's previous fail-open policy admitted an abandoned station and old
+football photos for current kit queries. One segment had no image at all and
+rendering correctly stopped before publication. The generated Juventus anecdote
+and Messi/PSG/2026 query were not substantiated by the visible log.
+
+Follow-up fixes:
+- Shared Gemini client explicitly selects `v1beta` for structured output.
+- Permanent 400 errors are remembered, vision has an eight-call per-run budget
+  (`GEMINI_VISION_MAX_CALLS`), and unavailable verification skips photo downloads.
+- Commons metadata must match the detailed query, including any requested year;
+  broad first-word fallback searches were removed. Commons and stock search
+  downloads require vision verification rather than assuming moderation implies
+  relevance. Vision results require all three fields to be actual booleans.
+- Missing Shorts photos become locally rendered, clearly labelled narration
+  graphics; blank videos and unrelated title-image reuse remain disallowed.
+  Documentary image scenes use the same graphic fallback rather than generating
+  a fake documentary photograph. These layouts do not consume an image API quota.
+- Researched Shorts require exact source quotes per segment and reject numbers
+  absent from those quotes and unsupported named/date combinations in visual
+  queries. Conceptual questions use web research before biography-style lookup.
+  Research URLs and context are saved with the generated script. These checks
+  improve traceability; they do not prove that paraphrases logically follow from
+  a quote or establish that a source itself is reliable.
+- Manual daily/documentary runs default to `publish: false` and upload previews
+  as workflow artifacts. Scheduled publishing behavior is unchanged.
+
+- Captions strip single/double/escaped asterisk markers before display, including
+  the Shorts hook, long-form scene labels/typewriter/quiz text and match graphics.
+  Highlight weights and original narration remain available internally.
+- TypeScript is pinned to 5.9.3: Remotion's bundler uses the JavaScript compiler
+  API, which is absent from the TypeScript 7 package. Fresh bundle verification
+  is now part of the local follow-up checks, alongside type checking.
+
+The daily quota itself still needs to reset, or be increased on the provider
+account, before verified remote images are available again. Graphics continue to
+work during that outage. The previous missing music warning is informational:
+add a manifest to enable music; it did not cause this render failure.
+
+References: [Google SDK API selection](https://googleapis.github.io/python-genai/#api-selection),
+[Google structured output](https://ai.google.dev/gemini-api/docs/generate-content/structured-output).
+
 ## Implemented
 
 - Whole-word sport filters across narration, grounding, visual query sanitation
@@ -35,7 +80,7 @@ The actual uploaded video has not been retrieved or listened to during this audi
   manifest, narration plays without music instead of selecting a random file.
 - Rejected URL/context pairs are not repeatedly sent to vision. Distinct search
   results have distinct filenames. Tiny preview images are rejected before vision.
-- Missing narration or verified short-segment visuals abort rendering. YouTube
+- Missing narration aborts rendering; absent segment photos use labelled graphics. YouTube
   and social uploads inspect streams, duration and decoded mean audio volume.
   This detects absent/silent mixes, **not** factual accuracy or correct speech.
 - Daily and documentary runs save script/render quality JSON alongside output.

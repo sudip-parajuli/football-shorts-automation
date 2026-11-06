@@ -1,3 +1,4 @@
+from footybitez.utils.gemini_client import create_gemini_client
 """
 football_visual_generator.py
 Veo 3.1 + Gemini image generation for the long-form football documentary pipeline.
@@ -151,7 +152,7 @@ def generate_ai_image(
     for key_idx, key in enumerate(keys):
         try:
             logger.info(f"[GeminiImg] Attempting with key #{key_idx + 1}...")
-            client = genai.Client(api_key=key)
+            client = create_gemini_client(key)
 
             response = client.models.generate_content(
                 model="gemini-2.5-flash-image",

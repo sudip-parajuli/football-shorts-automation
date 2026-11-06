@@ -1,3 +1,4 @@
+from footybitez.utils.gemini_client import create_gemini_client
 import os
 import sys
 import json
@@ -103,7 +104,7 @@ def get_gemini_pre_match_details(home, away, kickoff_str, venue, stage_name="GRO
         for model in GEMINI_TEXT_MODELS:
             try:
                 logger.info(f"[GeminiSearch] Fetching pre-match details via model={model}...")
-                client = genai.Client(api_key=key)
+                client = create_gemini_client(key)
                 r1 = client.models.generate_content(
                     model=model,
                     contents=prompt,
