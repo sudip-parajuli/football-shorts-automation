@@ -83,11 +83,17 @@ def main():
         from footybitez.media.media_sourcer import MediaSourcer
         from footybitez.media.real_assets import wikipedia_primary_photo
         sourcer=MediaSourcer()
-        photo=next((path for entity in plan['entities'] if (path:=wikipedia_primary_photo(sourcer,entity))),None)
+        saved_source=plan.get('image_source')
+        if saved_source:
+            original=out/'original.jpg'
+            sourcer._download_file(saved_source['url'],str(original),context_query=saved_source.get('subject','football'),strict=False)
+            photo=str(original) if original.is_file() else None
+        else:
+            photo=next((path for entity in plan['entities'] if (path:=wikipedia_primary_photo(sourcer,entity))),None)
         if not photo:
             raise RuntimeError('No verified real entity photo available. Choose a text post or another evidenced topic.')
         plan['image_path']=render_overlay(photo,plan['title'],out/'post.jpg')
-        plan['image_source']=json.loads(Path(photo+'.json').read_text(encoding='utf-8'))
+        plan['image_source']=saved_source or json.loads(Path(photo+'.json').read_text(encoding='utf-8'))
         source=plan['image_source']
         credit=f"\n\nPhoto: {source.get('creator','')} / {source.get('license','')} / {source['source_page']} / {source.get('license_url','')}. Cropped with text overlay; entity photograph, not a photograph of this match."
         if credit not in plan['caption']:
