@@ -19,6 +19,23 @@ TOPICS = {
 }
 
 
+def result_headline(match):
+    home,away=match['homeTeam']['name'],match['awayTeam']['name']
+    score=match['score']['fullTime']
+    h,a=score['home'],score['away']
+    duration=match['score'].get('duration','REGULAR')
+    suffix=' (aet)' if duration=='EXTRA_TIME' else ''
+    if duration=='PENALTY_SHOOTOUT':
+        penalties=match['score'].get('penalties',{})
+        if not all(type(penalties.get(key)) is int for key in ('home','away')):
+            raise RuntimeError('Shootout result is missing verified penalty scores')
+        h-=penalties['home']; a-=penalties['away']
+        if h<0 or a<0:
+            raise RuntimeError('Inconsistent shootout scores')
+        suffix=f" (pens {penalties['home']}–{penalties['away']})"
+    return f'{home} {h}–{a} {away}{suffix}'
+
+
 def verified_result(now=None):
     now = now or datetime.now(timezone.utc)
     key = os.getenv('FOOTBALL_DATA_API_KEY')
@@ -38,8 +55,7 @@ def verified_result(now=None):
         raise RuntimeError('No verified finished match from the last 24 hours; skipping result post')
     match=sorted(candidates,key=lambda m:m['utcDate'],reverse=True)[0]
     home,away=match['homeTeam']['name'],match['awayTeam']['name']
-    score=match['score']['fullTime']
-    title=f"{home} {score['home']}–{score['away']} {away}"
+    title=result_headline(match)
     caption=f"Full time: {title}\n\n{match['competition']['name']} | {match['utcDate'][:10]}\nScore shown as reported by football-data.org (including extra time when applicable).\n\nWhat stood out to you?\n\nSource: https://www.football-data.org/\n#football #matchday"
     return title,caption,[home,away],match
 

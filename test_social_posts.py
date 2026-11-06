@@ -6,11 +6,15 @@ from datetime import datetime, timezone
 from PIL import Image
 from footybitez.socials.photo_posts import publish_post
 from footybitez.socials.post_composer import render_overlay, compose_caption
-from footybitez.social_post_main import verified_result
+from footybitez.social_post_main import verified_result, result_headline
 from footybitez.media.football_assets import sports_image_url, football_logo, LogoPage
 
 
 class SocialPostTests(unittest.TestCase):
+    def test_shootout_totals_are_not_presented_as_goals_during_play(self):
+        match={'homeTeam':{'name':'Germany'},'awayTeam':{'name':'England'},
+               'score':{'duration':'PENALTY_SHOOTOUT','fullTime':{'home':7,'away':6},'penalties':{'home':6,'away':5}}}
+        self.assertEqual(result_headline(match),'Germany 1–1 England (pens 6–5)')
     def test_public_sports_urls_use_provider_ids_and_versions(self):
         self.assertEqual(sports_image_url('competitors',132,8),'https://api.sportsapipro.com/v1/football/images/competitors/132?imageVersion=8')
         for kind,identifier in [('players',132),('athletes','Lionel Messi'),('competitors','../123')]:
