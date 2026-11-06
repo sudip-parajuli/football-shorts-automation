@@ -1,0 +1,14 @@
+name: Install video inspection tools
+description: Install and verify system FFmpeg and ffprobe before content generation
+runs:
+  using: composite
+  steps:
+    - name: Install FFmpeg and ffprobe
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
+        command -v ffmpeg
+        command -v ffprobe
+        ffmpeg -version
+        ffprobe -version

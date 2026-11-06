@@ -234,6 +234,8 @@ def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourc
 
 def main():
     load_dotenv()
+    from footybitez.video.preflight import require_media_tools
+    require_media_tools()
     parser = argparse.ArgumentParser(description="FootyBitez Documentary Pipeline")
     parser.add_argument("--topic", help="Topic for the documentary")
     args = parser.parse_args()

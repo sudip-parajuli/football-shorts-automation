@@ -55,6 +55,24 @@ add a manifest to enable music; it did not cause this render failure.
 References: [Google SDK API selection](https://googleapis.github.io/python-genai/#api-selection),
 [Google structured output](https://ai.google.dev/gemini-api/docs/generate-content/structured-output).
 
+## Post-render dependency fix
+
+The full November 6 Actions log shows all 971 frames were rendered and encoded;
+then `inspect_video()` failed because `ffprobe` was absent from PATH. The apparent
+906-frame stop was truncated progress output, not the failure location.
+
+All eight video workflows now use a shared action to install and verify system
+FFmpeg and ffprobe. Daily and documentary entry points check these dependencies
+before research/generation. CI includes real generated-media tests for audible,
+silent and absent audio, plus a missing-ffprobe setup test. Render progress is
+summarized at the end and the full render log and any generated video are retained
+as artifacts even on a later failure.
+
+The same run also exposed inaccurate historical claims in a What If script.
+Counterfactual topics now require research and source-quote checks for their real
+historical baseline rather than bypassing grounding altogether. Alternate outcomes
+must be labelled hypothetical; normal source-validation limitations still apply.
+
 ## Implemented
 
 - Whole-word sport filters across narration, grounding, visual query sanitation

@@ -34,6 +34,9 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Install media inspection dependencies
+      uses: ./.github/actions/setup-media
+
     - name: Install Python dependencies
       run: |
         pip install -r footybitez/requirements.txt
@@ -132,10 +135,13 @@ jobs:
         path: footybitez/logs/
 
     - name: Upload Generated Video (Debug)
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: final-video
+        if-no-files-found: ignore
         path: |
           footybitez/output/final_short.mp4
           footybitez/output/final_short.mp4.quality.json
           footybitez/output/script.json
+          footybitez/output/remotion-render.log

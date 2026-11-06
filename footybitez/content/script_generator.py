@@ -194,19 +194,18 @@ class ScriptGenerator:
         """
         Generates a researched short via configured providers; skips on failure.
         """
-        # 0. Fetch Context for Factual Grounding (skip for What If?)
+        # Counterfactual stories still need a researched historical baseline.
         if context is None:
             context = ""
-            if category != "What If?":
-                context = self._fetch_context(topic)
-                if context and context != "__NO_CONTEXT__":
-                    logger.info(f"Fetched factual context for grounding ({len(context)} chars).")
-                elif context == "__NO_CONTEXT__":
-                    logger.warning("Context fetch failed after retries — proceeding in conservative mode.")
+            context = self._fetch_context(topic)
+            if context and context != "__NO_CONTEXT__":
+                logger.info(f"Fetched factual context for grounding ({len(context)} chars).")
+            elif context == "__NO_CONTEXT__":
+                logger.warning("Context fetch failed; the topic will be skipped.")
         else:
             logger.info("Using provided custom grounding context.")
 
-        if category != "What If?" and (not context or context == "__NO_CONTEXT__"):
+        if not context or context == "__NO_CONTEXT__":
             logger.error("No research context; refusing ungrounded generation for %s", topic)
             return None
         prompt = self._get_prompt(topic, category, context=context)
@@ -224,7 +223,7 @@ specific), music_mood (tense, energetic, reflective or neutral), hook, segments,
 outro and primary_entity in the JSON object. Do not put hashtags in the title.
 """
 
-        grounding = context if category != "What If?" else None
+        grounding = context
         if grounding:
             prompt += """
 EVIDENCE REQUIRED: Every segment must include source_quote: an exact continuous
@@ -233,7 +232,10 @@ Do not invent an example, incident, quote, season, club or player just to make
 an abstract topic vivid. All dates and numbers must occur in that segment's
 source_quote. Visual queries must depict the actual spoken point; never add a
 famous player, club or current year absent from the research and narration.
-If research is insufficient, return an empty segments array instead of guessing.
+For What If topics, source_quote supports the real historical baseline. Clearly
+label alternate outcomes as hypothetical, and never move a real incident to a
+different year or competition. If research is insufficient, return an empty
+segments array instead of guessing.
 """
         # Try Claude first (preferred for premium/high-quality script writing)
         if self.anthropic_api_key:

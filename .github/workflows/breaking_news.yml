@@ -40,6 +40,9 @@ jobs:
       with:
         python-version: '3.12'
 
+    - name: Install media inspection dependencies
+      uses: ./.github/actions/setup-media
+
     - name: Install Python dependencies
       run: |
         pip install -r footybitez/requirements.txt

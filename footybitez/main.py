@@ -40,6 +40,8 @@ def main():
     load_dotenv()
     
     try:
+        from footybitez.video.preflight import require_media_tools
+        require_media_tools()
         logger.info("Starting FootyBitez Automation...")
         
         # 1-2. Select Topic & Generate Script (With Retry Logic)

@@ -48,6 +48,10 @@ class QualityTests(unittest.TestCase):
     def test_no_research_skips(self):
         self.assertIsNone(ScriptGenerator().generate_script('Back pass rule', context='__NO_CONTEXT__'))
 
+    def test_counterfactual_requires_historical_research(self):
+        generator = ScriptGenerator()
+        self.assertIsNone(generator.generate_script('What if VAR existed in 1990?', category='What If?', context='__NO_CONTEXT__'))
+
     def test_documentary_missing_and_misordered_snippets(self):
         self.assertTrue(documentary_errors({}))
         chapter = {'script': ' '.join(['A concrete football explanation.'] * 60), 'visual_scenes': [{'narration_snippet': 'Invented sentence'}] * 6}

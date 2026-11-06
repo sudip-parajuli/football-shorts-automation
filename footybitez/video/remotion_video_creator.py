@@ -9,6 +9,8 @@ logger = logging.getLogger(__name__)
 
 class RemotionVideoCreator:
     def __init__(self, output_dir="footybitez/output", remotion_dir="remotion-video"):
+        from footybitez.video.preflight import require_media_tools
+        require_media_tools()
         self.output_dir = output_dir
         self.remotion_dir = remotion_dir
         self.remotion_public = os.path.join(remotion_dir, "public")
@@ -251,8 +253,11 @@ class RemotionVideoCreator:
                 text=True
             )
             
+            with open(os.path.join(self.output_dir, "remotion-render.log"), "w", encoding="utf-8") as render_log:
+                render_log.write(process.stdout or "")
+                render_log.write(process.stderr or "")
             if process.stdout:
-                logger.info(f"Remotion Render Output: {process.stdout}")
+                logger.info("Remotion render summary (full output in remotion-render.log):\n%s", "\n".join(process.stdout.splitlines()[-15:]))
             if process.stderr:
                 logger.warning(f"Remotion Render Warnings/Errors: {process.stderr}")
                 
