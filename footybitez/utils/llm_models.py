@@ -38,4 +38,4 @@ GROQ_SCRIPT_MODEL = os.getenv("GROQ_SCRIPT_MODEL", "openai/gpt-oss-120b")
 GEMINI_TEXT_MODELS = _model_list("GEMINI_TEXT_MODELS", "gemini-2.5-flash,gemini-3.6-flash")
 
 # Gemini vision-safety/relevance-check model(s) — see media_sourcer.py.
-GEMINI_VISION_MODELS = _model_list("GEMINI_VISION_MODELS", "gemini-2.5-flash")
+GEMINI_VISION_MODELS = _model_list("GEMINI_VISION_MODELS", "gemini-2.5-flash,gemini-3.6-flash")

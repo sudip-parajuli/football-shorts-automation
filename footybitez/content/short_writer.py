@@ -33,9 +33,10 @@ def script_schema(ids):
         "properties": {
             "text": {"type": "string"},
             "visual_keyword": {"type": "string"},
+            "visual_entities": {"type": "array", "items": {"type": "string"}, "maxItems": 3},
             "evidence_ids": {"type": "array", "items": {"type": "string", "enum": ids}, "minItems": 1, "maxItems": 3},
         },
-        "required": ["text", "visual_keyword", "evidence_ids"],
+        "required": ["text", "visual_keyword", "visual_entities", "evidence_ids"],
     }
     properties = {
         "title": {"type": "string"}, "hook": {"type": "string"},
@@ -93,6 +94,10 @@ TOPIC: {topic}
 CATEGORY: {category}
 Start with a concrete 6-12 word tension or question, no greeting or generic hype.
 Answer the topic early, explain the mechanism/evidence, then deliver the payoff.
+Use short spoken sentences, usually 8-16 words. Sound like a UK football
+storyteller explaining this to a friend. Prefer concrete actions and simple words;
+avoid business-report phrases such as 'modern powerbrokers navigating complex
+legal systems'. Use contractions naturally, no forced shouting or generic hype.
 Use 3-5 substantive narration segments; end with a brief topic-specific question
 or payoff. Write a specific honest title under 70 characters. Do not use asterisks.
 Use only supplied evidence for factual claims. Each segment cites evidence_ids
@@ -100,6 +105,9 @@ such as ["S1"]. Never reproduce source text in a source_quote field: the program
 attaches the original evidence. Dates/numbers must occur in the cited evidence.
 For counterfactuals separate researched history from clearly hypothetical outcomes.
 Do not invent incidents, quotes, teams, players, current clubs or statistics.
+For each segment, visual_entities lists exact full names of players, clubs,
+coaches, stadiums, trophies or matches actually present in that segment's evidence
+or narration. Use [] for abstract concepts; never add a famous face as decoration.
 Rules/tactics queries should describe the actual action or diagram; they do not
 need a famous player or club. Visual queries must use subjects in the narration
 or evidence, never an invented entity/year combination. Missing source information

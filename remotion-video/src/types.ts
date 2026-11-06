@@ -50,6 +50,7 @@ export interface VisualScene {
   motion_style?: "pulse" | "lines" | "grid" | "particles" | "counter" | "slash";
   accent_color?: string;
   motion_label?: string;
+  club_logos?: string[];
   counter_value?: number;
   counter_unit?: string;
 

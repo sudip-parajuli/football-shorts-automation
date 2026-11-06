@@ -71,51 +71,25 @@ def main():
         logger.info(f"Fetching media for topic: {topic}")
         media_sourcer = MediaSourcer()
         
-        # 1. Fetch Title Card
-        logger.info("Fetching Title Card...")
-        title_card_path = media_sourcer.get_title_card_image(topic, allow_ai=False)
-        
-        # Replace a generic emergency title card with the actual hook graphic.
-        if not title_card_path or os.path.basename(title_card_path).startswith("card_"):
-            from footybitez.media.editorial_cards import make_beat_cards
-            title_card_path = make_beat_cards(topic, script["hook"], media_sourcer.download_dir)[0]
-
-        # 2. Fetch Profile Image
-        entity_query = script.get('primary_entity')
-        if not entity_query:
-            logger.info("No primary_entity found in script, falling back to topic.")
-            entity_query = topic
-            
-        logger.info(f"Fetching Profile Image for: {entity_query}")
-        profile_image_path = media_sourcer.get_profile_image(entity_query)
-        
-        # 2.1 Last resort: Reuse Title Card if Profile Image fails
-        if not profile_image_path and title_card_path:
-            logger.info("No Profile Image found. Reusing Title Card.")
-            profile_image_path = title_card_path
-        
-        # 3. Fetch Segment Media (Dynamic)
+        from footybitez.media.real_assets import segment_real_media
         segment_media = []
-        logger.info("Fetching Dynamic Segment Media...")
-        
-        # Extract keywords from script segments
-        segments = script.get('segments', [])
-        for seg in segments:
-            # Handle dict vs string (legacy support)
-            visual_kw = topic + " football"
-            if isinstance(seg, dict):
-                visual_kw = seg.get('visual_keyword', visual_kw)
-            
-            # Fetch 2-3 clips/images per segment
-            logger.info(f"Searching for visual: {visual_kw}")
-            paths = media_sourcer.get_media(visual_kw, count=3)
-            segment_media.append(paths) # Append list of paths for this segment
-            
+        for index, segment in enumerate(script.get("segments", [])):
+            paths = segment_real_media(media_sourcer, segment, script, index)
+            segment_media.append(paths)
+            logger.info("Segment %s: %s real photos/clips", index + 1, len(paths))
+        # Spend the limited media budget on the actual story first. The opening
+        # uses a relevant story asset, not a broad keyword-search title card.
+        title_card_path = next((path for pool in segment_media for path in pool if path), None)
+        profile_image_path = title_card_path
+
         visual_assets = {
             "title_card": title_card_path,
             "profile_image": profile_image_path,
             "segment_media": segment_media # Now a list of lists [[p1, p2], [p3, p4]...]
         }
+        from footybitez.media.football_assets import scene_club_logos
+        visual_assets['club_logos'] = list(dict.fromkeys(path for segment in script.get('segments',[])
+            for path in scene_club_logos(media_sourcer,segment)))[:2]
         
         logger.info(f"Assets gathered. Title: {bool(title_card_path)}, Profile: {bool(profile_image_path)}, Media: {len(segment_media)}")
         
@@ -136,11 +110,18 @@ def main():
             "#football #soccer #didyouknow #footybitez #shorts"
         )
         tags = ["football", "soccer", "shorts", "footybitez", "facts"]
+        if os.path.isfile(media_sourcer.credits_file):
+            description += '\n\nVisual credits:\n' + open(media_sourcer.credits_file,encoding='utf-8').read()
         
         # 6. Upload (Optional flag)
         # Check for upload flag or environment variable, default to True if API available
         # But we need to be careful not to spam if testing.
         should_upload = os.getenv("ENABLE_UPLOAD", "false").lower() == "true"
+        if should_upload or os.getenv('ENABLE_SOCIAL_PUBLISHING','false').lower()=='true':
+            with open(os.path.join(video_creator.output_dir,'visual-coverage.json'),encoding='utf-8') as report:
+                coverage=json.load(report)
+            if coverage['media_fraction'] < float(os.getenv('MIN_REAL_MEDIA_FRACTION','0.25')):
+                raise RuntimeError('Real photos/footage cover less than the required part of this Short; keeping preview instead of publishing an all-diagram video')
         
         if should_upload:
             logger.info("Attempting upload to YouTube...")

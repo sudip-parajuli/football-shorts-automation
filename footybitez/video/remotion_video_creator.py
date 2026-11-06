@@ -131,6 +131,7 @@ class RemotionVideoCreator:
             "title_card": self._copy_to_public(visual_assets.get("title_card")),
             "profile_image": self._copy_to_public(visual_assets.get("profile_image")),
             "background_music": self._copy_to_public(background_music_path),
+            "club_logos": [self._copy_to_public(path) for path in visual_assets.get('club_logos',[])],
             "segments": []
         }
 
@@ -188,13 +189,16 @@ class RemotionVideoCreator:
                         media_files = [self._copy_to_public(p) for p in pool if p]
                 
             media_files = [path for path in media_files if path]
+            from footybitez.video.short_timeline import plan_visual_beats
+            scenes, timing_data, timing_source = plan_visual_beats(
+                chunk["text"], timing_data, audio_duration, media_files, offset=i)
             if not media_files:
-                from footybitez.media.editorial_cards import make_beat_cards
-                logger.warning("No verified photo for %s; using labelled narration graphics", chunk['type'])
-                cards = make_beat_cards(script_data.get("title", "Football explained"), chunk["text"],
-                                        os.path.join(self.output_dir, "editorial_cards"))
-                media_files = [self._copy_to_public(path) for path in cards]
+                logger.info("No verified photo for %s; planning animated football scenes", chunk['type'])
 
+            voice_info = {}
+            if os.path.isfile(audio_path + ".voice.json"):
+                with open(audio_path + ".voice.json", encoding="utf-8") as voice_file:
+                    voice_info = json.load(voice_file)
             # Append segment
             remotion_props["segments"].append({
                 "type": chunk["type"],
@@ -203,6 +207,9 @@ class RemotionVideoCreator:
                 "duration": audio_duration,
                 "media": media_files,
                 "timing": timing_data,
+                "timing_source": timing_source,
+                "voice": voice_info,
+                "visual_scenes": scenes,
                 "audio_path": self._copy_to_public(audio_path)
             })
 
@@ -213,6 +220,16 @@ class RemotionVideoCreator:
         with open(props_path, 'w', encoding='utf-8') as f:
             json.dump(remotion_props, f, indent=2)
             
+        import shutil as _shutil
+        _shutil.copy2(props_path, os.path.join(self.output_dir, "render-props.json"))
+        with open(os.path.join(self.output_dir, "visual-plan.json"), "w", encoding="utf-8") as plan:
+            json.dump({"segments": [{key: segment[key] for key in ("type", "duration", "timing_source", "visual_scenes")} for segment in remotion_props["segments"]]}, plan, indent=2)
+        total_frames = sum(round(segment["duration"] * 24) for segment in remotion_props["segments"])
+        media_frames = sum(scene["duration_frames"] for segment in remotion_props["segments"] for scene in segment["visual_scenes"] if scene["kind"] == "media")
+        with open(os.path.join(self.output_dir, "visual-coverage.json"), "w", encoding="utf-8") as coverage:
+            json.dump({"media_fraction":media_frames / max(1,total_frames), "media_frames":media_frames, "total_frames":total_frames}, coverage, indent=2)
+        with open(os.path.join(self.output_dir, "narration-report.json"), "w", encoding="utf-8") as voice_report:
+            json.dump([{ "segment":segment["type"], **segment["voice"], "timing_source":segment["timing_source"] } for segment in remotion_props["segments"]], voice_report, indent=2)
         logger.info(f"Saved properties to {props_path}")
 
         # 5. Render Video via Remotion CLI
