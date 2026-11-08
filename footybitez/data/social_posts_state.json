@@ -167,5 +167,106 @@
     "facebook_pending": {},
     "instagram_container_id": "18122858120062407",
     "instagram_id": "17992979621862364"
+  },
+  "2026-11-08": {
+    "plan": {
+      "slot": "2026-11-08",
+      "topic": "Cristiano Ronaldo longevity and training",
+      "category": "players",
+      "format": "text",
+      "title": "Ronaldo's Enduring Greatness: How Does CR7 Keep Going?",
+      "caption": "How does Cristiano Ronaldo defy time on the pitch?\n\nCristiano Ronaldo, born in 1985, still plays at the highest level. He's a forward for Al-Nassr and captains Portugal. It's incredible to see his enduring career.\n\nHe's widely considered one of football's greatest. Five Ballons d'Or and four European Golden Shoes prove his impact. He was named the world's best player five times.\n\nHis career spans decades, representing Portugal for 23 years. This incredible run shows immense dedication. It's a testament to his professional approach.\n\nWhat does it take to maintain that level for so long?\n\nSources: https://en.wikipedia.org/wiki/Cristiano_Ronaldo https://en.wikipedia.org/wiki/United_States_men%27s_national_under-17_soccer_team\n\n#football #footballstories #FootyBitez",
+      "entities": [
+        "Cristiano Ronaldo",
+        "Al-Nassr",
+        "Portugal",
+        "Ballons d'Or",
+        "European Golden Shoes"
+      ],
+      "evidence": {
+        "title": "Ronaldo's Enduring Greatness: How Does CR7 Keep Going?",
+        "hook": "How does Cristiano Ronaldo defy time on the pitch?",
+        "primary_entity": "Cristiano Ronaldo",
+        "music_mood": "energetic",
+        "segments": [
+          {
+            "text": "Cristiano Ronaldo, born in 1985, still plays at the highest level. He's a forward for Al-Nassr and captains Portugal. It's incredible to see his enduring career.",
+            "visual_keyword": "cristiano ronaldo born 1985 still plays highest level he s football illustration",
+            "visual_entities": [
+              "Cristiano Ronaldo",
+              "Al-Nassr",
+              "Portugal"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Cristiano Ronaldo dos Santos Aveiro (born 5 February 1985) is a Portuguese professional footballer who plays as a forward for and captains the Saudi Pro League club Al-Nassr. He represented the Portugal national team for 23 years, which he also captained for 19 years. Nicknamed CR7, he is widely regarded as one of the greatest footballers of all time and the greatest Portuguese football player of all time. He has won numerous individual accolades throughout his career, including five Ballons d'Or, a record three UEFA Men's Player of the Year Awards, and four European Golden Shoes. He was named the world's best player five times by FIFA. \nRonaldo is one of the most decorated players in the hi"
+            ],
+            "source_quote": "SUMMARY: Cristiano Ronaldo dos Santos Aveiro (born 5 February 1985) is a Portuguese professional footballer who plays as a forward for and captains the Saudi Pro League club Al-Nassr. He represented the Portugal national team for 23 years, which he also captained for 19 years. Nicknamed CR7, he is widely regarded as one of the greatest footballers of all time and the greatest Portuguese football player of all time. He has won numerous individual accolades throughout his career, including five Ballons d'Or, a record three UEFA Men's Player of the Year Awards, and four European Golden Shoes. He was named the world's best player five times by FIFA. \nRonaldo is one of the most decorated players in the hi",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Cristiano_Ronaldo"
+            ]
+          },
+          {
+            "text": "He's widely considered one of football's greatest. Five Ballons d'Or and four European Golden Shoes prove his impact. He was named the world's best player five times.",
+            "visual_keyword": "he s widely considered one football greatest five ballons football illustration",
+            "visual_entities": [
+              "Cristiano Ronaldo",
+              "Ballons d'Or",
+              "European Golden Shoes"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Cristiano Ronaldo dos Santos Aveiro (born 5 February 1985) is a Portuguese professional footballer who plays as a forward for and captains the Saudi Pro League club Al-Nassr. He represented the Portugal national team for 23 years, which he also captained for 19 years. Nicknamed CR7, he is widely regarded as one of the greatest footballers of all time and the greatest Portuguese football player of all time. He has won numerous individual accolades throughout his career, including five Ballons d'Or, a record three UEFA Men's Player of the Year Awards, and four European Golden Shoes. He was named the world's best player five times by FIFA. \nRonaldo is one of the most decorated players in the hi"
+            ],
+            "source_quote": "SUMMARY: Cristiano Ronaldo dos Santos Aveiro (born 5 February 1985) is a Portuguese professional footballer who plays as a forward for and captains the Saudi Pro League club Al-Nassr. He represented the Portugal national team for 23 years, which he also captained for 19 years. Nicknamed CR7, he is widely regarded as one of the greatest footballers of all time and the greatest Portuguese football player of all time. He has won numerous individual accolades throughout his career, including five Ballons d'Or, a record three UEFA Men's Player of the Year Awards, and four European Golden Shoes. He was named the world's best player five times by FIFA. \nRonaldo is one of the most decorated players in the hi",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Cristiano_Ronaldo"
+            ]
+          },
+          {
+            "text": "His career spans decades, representing Portugal for 23 years. This incredible run shows immense dedication. It's a testament to his professional approach.",
+            "visual_keyword": "his career spans decades representing portugal 23 years incredible run football illustration",
+            "visual_entities": [
+              "Cristiano Ronaldo",
+              "Portugal"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Cristiano Ronaldo dos Santos Aveiro (born 5 February 1985) is a Portuguese professional footballer who plays as a forward for and captains the Saudi Pro League club Al-Nassr. He represented the Portugal national team for 23 years, which he also captained for 19 years. Nicknamed CR7, he is widely regarded as one of the greatest footballers of all time and the greatest Portuguese football player of all time. He has won numerous individual accolades throughout his career, including five Ballons d'Or, a record three UEFA Men's Player of the Year Awards, and four European Golden Shoes. He was named the world's best player five times by FIFA. \nRonaldo is one of the most decorated players in the hi"
+            ],
+            "source_quote": "SUMMARY: Cristiano Ronaldo dos Santos Aveiro (born 5 February 1985) is a Portuguese professional footballer who plays as a forward for and captains the Saudi Pro League club Al-Nassr. He represented the Portugal national team for 23 years, which he also captained for 19 years. Nicknamed CR7, he is widely regarded as one of the greatest footballers of all time and the greatest Portuguese football player of all time. He has won numerous individual accolades throughout his career, including five Ballons d'Or, a record three UEFA Men's Player of the Year Awards, and four European Golden Shoes. He was named the world's best player five times by FIFA. \nRonaldo is one of the most decorated players in the hi",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Cristiano_Ronaldo"
+            ]
+          }
+        ],
+        "outro": "What does it take to maintain that level for so long?",
+        "full_text": "How does Cristiano Ronaldo defy time on the pitch? Cristiano Ronaldo, born in 1985, still plays at the highest level. He's a forward for Al-Nassr and captains Portugal. It's incredible to see his enduring career. He's widely considered one of football's greatest. Five Ballons d'Or and four European Golden Shoes prove his impact. He was named the world's best player five times. His career spans decades, representing Portugal for 23 years. This incredible run shows immense dedication. It's a testament to his professional approach. What does it take to maintain that level for so long?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: Cristiano Ronaldo dos Santos Aveiro (born 5 February 1985) is a Portuguese professional footballer who plays as a forward for and captains the Saudi Pro League club Al-Nassr. He represented the Portugal national team for 23 years, which he also captained for 19 years. Nicknamed CR7, he is widely regarded as one of the greatest footballers of all time and the greatest Portuguese football player of all time. He has won numerous individual accolades throughout his career, including five Ballons d'Or, a record three UEFA Men's Player of the Year Awards, and four European Golden Shoes. He was named the world's best player five times by FIFA. \nRonaldo is one of the most decorated players in the hi",
+            "url": "https://en.wikipedia.org/wiki/Cristiano_Ronaldo"
+          },
+          {
+            "id": "S2",
+            "text": "SUMMARY: The United States U-17 men's national soccer team is controlled by the United States Soccer Federation. The highest level of competition in which the team may compete is in the FIFA U-17 World Cup, which is held annually.",
+            "url": "https://en.wikipedia.org/wiki/United_States_men%27s_national_under-17_soccer_team"
+          }
+        ],
+        "research_context": "ENTITY: Cristiano Ronaldo\nSOURCE URL: https://en.wikipedia.org/wiki/Cristiano_Ronaldo\nSUMMARY: Cristiano Ronaldo dos Santos Aveiro (born 5 February 1985) is a Portuguese professional footballer who plays as a forward for and captains the Saudi Pro League club Al-Nassr. He represented the Portugal national team for 23 years, which he also captained for 19 years. Nicknamed CR7, he is widely regarded as one of the greatest footballers of all time and the greatest Portuguese football player of all time. He has won numerous individual accolades throughout his career, including five Ballons d'Or, a record three UEFA Men's Player of the Year Awards, and four European Golden Shoes. He was named the world's best player five times by FIFA. \nRonaldo is one of the most decorated players in the hi\n\n=====\n\nENTITY: United States men's national under-17 soccer team\nSOURCE URL: https://en.wikipedia.org/wiki/United_States_men%27s_national_under-17_soccer_team\nSUMMARY: The United States U-17 men's national soccer team is controlled by the United States Soccer Federation. The highest level of competition in which the team may compete is in the FIFA U-17 World Cup, which is held annually."
+      }
+    },
+    "facebook": {
+      "1098623579997373": "1098623579997373_122119332020340601"
+    },
+    "facebook_pending": {},
+    "instagram_skipped": "Facebook text-only post; Instagram requires an image"
   }
 }
