@@ -118,6 +118,7 @@ jobs:
         fi
 
     - name: Verify Video Generation
+      if: steps.automation.outputs.skipped != 'true'
       run: |
         echo "Checking for generated video file..."
         if [ -f "footybitez/output/final_short.mp4" ]; then

@@ -3,6 +3,15 @@ on:
   schedule:
     - cron: '0 */1 * * *'   # runs every hour, checks if any match is ~6hr away
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish publicly instead of rendering a preview
+        type: boolean
+        default: false
+
+concurrency:
+  group: club-match-pre
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -12,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ (github.event_name == 'schedule' || inputs.publish) && 'main' || github.ref }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -42,8 +53,13 @@ jobs:
           cd remotion-video
           npx playwright install chromium
       - name: Run pipeline
-        run: python footybitez/pipelines/pre_match_pipeline.py
+        run: |
+          args=(pre)
+          if [ "$PUBLISH_MATCH" = "true" ]; then args+=(--publish); fi
+          python -m footybitez.pipelines.club_match_pipeline "${args[@]}"
         env:
+          PUBLISH_MATCH: ${{ github.event_name == 'schedule' || inputs.publish }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FOOTBALL_DATA_API_KEY: ${{ secrets.FOOTBALL_DATA_API_KEY }}
           API_FOOTBALL_KEY: ${{ secrets.API_FOOTBALL_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
@@ -80,14 +96,26 @@ jobs:
           TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
           TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
           TIKTOK_REFRESH_TOKEN: ${{ secrets.TIKTOK_REFRESH_TOKEN }}
-      - name: Commit registry update
+      - name: Save club match publishing state
+        if: always() && (github.event_name == 'schedule' || inputs.publish)
         run: |
-          git config --global user.email "bot@footybitez.com"
-          git config --global user.name "WC2026 Bot"
-          git checkout --theirs . 2>/dev/null || true
-          # Scoped to just the registry file — this used to be `git add -A`, which
-          # also swept up that run's leftover downloaded/rendered assets sitting in
-          # remotion-video/public/ (mis-extensioned files like .web/.com/.img that
-          # cleanup_public_assets() didn't recognize) straight into commits on main.
-          git add match_registry.json
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Update match registry [skip ci]" && git push)
+          file=club_pre_match_registry.json
+          if [ -f "$file" ]; then
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config user.name "github-actions[bot]"
+            git add "$file"
+            if ! git diff --cached --quiet; then
+              git commit -m "Save club match registry [skip ci]"
+              git pull --rebase origin main
+              git push origin HEAD:main
+            fi
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: club-pre-match
+          if-no-files-found: ignore
+          path: |
+            footybitez/output/final_short.mp4
+            footybitez/output/visual-plan.json
+            footybitez/output/visual-gaps.json

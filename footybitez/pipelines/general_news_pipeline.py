@@ -266,11 +266,24 @@ class GeneralNewsPipeline:
             logger.error("No articles retrieved. Stopping pipeline.")
             return
 
-        chosen_story = self.select_viral_headline(articles)
-        if not chosen_story:
-            logger.info("No new exciting stories found to report today. Shutting down cleanly.")
-            return
+        from footybitez.video.remotion_video_creator import MissingVisualError
 
+        for _ in range(3):
+            chosen_story = self.select_viral_headline(articles)
+            if not chosen_story:
+                return
+            try:
+                video_path = self._produce_story(chosen_story, skip_upload)
+                if video_path:
+                    return video_path
+            except MissingVisualError as error:
+                logger.warning("Skipping story %s: %s", chosen_story["title"], error)
+            finally:
+                self.media_sourcer.cleanup()
+            articles = [article for article in articles if article["hash"] != chosen_story["hash"]]
+        logger.warning("No eligible news story had both a grounded script and relevant visuals.")
+
+    def _produce_story(self, chosen_story, skip_upload):
         topic = chosen_story["title"]
         desc = chosen_story["description"]
         # Was hardcoded to "Money & Transfers" for every single story regardless
@@ -346,7 +359,11 @@ class GeneralNewsPipeline:
             tags = ["footballnews", "transfernews", "breakingnews", "soccer", "shorts", "footybitez"]
             
             logger.info("Uploading general football short to YouTube...")
-            self.uploader.upload_video(video_path, title, description, tags)
+            if not self.uploader.upload_video(video_path, title, description, tags):
+                raise RuntimeError("YouTube news upload failed")
+
+            self.state["processed_hashes"].append(chosen_story["hash"])
+            self._save_state()
 
             # Push cross-platform to Facebook/Instagram/TikTok
             should_publish_socials = os.getenv("ENABLE_SOCIAL_PUBLISHING", "false").lower() == "true"
@@ -354,12 +371,6 @@ class GeneralNewsPipeline:
                 logger.info("Pushing general breaking news video cross-platform...")
                 self.socials.publish_to_all(video_path, title, description)
 
-        # Record this headline hash in the processed state file
-        self.state["processed_hashes"].append(chosen_story["hash"])
-        self._save_state()
-        logger.info("Headline hash saved. General news pipeline complete!")
-
-        self.media_sourcer.cleanup()
         return video_path
 
 

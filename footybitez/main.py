@@ -48,60 +48,73 @@ def main():
         topic_gen = TopicGenerator()
         script_gen = ScriptGenerator()
         
-        script = None
+        from footybitez.video.remotion_video_creator import MissingVisualError
+        tried = set()
+        had_script = False
         for attempt in range(1, 4):
             topic, category = topic_gen.get_random_topic()
-            logger.info(f"Attempt {attempt}/3 - Selected Category: {category} | Topic: {topic}")
-            
+            if topic in tried:
+                continue
+            tried.add(topic)
+            logger.info("Attempt %s/3: %s", attempt, topic)
             script = script_gen.generate_script(topic, category)
-            if script:
-                break
-            logger.warning(f"Script generation failed or was rejected for topic '{topic}'. Retrying...")
-            
-        if not script:
-            logger.error("Failed to generate a valid script after 3 attempts. Aborting.")
-            raise RuntimeError("All topics failed editorial quality checks")
+            if not script:
+                continue
+            had_script = True
+            import json
+            os.makedirs("footybitez/output", exist_ok=True)
+            with open("footybitez/output/script.json", "w", encoding="utf-8") as report:
+                json.dump({"topic": topic, "category": category, "script": script}, report, indent=2)
+            logger.info(f"Script Generated: {script['full_text']}")
+            # 3. Get Visuals (Pexels)
+            logger.info(f"Fetching media for topic: {topic}")
+            media_sourcer = MediaSourcer()
+        
+            from footybitez.media.real_assets import segment_real_media
+            segment_media = []
+            for index, segment in enumerate(script.get("segments", [])):
+                paths = segment_real_media(media_sourcer, segment, script, index)
+                segment_media.append(paths)
+                logger.info("Segment %s: %s real photos/clips", index + 1, len(paths))
+            # Spend the limited media budget on the actual story first. The opening
+            # uses a relevant story asset, not a broad keyword-search title card.
+            title_card_path = next((path for pool in segment_media for path in pool if path), None)
+            profile_image_path = title_card_path
 
-        import json
-        os.makedirs("footybitez/output", exist_ok=True)
-        with open("footybitez/output/script.json", "w", encoding="utf-8") as report:
-            json.dump({"topic": topic, "category": category, "script": script}, report, indent=2)
-        logger.info(f"Script Generated: {script['full_text']}")
-        # 3. Get Visuals (Pexels)
-        logger.info(f"Fetching media for topic: {topic}")
-        media_sourcer = MediaSourcer()
+            visual_assets = {
+                "title_card": title_card_path,
+                "profile_image": profile_image_path,
+                "segment_media": segment_media # Now a list of lists [[p1, p2], [p3, p4]...]
+            }
+            from footybitez.media.football_assets import scene_club_logos
+            visual_assets['club_logos'] = list(dict.fromkeys(path for segment in script.get('segments',[])
+                for path in scene_club_logos(media_sourcer,segment)))[:2]
         
-        from footybitez.media.real_assets import segment_real_media
-        segment_media = []
-        for index, segment in enumerate(script.get("segments", [])):
-            paths = segment_real_media(media_sourcer, segment, script, index)
-            segment_media.append(paths)
-            logger.info("Segment %s: %s real photos/clips", index + 1, len(paths))
-        # Spend the limited media budget on the actual story first. The opening
-        # uses a relevant story asset, not a broad keyword-search title card.
-        title_card_path = next((path for pool in segment_media for path in pool if path), None)
-        profile_image_path = title_card_path
+            logger.info(f"Assets gathered. Title: {bool(title_card_path)}, Profile: {bool(profile_image_path)}, Media: {len(segment_media)}")
+        
+            # 3.1 Get Random Music (NEW)
+            from footybitez.media.music_selector import select_music
+            background_music = select_music(script.get("music_mood", "neutral"))
 
-        visual_assets = {
-            "title_card": title_card_path,
-            "profile_image": profile_image_path,
-            "segment_media": segment_media # Now a list of lists [[p1, p2], [p3, p4]...]
-        }
-        from footybitez.media.football_assets import scene_club_logos
-        visual_assets['club_logos'] = list(dict.fromkeys(path for segment in script.get('segments',[])
-            for path in scene_club_logos(media_sourcer,segment)))[:2]
-        
-        logger.info(f"Assets gathered. Title: {bool(title_card_path)}, Profile: {bool(profile_image_path)}, Media: {len(segment_media)}")
-        
-        # 3.1 Get Random Music (NEW)
-        from footybitez.media.music_selector import select_music
-        background_music = select_music(script.get("music_mood", "neutral"))
+            # 4. Create Video
+            video_creator = RemotionVideoCreator()
+            try:
+                video_path = video_creator.create_video(script, visual_assets, background_music_path=background_music)
+            except MissingVisualError as error:
+                logger.warning("Skipping %s: %s", topic, error)
+                media_sourcer.cleanup()
+                continue
+            break
+        else:
+            if not had_script:
+                raise RuntimeError("All candidate topics failed editorial or research checks")
+            logger.warning("No topic had both a grounded script and relevant visuals. Skipping upload.")
+            if os.getenv("GITHUB_OUTPUT"):
+                with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+                    output.write("skipped=true\n")
+            return
+        logger.info("Video created at %s", video_path)
 
-        # 4. Create Video
-        video_creator = RemotionVideoCreator()
-        video_path = video_creator.create_video(script, visual_assets, background_music_path=background_music)
-        logger.info(f"Video Created at: {video_path}")
-        
         # 5. Metadata
         title = str(script.get("title") or topic).strip()[:100]
         description = (

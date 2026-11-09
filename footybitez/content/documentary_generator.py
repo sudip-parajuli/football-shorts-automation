@@ -22,10 +22,75 @@ def _get_keys(prefix: str) -> list:
     return keys
 
 
+def complete_scene_plan(chapter):
+    """Preserve exact scene cues and fill uncovered narration with spoken text."""
+    script = chapter.get("script")
+    scenes = chapter.get("visual_scenes")
+    if not isinstance(script, str) or not isinstance(scenes, list):
+        return
+
+    entities = {}
+    for scene in scenes:
+        if not isinstance(scene, dict):
+            continue
+        for entity in scene.get("named_entities") or []:
+            name = entity.get("name") if isinstance(entity, dict) else None
+            if isinstance(name, str) and len(name.split()) >= 2:
+                entities[name] = entity
+
+    def bridge_beats(passage, minimum=1):
+        words = passage.split()
+        if not words:
+            return []
+        count = max(minimum, (len(words) + 34) // 35)
+        beats = []
+        for index in range(count):
+            part = words[index * len(words) // count:(index + 1) * len(words) // count]
+            if not part:
+                continue
+            snippet = " ".join(part)
+            beat = {"transition": "cut", "narration_snippet": snippet}
+            subject = next((name for name in entities
+                            if re.search(r"(?<!\w)" + re.escape(name) + r"(?!\w)", snippet, re.I)), None)
+            if subject:
+                beat.update(visual_type="image", image_cue=subject, named_entities=[entities[subject]])
+            else:
+                beat.update(visual_type="typewriter_text",
+                            typewriter_words=[{"word": word, "weight": "md"} for word in part[:5]])
+            beats.append(beat)
+        return beats
+
+    tokens = list(re.finditer(r"\w+", script))
+    normalized = [token.group().casefold() for token in tokens]
+    word_cursor = 0
+    cursor = 0
+    repaired = []
+    for scene in scenes:
+        snippet = scene.get("narration_snippet") if isinstance(scene, dict) else None
+        if not isinstance(snippet, str) or not snippet.strip():
+            continue
+        phrase = re.findall(r"\w+", snippet.casefold())
+        if not phrase:
+            continue
+        start_word = next((index for index in range(word_cursor, len(tokens))
+                           if normalized[index:index + len(phrase)] == phrase), None)
+        if start_word is None:
+            continue
+        start = tokens[start_word].start()
+        word_cursor = start_word + len(phrase)
+        end = tokens[word_cursor].start() if word_cursor < len(tokens) else len(script)
+        repaired.extend(bridge_beats(script[cursor:start]))
+        repaired.append({**scene, "narration_snippet": script[start:end].strip()})
+        cursor = end
+    repaired.extend(bridge_beats(script[cursor:]))
+    chapter["visual_scenes"] = repaired if len(repaired) >= 6 else bridge_beats(script, minimum=6)
+
+
 class DocumentaryGenerator:
     def __init__(self):
         self.gemini_keys = _get_keys("GEMINI_API_KEY")
         self.groq_keys   = _get_keys("GROQ_API_KEY")
+        self.exhausted_gemini_keys = set()
 
         if not self.gemini_keys and not self.groq_keys:
             raise ValueError("No GEMINI_API_KEY or GROQ_API_KEY found.")
@@ -41,9 +106,7 @@ class DocumentaryGenerator:
         return default
 
     def _try_gemini(self, system_prompt: str, user_prompt: str) -> dict | None:
-        """Try all Gemini keys in order using new google-genai SDK.
-        On 429, waits the suggested retry-after delay and retries once per key.
-        """
+        """Try each available Gemini key once per request."""
         try:
             from google import genai
             from google.genai import types
@@ -52,35 +115,36 @@ class DocumentaryGenerator:
             return None
 
         for i, key in enumerate(self.gemini_keys):
-            for attempt in range(2):  # 2 attempts per key (initial + 1 retry after 429)
-                try:
-                    logger.info(f"Attempting script generation with Gemini key #{i+1} (attempt {attempt+1})...")
-                    client = create_gemini_client(key)
-                    response = client.models.generate_content(
-                        model=GEMINI_TEXT_MODELS[0],
-                        contents=f"{system_prompt}\n\n{user_prompt}",
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json",
-                            temperature=0.7,
-                            thinking_config=types.ThinkingConfig(thinking_budget=0)
-                        )
+            if key in self.exhausted_gemini_keys:
+                continue
+            try:
+                logger.info("Attempting documentary generation with Gemini key #%s", i + 1)
+                client = create_gemini_client(key)
+                response = client.models.generate_content(
+                    model=GEMINI_TEXT_MODELS[0],
+                    contents=f"{system_prompt}\n\n{user_prompt}",
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        temperature=0.5,
+                        max_output_tokens=12000,
+                        thinking_config=types.ThinkingConfig(thinking_budget=0)
                     )
-                    text = response.text.strip()
-                    # Strip markdown code fences if present
-                    if text.startswith("```"):
-                        text = text.split("\n", 1)[-1]
-                    if text.endswith("```"):
-                        text = text.rsplit("```", 1)[0]
-                    return json.loads(text.strip())
-                except Exception as e:
-                    err_str = str(e)
-                    if "429" in err_str and attempt == 0:
-                        delay = self._parse_retry_delay(err_str)
-                        logger.warning(f"Gemini key #{i+1} hit 429. Waiting {delay:.0f}s before retry...")
-                        time.sleep(delay)
-                        continue  # retry same key
-                    logger.warning(f"Gemini key #{i+1} failed: {e}")
-                    break  # move to next key
+                )
+                text = response.text.strip()
+                # Strip markdown code fences if present
+                if text.startswith("```"):
+                    text = text.split("\n", 1)[-1]
+                if text.endswith("```"):
+                    text = text.rsplit("```", 1)[0]
+                return json.loads(text.strip())
+            except Exception as e:
+                err_str = str(e)
+                if "429" in err_str:
+                    self.exhausted_gemini_keys.add(key)
+                    logger.warning("Gemini key #%s exhausted. Trying another provider or key.", i + 1)
+                    continue
+                logger.warning(f"Gemini key #{i+1} failed: {e}")
+                continue
         return None
 
     # Ordered model fallback chain for Groq. llama-3.3-70b-versatile AND
@@ -106,7 +170,7 @@ class DocumentaryGenerator:
         groq_user_prompt = user_prompt + "\n\nRespond ONLY with valid JSON matching the schema above."
 
         for i, key in enumerate(self.groq_keys):
-            client = Groq(api_key=key)
+            client = Groq(api_key=key, max_retries=0, timeout=90)
 
             for model in self.GROQ_MODELS:
                 logger.info(f"Groq key #{i+1} — trying model '{model}'...")
@@ -379,6 +443,9 @@ OUTPUT FORMAT (JSON):
         system_prompt += """
 Use only the supplied research for factual claims; omit unsupported statistics
 and quotations. A What If story must clearly separate fact from speculation.
+Write 200–330 spoken words in EACH of the three chapter script fields.
+Scene metadata, titles, and quiz text do not count toward that length.
+Use concrete source-backed turning points and their consequences.
 Open chapter one with the actual hook and a concrete payoff promise; no branding
 intro. Each chapter advances a question, evidence, then consequence. The final
 chapter resolves the opening promise. Avoid generic legacy praise. Every
@@ -395,6 +462,10 @@ Thumbnail: use 2-5 legible words and one clear focal subject, no tiny fact strip
                 result = provider(system_prompt, attempt_prompt)
                 if not result:
                     break
+                if isinstance(result, dict) and isinstance(result.get("chapters"), list):
+                    for chapter in result["chapters"]:
+                        if isinstance(chapter, dict):
+                            complete_scene_plan(chapter)
                 errors = documentary_errors(result)
                 if not errors:
                     logger.info("Documentary passed editorial validation via %s", provider.__name__)

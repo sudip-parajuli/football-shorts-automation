@@ -107,15 +107,19 @@ def main():
         else:
             photo=next((path for entity in plan['entities'] if (path:=wikipedia_primary_photo(sourcer,entity))),None)
         if not photo:
-            raise RuntimeError('No verified real entity photo available. Choose a text post or another evidenced topic.')
-        plan['image_path']=render_overlay(photo,plan['title'],out/'post.jpg')
-        plan['image_source']=saved_source or json.loads(Path(photo+'.json').read_text(encoding='utf-8'))
-        source=plan['image_source']
-        credit=f"\n\nPhoto: {source.get('creator','')} / {source.get('license','')} / {source['source_page']} / {source.get('license_url','')}. Cropped with text overlay; entity photograph, not a photograph of this match."
-        if credit not in plan['caption']:
-            plan['caption']+=credit
-        if len(plan['caption'])>2200:
-            raise RuntimeError('Caption plus photo attribution exceeds Instagram limit; no text will be silently cut')
+            if existing or args.format == 'photo':
+                raise RuntimeError('No verified photo available for the requested or saved photo post.')
+            logging.warning('No verified photo available. Using a Facebook text post for this automatic slot.')
+            plan['format'] = 'text'
+        else:
+            plan['image_path']=render_overlay(photo,plan['title'],out/'post.jpg')
+            plan['image_source']=saved_source or json.loads(Path(photo+'.json').read_text(encoding='utf-8'))
+            source=plan['image_source']
+            credit=f"\n\nPhoto: {source.get('creator','')} / {source.get('license','')} / {source['source_page']} / {source.get('license_url','')}. Cropped with text overlay; entity photograph, not a photograph of this match."
+            if credit not in plan['caption']:
+                plan['caption']+=credit
+            if len(plan['caption'])>2200:
+                raise RuntimeError('Caption plus photo attribution exceeds Instagram limit; no text will be silently cut')
     (out/'post.json').write_text(json.dumps(plan,indent=2),encoding='utf-8')
     (out/'caption.txt').write_text(plan['caption'],encoding='utf-8')
     if args.publish:

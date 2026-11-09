@@ -7,6 +7,10 @@ import subprocess
 
 logger = logging.getLogger(__name__)
 
+class MissingVisualError(ValueError):
+    """The story could not be illustrated with relevant assets."""
+
+
 class RemotionVideoCreator:
     def __init__(self, output_dir="footybitez/output", remotion_dir="remotion-video"):
         from footybitez.video.preflight import require_media_tools
@@ -208,7 +212,7 @@ class RemotionVideoCreator:
                 report_path=os.path.join(self.output_dir,'visual-gaps.json')
                 with open(report_path,'w',encoding='utf-8') as report:
                     json.dump({'segment':chunk['type'],'missing_scenes':missing},report,indent=2)
-                raise ValueError(f"No context-matching visual for {chunk['type']}; refusing unrelated filler. See visual-gaps.json")
+                raise MissingVisualError(f"No context-matching visual for {chunk['type']}; refusing unrelated filler. See visual-gaps.json")
 
             voice_info = {}
             if os.path.isfile(audio_path + ".voice.json"):
