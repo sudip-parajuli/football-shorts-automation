@@ -268,5 +268,146 @@
     },
     "facebook_pending": {},
     "instagram_skipped": "Facebook text-only post; Instagram requires an image"
+  },
+  "2026-11-09": {
+    "plan": {
+      "slot": "2026-11-09",
+      "topic": "Carlo Ancelotti Champions League coaching",
+      "category": "coaches",
+      "format": "photo",
+      "title": "Ancelotti's Record as Champions League King",
+      "caption": "Why does Ancelotti keep lifting the Champions League trophy?\n\nAncelotti has lifted the Champions League five times, more than any other manager.\n\nHe\u2019s also the only coach to reach six finals, showing a rare consistency across eras.\n\nHis record spans Italy, England, Spain, Germany and France, proving he can adapt any league\u2019s demands.\n\nNow as Brazil\u2019s head coach, his European pedigree still defines his reputation worldwide.\n\nHe often rotates squads wisely, giving younger players chances while keeping senior stars fresh for knockout nights.\n\nWill his next club stint add another European crown?\n\nSources: https://en.wikipedia.org/wiki/Carlo_Ancelotti\n\n#football #footballstories #FootyBitez\n\nPhoto: Bryan Berlin / CC BY-SA 4.0 / https://commons.wikimedia.org/wiki/File:Carlo_Ancelotti_Brazil_V_Morocco_13_June_2026-47.jpg / https://creativecommons.org/licenses/by-sa/4.0. Cropped with text overlay; entity photograph, not a photograph of this match.",
+      "entities": [
+        "Carlo Ancelotti",
+        "UEFA Champions League",
+        "AC Milan",
+        "Real Madrid",
+        "Brazil national team"
+      ],
+      "evidence": {
+        "title": "Ancelotti's Record as Champions League King",
+        "hook": "Why does Ancelotti keep lifting the Champions League trophy?",
+        "primary_entity": "Carlo Ancelotti",
+        "music_mood": "reflective",
+        "segments": [
+          {
+            "text": "Ancelotti has lifted the Champions League five times, more than any other manager.",
+            "visual_keyword": "ancelotti has lifted champions league five times more than any football illustration",
+            "visual_entities": [
+              "Carlo Ancelotti",
+              "UEFA Champions League"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw"
+            ],
+            "source_quote": "SUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Carlo_Ancelotti"
+            ]
+          },
+          {
+            "text": "He\u2019s also the only coach to reach six finals, showing a rare consistency across eras.",
+            "visual_keyword": "he s also only coach reach six finals showing rare football illustration",
+            "visual_entities": [
+              "Carlo Ancelotti"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw"
+            ],
+            "source_quote": "SUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Carlo_Ancelotti"
+            ]
+          },
+          {
+            "text": "His record spans Italy, England, Spain, Germany and France, proving he can adapt any league\u2019s demands.",
+            "visual_keyword": "his record spans italy england spain germany france proving he football illustration",
+            "visual_entities": [
+              "Carlo Ancelotti",
+              "AC Milan",
+              "Real Madrid"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw"
+            ],
+            "source_quote": "SUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Carlo_Ancelotti"
+            ]
+          },
+          {
+            "text": "Now as Brazil\u2019s head coach, his European pedigree still defines his reputation worldwide.",
+            "visual_keyword": "now brazil s head coach his european pedigree still defines football illustration",
+            "visual_entities": [
+              "Carlo Ancelotti",
+              "Brazil national team"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw"
+            ],
+            "source_quote": "SUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Carlo_Ancelotti"
+            ]
+          },
+          {
+            "text": "He often rotates squads wisely, giving younger players chances while keeping senior stars fresh for knockout nights.",
+            "visual_keyword": "he often rotates squads wisely giving younger players chances while football illustration",
+            "visual_entities": [
+              "Carlo Ancelotti"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw"
+            ],
+            "source_quote": "SUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Carlo_Ancelotti"
+            ]
+          }
+        ],
+        "outro": "Will his next club stint add another European crown?",
+        "full_text": "Why does Ancelotti keep lifting the Champions League trophy? Ancelotti has lifted the Champions League five times, more than any other manager. He\u2019s also the only coach to reach six finals, showing a rare consistency across eras. His record spans Italy, England, Spain, Germany and France, proving he can adapt any league\u2019s demands. Now as Brazil\u2019s head coach, his European pedigree still defines his reputation worldwide. He often rotates squads wisely, giving younger players chances while keeping senior stars fresh for knockout nights. Will his next club stint add another European crown?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw",
+            "url": "https://en.wikipedia.org/wiki/Carlo_Ancelotti"
+          }
+        ],
+        "research_context": "ENTITY: Carlo Ancelotti\nSOURCE URL: https://en.wikipedia.org/wiki/Carlo_Ancelotti\nSUMMARY: Carlo Ancelotti (Italian pronunciation: [\u02c8karlo ant\u0283e\u02c8l\u0254tti]; born 10 June 1959) is an Italian professional football manager and former player who is the head coach of the Brazil national team. Nicknamed Carletto in Italy and Don Carlo in Spain, he is regarded as one of the greatest football managers of all time.\nAncelotti has won the UEFA Champions League five times, a record for a manager, and is the only manager to take part in six Champions League finals. Ancelotti is also the only manager to win league titles in all of Europe's top five leagues. He has won the FIFA Club World Cup three times and has won the UEFA Super Cup five times, a record for a manager.\nAs a player, Ancelotti won tw"
+      },
+      "image_path": "footybitez/output/social_posts/post.jpg",
+      "image_source": {
+        "source": "Wikipedia primary entity image",
+        "subject": "Carlo Ancelotti",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Carlo_Ancelotti_Brazil_V_Morocco_13_June_2026-47.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=original",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Carlo_Ancelotti_Brazil_V_Morocco_13_June_2026-47.jpg",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "creator": "Bryan Berlin",
+        "verification": "exact football article identity; entity portrait, not match footage"
+      }
+    },
+    "facebook": {
+      "1098623579997373": "122119414208340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18123424772062407",
+    "instagram_id": "18193836124405832"
   }
 }
