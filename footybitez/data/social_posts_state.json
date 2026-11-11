@@ -409,5 +409,108 @@
     "facebook_pending": {},
     "instagram_container_id": "18123424772062407",
     "instagram_id": "18193836124405832"
+  },
+  "2026-11-11": {
+    "plan": {
+      "slot": "2026-11-11",
+      "topic": "FIFA World Cup Trophy design and history",
+      "category": "trophies",
+      "format": "photo",
+      "title": "From Nike to Gold: The World Cup Trophy\u2019s Evolution",
+      "caption": "Ever wondered why the World Cup trophy looks so different today?\n\nThe first cup, called Victory then Jules Rimet, was gold\u2011plated sterling silver with a lapis lazuli base and a Nike figure.\n\nIn 1974 FIFA introduced the current trophy \u2013 a solid gold figure of two athletes, valued at about US$713,000 in June 2026.\n\nSo the cup you see now is a symbol of four decades of change and a hefty price tag.\n\nWhich design would you rather lift on the podium?\n\nSources: https://en.wikipedia.org/wiki/FIFA_World_Cup_Trophy\n\n#football #footballhistory #FootyBitez\n\nPhoto: Djuradj Vujcic / CC BY 2.0 / https://commons.wikimedia.org/wiki/File:FIFA_World_Cup_Trophy_photo_by_Djuradj_Vujcic.jpg / https://creativecommons.org/licenses/by/2.0. Cropped with text overlay; entity photograph.",
+      "entities": [
+        "Jules Rimet Trophy",
+        "FIFA World Cup Trophy"
+      ],
+      "evidence": {
+        "title": "From Nike to Gold: The World Cup Trophy\u2019s Evolution",
+        "hook": "Ever wondered why the World Cup trophy looks so different today?",
+        "primary_entity": "FIFA World Cup Trophy",
+        "music_mood": "reflective",
+        "segments": [
+          {
+            "text": "The first cup, called Victory then Jules Rimet, was gold\u2011plated sterling silver with a lapis lazuli base and a Nike figure.",
+            "visual_keyword": "gold plated trophy with Nike figure",
+            "visual_entities": [
+              "Jules Rimet Trophy"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: The FIFA World Cup is a trophy made primarily of gold that is awarded to the winners of the FIFA World Cup association football tournament, which takes place every olympiad (four years). Since the advent of the World Cup in 1930, two different trophies have been used: the Jules Rimet Trophy from 1930 to 1970, and thereafter the FIFA World Cup Trophy from 1974 to the present day. As of June 2026, the material cost of the current trophy is estimated at US$713,000.\nThe first trophy, originally named Victory, but renamed in honor of FIFA president Jules Rimet, was made of gold plated sterling silver and a lapis lazuli base. It depicted Nike, the Greek goddess of victory. Brazil was awarded the t"
+            ],
+            "source_quote": "SUMMARY: The FIFA World Cup is a trophy made primarily of gold that is awarded to the winners of the FIFA World Cup association football tournament, which takes place every olympiad (four years). Since the advent of the World Cup in 1930, two different trophies have been used: the Jules Rimet Trophy from 1930 to 1970, and thereafter the FIFA World Cup Trophy from 1974 to the present day. As of June 2026, the material cost of the current trophy is estimated at US$713,000.\nThe first trophy, originally named Victory, but renamed in honor of FIFA president Jules Rimet, was made of gold plated sterling silver and a lapis lazuli base. It depicted Nike, the Greek goddess of victory. Brazil was awarded the t",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/FIFA_World_Cup_Trophy"
+            ]
+          },
+          {
+            "text": "In 1974 FIFA introduced the current trophy \u2013 a solid gold figure of two athletes, valued at about US$713,000 in June 2026.",
+            "visual_keyword": "1974 fifa introduced current trophy solid gold figure two athletes football illustration",
+            "visual_entities": [
+              "FIFA World Cup Trophy"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: The FIFA World Cup is a trophy made primarily of gold that is awarded to the winners of the FIFA World Cup association football tournament, which takes place every olympiad (four years). Since the advent of the World Cup in 1930, two different trophies have been used: the Jules Rimet Trophy from 1930 to 1970, and thereafter the FIFA World Cup Trophy from 1974 to the present day. As of June 2026, the material cost of the current trophy is estimated at US$713,000.\nThe first trophy, originally named Victory, but renamed in honor of FIFA president Jules Rimet, was made of gold plated sterling silver and a lapis lazuli base. It depicted Nike, the Greek goddess of victory. Brazil was awarded the t"
+            ],
+            "source_quote": "SUMMARY: The FIFA World Cup is a trophy made primarily of gold that is awarded to the winners of the FIFA World Cup association football tournament, which takes place every olympiad (four years). Since the advent of the World Cup in 1930, two different trophies have been used: the Jules Rimet Trophy from 1930 to 1970, and thereafter the FIFA World Cup Trophy from 1974 to the present day. As of June 2026, the material cost of the current trophy is estimated at US$713,000.\nThe first trophy, originally named Victory, but renamed in honor of FIFA president Jules Rimet, was made of gold plated sterling silver and a lapis lazuli base. It depicted Nike, the Greek goddess of victory. Brazil was awarded the t",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/FIFA_World_Cup_Trophy"
+            ]
+          },
+          {
+            "text": "So the cup you see now is a symbol of four decades of change and a hefty price tag.",
+            "visual_keyword": "cup you see now symbol four decades change hefty price football illustration",
+            "visual_entities": [],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: The FIFA World Cup is a trophy made primarily of gold that is awarded to the winners of the FIFA World Cup association football tournament, which takes place every olympiad (four years). Since the advent of the World Cup in 1930, two different trophies have been used: the Jules Rimet Trophy from 1930 to 1970, and thereafter the FIFA World Cup Trophy from 1974 to the present day. As of June 2026, the material cost of the current trophy is estimated at US$713,000.\nThe first trophy, originally named Victory, but renamed in honor of FIFA president Jules Rimet, was made of gold plated sterling silver and a lapis lazuli base. It depicted Nike, the Greek goddess of victory. Brazil was awarded the t"
+            ],
+            "source_quote": "SUMMARY: The FIFA World Cup is a trophy made primarily of gold that is awarded to the winners of the FIFA World Cup association football tournament, which takes place every olympiad (four years). Since the advent of the World Cup in 1930, two different trophies have been used: the Jules Rimet Trophy from 1930 to 1970, and thereafter the FIFA World Cup Trophy from 1974 to the present day. As of June 2026, the material cost of the current trophy is estimated at US$713,000.\nThe first trophy, originally named Victory, but renamed in honor of FIFA president Jules Rimet, was made of gold plated sterling silver and a lapis lazuli base. It depicted Nike, the Greek goddess of victory. Brazil was awarded the t",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/FIFA_World_Cup_Trophy"
+            ]
+          }
+        ],
+        "outro": "Which design would you rather lift on the podium?",
+        "full_text": "Ever wondered why the World Cup trophy looks so different today? The first cup, called Victory then Jules Rimet, was gold\u2011plated sterling silver with a lapis lazuli base and a Nike figure. In 1974 FIFA introduced the current trophy \u2013 a solid gold figure of two athletes, valued at about US$713,000 in June 2026. So the cup you see now is a symbol of four decades of change and a hefty price tag. Which design would you rather lift on the podium?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: The FIFA World Cup is a trophy made primarily of gold that is awarded to the winners of the FIFA World Cup association football tournament, which takes place every olympiad (four years). Since the advent of the World Cup in 1930, two different trophies have been used: the Jules Rimet Trophy from 1930 to 1970, and thereafter the FIFA World Cup Trophy from 1974 to the present day. As of June 2026, the material cost of the current trophy is estimated at US$713,000.\nThe first trophy, originally named Victory, but renamed in honor of FIFA president Jules Rimet, was made of gold plated sterling silver and a lapis lazuli base. It depicted Nike, the Greek goddess of victory. Brazil was awarded the t",
+            "url": "https://en.wikipedia.org/wiki/FIFA_World_Cup_Trophy"
+          },
+          {
+            "id": "S2",
+            "text": "SUMMARY: The United States men's national soccer team (USMNT), officially designated as USA by FIFA, represents the United States in men's international soccer, and is governed by the United States Soccer Federation founded in 1913. It has been a full member of FIFA since 1914, is a founding member of CONCACAF which was founded in 1961, and is also a member of NAFU in the North American Zone. From 1946 to 1961, the team was a member of NAFC, the former governing body of soccer in North America and a direct predecessor confederation of CONCACAF. The United States was also a member of PFC, the former unified confederation of the Americas.\nThe United States has qualified for the FIFA World Cup twelve ti",
+            "url": "https://en.wikipedia.org/wiki/United_States_men%27s_national_soccer_team"
+          }
+        ],
+        "research_context": "ENTITY: FIFA World Cup Trophy\nSOURCE URL: https://en.wikipedia.org/wiki/FIFA_World_Cup_Trophy\nSUMMARY: The FIFA World Cup is a trophy made primarily of gold that is awarded to the winners of the FIFA World Cup association football tournament, which takes place every olympiad (four years). Since the advent of the World Cup in 1930, two different trophies have been used: the Jules Rimet Trophy from 1930 to 1970, and thereafter the FIFA World Cup Trophy from 1974 to the present day. As of June 2026, the material cost of the current trophy is estimated at US$713,000.\nThe first trophy, originally named Victory, but renamed in honor of FIFA president Jules Rimet, was made of gold plated sterling silver and a lapis lazuli base. It depicted Nike, the Greek goddess of victory. Brazil was awarded the t\n\n=====\n\nENTITY: United States men's national soccer team\nSOURCE URL: https://en.wikipedia.org/wiki/United_States_men%27s_national_soccer_team\nSUMMARY: The United States men's national soccer team (USMNT), officially designated as USA by FIFA, represents the United States in men's international soccer, and is governed by the United States Soccer Federation founded in 1913. It has been a full member of FIFA since 1914, is a founding member of CONCACAF which was founded in 1961, and is also a member of NAFU in the North American Zone. From 1946 to 1961, the team was a member of NAFC, the former governing body of soccer in North America and a direct predecessor confederation of CONCACAF. The United States was also a member of PFC, the former unified confederation of the Americas.\nThe United States has qualified for the FIFA World Cup twelve ti"
+      },
+      "image_path": "footybitez/output/social_posts/post.jpg",
+      "image_source": {
+        "source": "Wikipedia primary entity image",
+        "subject": "FIFA World Cup Trophy",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/FIFA_World_Cup_Trophy_photo_by_Djuradj_Vujcic.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=original",
+        "source_page": "https://commons.wikimedia.org/wiki/File:FIFA_World_Cup_Trophy_photo_by_Djuradj_Vujcic.jpg",
+        "license": "CC BY 2.0",
+        "license_url": "https://creativecommons.org/licenses/by/2.0",
+        "creator": "Djuradj Vujcic",
+        "verification": "exact football article identity; entity portrait, not match footage"
+      }
+    },
+    "facebook": {
+      "1098623579997373": "122119556474340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18123837383062407",
+    "instagram_id": "18023788937933633"
   }
 }
