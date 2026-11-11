@@ -468,6 +468,7 @@ Thumbnail: use 2-5 legible words and one clear focal subject, no tiny fact strip
                             complete_scene_plan(chapter)
                 errors = documentary_errors(result)
                 if not errors:
+                    result["research_context"] = context
                     logger.info("Documentary passed editorial validation via %s", provider.__name__)
                     return result
                 logger.warning("Documentary rejected: %s", "; ".join(errors))

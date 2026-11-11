@@ -1,6 +1,7 @@
 """Word-anchored visual beats for Shorts. No equal-time paragraph slides."""
 import math
 import re
+from footybitez.content.edit_direction import graphic_brief
 
 
 def clean_text(text):
@@ -93,13 +94,14 @@ def plan_visual_beats(text, timing, duration, media=None, fps=24, offset=0):
         clauses = re.split(r'(?<=[.!?;])\s+', clean_text(text))
         local = next((clause for clause in clauses if phrase in clause), phrase)
         theme = visual_theme(local)
-        kind = 'media' if source else 'diagram' if theme else 'unavailable'
+        kind = 'media' if source else 'diagram' if theme else 'editorial'
         scenes.append({
             "from_frame": boundaries[index], "duration_frames": boundaries[index + 1] - boundaries[index],
             "headline": " ".join(word["word"] for word in words[start:min(end, start + 5)]),
             "narration_snippet": phrase, "theme": theme or '',
             "src": source, "kind": kind,
-            "visual_reason": 'Relevant supplied photo/clip' if source else f'Explicit {theme} explanation in the spoken clause' if theme else 'No relevant asset or supported explanatory diagram',
+            "visual_reason": 'Relevant supplied photo/clip' if source else f'Explicit {theme} explanation in the spoken clause' if theme else 'Narration-derived editorial graphic',
             "word_start": start, "word_end": end,
+            "graphic": graphic_brief(phrase) if kind == "editorial" else None,
         })
     return scenes, words, timing_source

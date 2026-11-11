@@ -149,14 +149,18 @@ class TopicGenerator:
         except Exception as e:
             print(f"Error saving used topic: {e}")
 
-    def get_random_topic(self, category=None):
+    def get_random_topic(self, category=None, excluded_topics=None):
         """
         Selects a random topic.
         If category is provided, selects from that category.
         Otherwise, selects a random category first.
         """
-        used_topics = self._load_used_topics()
-        
+        used_topics = self._load_used_topics() | {value.lower() for value in (excluded_topics or [])}
+        from footybitez.content.history import ContentHistory
+        history = ContentHistory()
+        def is_unused(topic):
+            return topic.lower() not in used_topics and not history.is_duplicate(topic)
+
         # Select Category
         if not category:
             category = random.choice(list(self.categories.keys()))
@@ -166,11 +170,14 @@ class TopicGenerator:
         possible_topics = self.categories.get(category, self.all_topics)
         
         # Filter available topics
-        available_topics = [t for t in possible_topics if t.lower() not in used_topics]
+        available_topics = [topic for topic in possible_topics if is_unused(topic)]
         
         if not available_topics:
-            print(f"Warning: All topics in {category} coverered! Recycling...")
-            return random.choice(possible_topics), category
+            unused = [(topic, name) for name, topics in self.categories.items()
+                      for topic in topics if is_unused(topic)]
+            if not unused:
+                raise ValueError("All configured topics have been used. Add fresh topics before publishing again.")
+            return random.choice(unused)
             
         return random.choice(available_topics), category
 

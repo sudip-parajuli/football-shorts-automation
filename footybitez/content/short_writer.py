@@ -1,5 +1,6 @@
 """Schema-driven Shorts writing with application-owned evidence references."""
 import copy
+import os
 import json
 import logging
 import re
@@ -110,6 +111,11 @@ such as ["S1"]. Never reproduce source text in a source_quote field: the program
 attaches the original evidence. Dates/numbers must occur in the cited evidence.
 For counterfactuals separate researched history from clearly hypothetical outcomes.
 Do not invent incidents, quotes, teams, players, current clubs or statistics.
+Do not embellish sources with imagined flights, meetings, briefcases, fan scenes,
+reactions or dialogue. Attribute reports and rumours explicitly. State what is
+confirmed, what is being discussed, and why it matters using supplied evidence.
+Use an informative opening for social captions and one topic-specific question.
+Never promise shocking secrets or claim a decision has happened if it is pending.
 For each segment, visual_entities lists exact full names of players, clubs,
 coaches, stadiums, trophies or matches actually present in that segment's evidence
 or narration. Use [] for abstract concepts; never add a famous face as decoration.
@@ -166,7 +172,7 @@ class ShortWriter:
         prompt = make_prompt(topic, category, records)
         providers = []
         if self.anthropic_key:
-            providers.append(("claude", self.anthropic_key, "claude-3-5-sonnet-20241022"))
+            providers.append(("claude", self.anthropic_key, os.getenv("ANTHROPIC_SCRIPT_MODEL", "claude-sonnet-4-6")))
         providers += [("groq", key, GROQ_SCRIPT_MODEL) for key in self.groq_keys]
         providers += [("gemini", key, model) for key in self.gemini_keys for model in GEMINI_TEXT_MODELS]
         for provider, key, model in providers:

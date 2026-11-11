@@ -146,7 +146,7 @@ def match_story(candidate, mode):
         first = f"{hook} {first}"
         hook = f"Here is the latest from the {league}."
     outro = "Tell us what stood out to you and what you would look for in the next match."
-    return {"title": title, "hook": hook, "outro": outro, "segments": [
+    return {"title": title + " | " + kickoff.date().isoformat(), "hook": hook, "outro": outro, "segments": [
         {"text": first, "visual_keyword": f"{home} {away} fixture"},
         {"text": second, "visual_keyword": f"{home} {away} fixture"},
     ]}

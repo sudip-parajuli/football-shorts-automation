@@ -1,3 +1,4 @@
+import {EditorialGraphic, GraphicBrief} from './EditorialGraphic';
 import React, { useMemo } from 'react';
 import { AbsoluteFill, Img, Video, interpolate, staticFile, useCurrentFrame } from 'remotion';
 import { fitHeadline } from '../shortLayout';
@@ -10,6 +11,7 @@ export interface ShortVisual {
   theme: string;
   src: string;
   kind: string;
+  graphic?: GraphicBrief | null;
 }
 
 export const SafeHeadline: React.FC<{text: string; hook?: boolean}> = ({text, hook = false}) => {
@@ -104,6 +106,10 @@ export const ShortsScene: React.FC<{scene:ShortVisual; hook?:boolean; hookText?:
   const frame = useCurrentFrame();
   const progress = Math.min(1,frame/Math.max(1,scene.duration_frames));
   const t = .5-.5*Math.cos(progress*Math.PI*2);
+  if (scene.kind === 'editorial' || scene.kind === 'unavailable') {
+    const brief = scene.graphic || {layout:'statement',label:'THE STORY',headline:'',detail:scene.narration_snippet,focus:''};
+    return <EditorialGraphic brief={brief} durationInFrames={scene.duration_frames}/>;
+  }
   const hasMedia = scene.kind==='media' && Boolean(scene.src);
   if (!hasMedia && (scene.kind!=='diagram' || !['contract','kit'].includes(scene.theme))) {
     throw new Error('Missing context-matching photo or supported explanatory diagram; unrelated filler is disabled');

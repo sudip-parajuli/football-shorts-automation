@@ -82,3 +82,9 @@ debug_*.txt
 *.jpg
 *.log
 footybitez/output/social_posts/
+
+footybitez/data/whisper_cache/
+footybitez/data/references/
+
+remotion-video/public/edit_*.wav
+footybitez/output/edit_sounds/

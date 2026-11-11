@@ -35,8 +35,9 @@ class SpokenVisualTests(unittest.TestCase):
     def test_squad_news_missing_images_is_not_replaced_with_generic_motion(self):
         text='Tuchel left Cole Palmer out of the squad while Jobe Bellingham got his first call up. Josh King will join the England camp.'
         scenes,_,_=plan_visual_beats(text,[],12)
-        self.assertTrue(all(scene['kind']=='unavailable' for scene in scenes))
+        self.assertTrue(all(scene['kind']=='editorial' for scene in scenes))
         self.assertTrue(all(not scene['theme'] for scene in scenes))
+        self.assertTrue(all(scene['graphic']['detail'] in scene['narration_snippet'] for scene in scenes))
 
     def test_available_photos_are_not_replaced_every_third_beat(self):
         text='Cole Palmer was left out of the England squad. Jobe Bellingham received a call up to join the camp. The coach explained his selection choices before the next match.'
@@ -58,13 +59,13 @@ class SpokenVisualTests(unittest.TestCase):
         scenes,_,_=plan_visual_beats(text,[],18)
         palmer=[scene for scene in scenes if 'Palmer' in scene['narration_snippet']]
         self.assertTrue(palmer)
-        self.assertTrue(all(scene['kind']=='unavailable' for scene in palmer))
+        self.assertTrue(all(scene['kind']=='editorial' for scene in palmer))
 
     def test_contextual_match_cards_are_kept_but_placeholder_cards_are_not(self):
         scenes,_,_=plan_visual_beats('The home team won the match after scoring a late goal.',[],6,['card_score.jpg'])
         self.assertTrue(all(scene['kind']=='media' for scene in scenes))
         scenes,_,_=plan_visual_beats('The home team won the match after scoring a late goal.',[],6,['editorial_paragraph.jpg','placeholder.jpg'])
-        self.assertTrue(all(scene['kind']=='unavailable' for scene in scenes))
+        self.assertTrue(all(scene['kind']=='editorial' for scene in scenes))
 
     def test_stock_footage_is_not_a_default_for_selection_news(self):
         from footybitez.media.real_assets import stock_query, segment_real_media

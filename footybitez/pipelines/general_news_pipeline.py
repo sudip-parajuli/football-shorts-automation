@@ -159,10 +159,12 @@ class GeneralNewsPipeline:
     def select_viral_headline(self, articles: list) -> dict | None:
         """Uses Gemini/Groq model to inspect recent headlines and choose the most viral/breaking one."""
         # Deduplicate already processed headlines
+        from footybitez.content.history import ContentHistory
+        history = ContentHistory()
         unprocessed = []
         for art in articles:
             h = hashlib.sha256(art["title"].encode("utf-8")).hexdigest()
-            if h not in self.state["processed_hashes"]:
+            if h not in self.state["processed_hashes"] and not history.is_duplicate(art["title"]):
                 art["hash"] = h
                 unprocessed.append(art)
 
@@ -262,11 +264,14 @@ class GeneralNewsPipeline:
         logger.info("Executing General Football Breaking News Pipeline...")
         
         articles = self.crawl_rss_headlines()
+        for article in articles:
+            article["hash"] = hashlib.sha256(article.get("title", "").encode("utf-8")).hexdigest()
         if not articles:
             logger.error("No articles retrieved. Stopping pipeline.")
             return
 
         from footybitez.video.remotion_video_creator import MissingVisualError
+        from footybitez.content.history import DuplicateContent
 
         for _ in range(3):
             chosen_story = self.select_viral_headline(articles)
@@ -276,7 +281,7 @@ class GeneralNewsPipeline:
                 video_path = self._produce_story(chosen_story, skip_upload)
                 if video_path:
                     return video_path
-            except MissingVisualError as error:
+            except (MissingVisualError, DuplicateContent) as error:
                 logger.warning("Skipping story %s: %s", chosen_story["title"], error)
             finally:
                 self.media_sourcer.cleanup()
@@ -329,10 +334,6 @@ class GeneralNewsPipeline:
 
 
 
-        if not visual_assets.get("title_card"):
-            logger.error("No title card asset found — cannot compile video.")
-            self.media_sourcer.cleanup()
-            return
 
 
         # Select background music from local library
@@ -359,7 +360,7 @@ class GeneralNewsPipeline:
             tags = ["footballnews", "transfernews", "breakingnews", "soccer", "shorts", "footybitez"]
             
             logger.info("Uploading general football short to YouTube...")
-            if not self.uploader.upload_video(video_path, title, description, tags):
+            if not self.uploader.upload_video(video_path, title, description, tags, topic=topic):
                 raise RuntimeError("YouTube news upload failed")
 
             self.state["processed_hashes"].append(chosen_story["hash"])
@@ -369,7 +370,7 @@ class GeneralNewsPipeline:
             should_publish_socials = os.getenv("ENABLE_SOCIAL_PUBLISHING", "false").lower() == "true"
             if should_publish_socials:
                 logger.info("Pushing general breaking news video cross-platform...")
-                self.socials.publish_to_all(video_path, title, description)
+                self.socials.publish_to_all(video_path, title, description, topic=topic)
 
         return video_path
 

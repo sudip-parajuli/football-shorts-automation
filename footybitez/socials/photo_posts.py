@@ -149,6 +149,14 @@ class PhotoPostPublisher:
 
 
 def publish_post(plan, state, state_path, publisher=None):
+    history = None
+    claim = None
+    if publisher is None:
+        from footybitez.content.history import ContentHistory
+        history = ContentHistory()
+        claim = history.claim(plan['topic'], plan['caption'], 'post', resume=plan['slot'] in state)
+        if claim['previous'] is not None:
+            return claim['previous']
     publisher = publisher or PhotoPostPublisher()
     record = state.setdefault(plan["slot"], {"plan":plan,"facebook":{}})
     def save():
@@ -194,4 +202,6 @@ def publish_post(plan, state, state_path, publisher=None):
     save()
     if failures:
         raise RuntimeError("; ".join(failures))
+    if history is not None:
+        history.complete(claim['key'], 'post', {'facebook':record.get('facebook',{}),'instagram_id':record.get('instagram_id')})
     return record

@@ -51,16 +51,13 @@ def main():
     tags = metadata.get("tags", ["football", "soccer"])
     topic = metadata.get("topic", "Football")
 
-    description = f"""
-{title}
-
-Explore the world of football with FootyBitez! ⚽️
-In this episode, we dive deep into: {topic}
-
-If you enjoyed this documentary, please Like and Subscribe for more high-quality football stories.
-
-#football #soccer #documentary #footybitez #footballhistory
-"""
+    narration = metadata.get('narration', '')
+    summary = ' '.join(narration.split()[:100]) if narration else title
+    sources = '\n'.join(metadata.get('sources', []))
+    credits = '\n'.join(dict.fromkeys(metadata.get('image_credits', [])))
+    description = f"{title}\n\n{summary}\n\nSources\n{sources}\n\nVisual credits\n{credits}\n\n#football #documentary #footybitez"
+    if len(description) > 5000:
+        raise RuntimeError('Documentary description and image attribution exceed the YouTube limit')
 
     logger.info(f"Starting YouTube upload for: {title}")
     
@@ -70,11 +67,15 @@ If you enjoyed this documentary, please Like and Subscribe for more high-quality
         title=title,
         description=description,
         tags=tags,
+        content_text=narration or description,
+        topic=topic,
         category_id="17" # Sports
     )
 
     if video_id:
         logger.info(f"SUCCESS: Video uploaded with ID: {video_id}")
+        from footybitez.content.topic_generator import TopicGenerator
+        TopicGenerator().mark_topic_as_used(topic)
         
         # Upload custom thumbnail if exists
         thumbnail_path = "remotion-video/public/thumbnail.jpg"
@@ -98,10 +99,14 @@ If you enjoyed this documentary, please Like and Subscribe for more high-quality
     if should_publish_socials:
         logger.info("Attempting long-form video upload to Meta (Facebook/Instagram) and TikTok...")
         orchestrator = SocialOrchestrator()
-        orchestrator.publish_to_all(video_path, title, description)
+        orchestrator.publish_to_all(video_path, title, description, content_text=narration or description, topic=topic)
     else:
         logger.info("Social publishing skipped (ENABLE_SOCIAL_PUBLISHING not set to true).")
 
 
 if __name__ == "__main__":
-    main()
+    from footybitez.content.history import DuplicateContent
+    try:
+        main()
+    except DuplicateContent as error:
+        logger.info("Skipping repeated content: %s", error)

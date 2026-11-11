@@ -1,3 +1,5 @@
+import type {GraphicBrief} from './compositions/EditorialGraphic';
+import type {CaptionWord} from './SpokenCaptions';
 export interface VisualScene {
   visual_type:
     | "typewriter_text"
@@ -10,8 +12,10 @@ export interface VisualScene {
     | "leaderboard"
     | "head_to_head"
     | "timeline"
+    | "editorial_graphic"
     | "motion_graphic"
     | "image_tag";      // alias for "image" — Wikipedia/Wikimedia sourced
+  graphic?: GraphicBrief;
   asset_path?: string;          // relative to public/
   asset_type?: "video" | "image_fallback" | "image";
   duration_frames: number;
@@ -71,6 +75,7 @@ export interface Chapter {
   audio_path: string;
   images: string[];
   visual_scenes?: VisualScene[];
+  timing?: CaptionWord[];
 }
 
 export interface MainVideoProps {

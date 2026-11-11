@@ -6,7 +6,7 @@ import logging
 import os
 from pathlib import Path
 import requests
-from footybitez.socials.post_composer import compose_caption, plain, render_overlay
+from footybitez.socials.post_composer import compose_caption, plain, render_overlay, render_story_post
 from footybitez.socials.photo_posts import publish_post
 
 TOPICS = {
@@ -67,6 +67,8 @@ def main():
     parser.add_argument('--format',choices=['auto','photo','text'],default='auto')
     parser.add_argument('--publish',action='store_true')
     args=parser.parse_args()
+    from footybitez.content.history import ContentHistory, DuplicateContent
+    history = ContentHistory() if args.publish else None
     day=datetime.now(timezone.utc).date()
     out=Path('footybitez/output/social_posts'); out.mkdir(parents=True,exist_ok=True)
     state_path=Path('footybitez/data/social_posts_state.json')
@@ -80,14 +82,27 @@ def main():
         rotation=[*TOPICS,'results'] if os.getenv('FOOTBALL_DATA_API_KEY') else list(TOPICS)
         category=args.category if args.category!='auto' else rotation[day.toordinal()%len(rotation)]
         topic=args.topic or (TOPICS[category][day.toordinal()%2] if category in TOPICS else 'Latest verified result')
+        if history and not args.topic and category != 'results':
+            pool = [(value,name) for name,values in TOPICS.items() for value in values]
+            pool.sort(key=lambda pair: pair[1] != category)
+            selected = next(((value,name) for value,name in pool if not history.is_duplicate(value)),None)
+            if selected:
+                topic, category = selected
+            else:
+                from footybitez.content.topic_generator import TopicGenerator
+                topic, _ = TopicGenerator().get_random_topic()
+        if history and not existing and history.is_duplicate(topic):
+            logging.info('Topic already used. Skipping %s',topic)
+            return
         if category=='results':
             title,caption,entities,evidence=verified_result()
+            topic = title + " | " + evidence["utcDate"][:10]
         else:
             from footybitez.content.script_generator import ScriptGenerator
             script=ScriptGenerator().generate_script(topic,category)
             if not script:
                 raise RuntimeError('No grounded caption passed editorial checks')
-            title=plain(script['title']); caption=compose_caption(script)
+            title=plain(script['title']); caption=compose_caption(script, category)
             entities=list(dict.fromkeys([entity for segment in script['segments'] for entity in segment.get('visual_entities',[])]))
             primary=script.get('primary_entity')
             if primary and primary not in entities:
@@ -98,32 +113,40 @@ def main():
     if plan['format']=='photo':
         from footybitez.media.media_sourcer import MediaSourcer
         from footybitez.media.real_assets import wikipedia_primary_photo
-        sourcer=MediaSourcer()
-        saved_source=plan.get('image_source')
-        if saved_source:
-            original=out/'original.jpg'
-            sourcer._download_file(saved_source['url'],str(original),context_query=saved_source.get('subject','football'),strict=False)
-            photo=str(original) if original.is_file() else None
-        else:
-            photo=next((path for entity in plan['entities'] if (path:=wikipedia_primary_photo(sourcer,entity))),None)
-        if not photo:
-            if existing or args.format == 'photo':
-                raise RuntimeError('No verified photo available for the requested or saved photo post.')
-            logging.warning('No verified photo available. Using a Facebook text post for this automatic slot.')
-            plan['format'] = 'text'
-        else:
-            plan['image_path']=render_overlay(photo,plan['title'],out/'post.jpg')
-            plan['image_source']=saved_source or json.loads(Path(photo+'.json').read_text(encoding='utf-8'))
-            source=plan['image_source']
-            credit=f"\n\nPhoto: {source.get('creator','')} / {source.get('license','')} / {source['source_page']} / {source.get('license_url','')}. Cropped with text overlay; entity photograph, not a photograph of this match."
+        saved_source = plan.get('image_source')
+        photo = None
+        if plan.get('visual_type') != 'editorial':
+            sourcer = MediaSourcer()
+            if saved_source:
+                original = out/'original.jpg'
+                original.unlink(missing_ok=True)
+                sourcer._download_file(saved_source['url'],str(original),context_query=saved_source.get('subject','football'),strict=False)
+                photo = str(original) if original.is_file() else None
+                if not photo:
+                    raise RuntimeError('The original published photograph could not be retrieved for this retry')
+            else:
+                photo = next((path for entity in plan['entities'] if (path:=wikipedia_primary_photo(sourcer,entity))),None)
+        if photo:
+            plan['image_path'] = render_overlay(photo,plan['title'],out/'post.jpg')
+            plan['image_source'] = saved_source or json.loads(Path(photo+'.json').read_text(encoding='utf-8'))
+            source = plan['image_source']
+            credit = f"\n\nPhoto: {source.get('creator','')} / {source.get('license','')} / {source['source_page']} / {source.get('license_url','')}. Cropped with text overlay; entity photograph."
             if credit not in plan['caption']:
-                plan['caption']+=credit
-            if len(plan['caption'])>2200:
-                raise RuntimeError('Caption plus photo attribution exceeds Instagram limit; no text will be silently cut')
+                plan['caption'] += credit
+        else:
+            logging.info('Creating an editorial image from the sourced caption')
+            plan['visual_type'] = 'editorial'
+            plan['image_path'] = render_story_post(plan['title'],plan['evidence'],out/'post.jpg')
+        if len(plan['caption']) > 2200:
+            raise RuntimeError('Caption plus photo attribution exceeds Instagram limit')
     (out/'post.json').write_text(json.dumps(plan,indent=2),encoding='utf-8')
     (out/'caption.txt').write_text(plan['caption'],encoding='utf-8')
     if args.publish:
-        publish_post(plan,state,state_path)
+        try:
+            publish_post(plan,state,state_path)
+        except DuplicateContent as error:
+            logging.info('Skipping repeated content: %s',error)
+            return
     logging.info('Photo post %s: %s', 'published' if args.publish else 'preview saved',out)
 
 

@@ -218,6 +218,7 @@ class RemotionVideoCreator:
             if os.path.isfile(audio_path + ".voice.json"):
                 with open(audio_path + ".voice.json", encoding="utf-8") as voice_file:
                     voice_info = json.load(voice_file)
+                timing_source = voice_info.get("timing_source", timing_source)
             # Append segment
             remotion_props["segments"].append({
                 "type": chunk["type"],
@@ -233,6 +234,11 @@ class RemotionVideoCreator:
             })
 
             current_time += audio_duration
+
+        from footybitez.media.edit_audio import make_edit_sounds, plan_sound_cues
+        sounds = make_edit_sounds(os.path.join(self.output_dir,'edit_sounds'))
+        remotion_props['edit_sounds'] = {name:self._copy_to_public(path) for name,path in sounds.items()}
+        remotion_props['sound_cues'] = plan_sound_cues(remotion_props['segments'])
 
         # 4. Save props.json
         props_path = os.path.join(self.remotion_dir, "props.json")

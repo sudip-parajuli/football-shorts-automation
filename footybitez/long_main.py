@@ -1,12 +1,14 @@
 import os
 import sys
 import json
+import re
 import uuid
 import logging
 import argparse
 import subprocess
 import random
 import shutil
+from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 
@@ -168,6 +170,7 @@ def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourc
                 scene_prop = {
                     "visual_type": scene["visual_type"],
                     "transition":  scene["transition"],
+                    "narration_snippet": scene.get("narration_snippet", ""),
                 }
                 if scene['visual_type']=='motion_graphic':
                     from footybitez.media.football_assets import scene_club_logos
@@ -194,6 +197,17 @@ def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourc
                 ]:
                     if field in scene:
                         scene_prop[field] = scene[field]
+
+                asset_path = asset.get("asset_path")
+                needs_graphic = (not asset_path and scene['visual_type'] in ('image','image_tag','ai_image','ai_video','motion_graphic'))
+                if asset_path and os.path.basename(asset_path).startswith(('editorial_', 'placeholder')):
+                    needs_graphic = True
+                if needs_graphic or scene['visual_type'] in ('motion_graphic', 'typewriter_text'):
+                    from footybitez.content.edit_direction import graphic_brief
+                    scene_prop['visual_type'] = 'editorial_graphic'
+                    scene_prop['graphic'] = graphic_brief(scene.get('narration_snippet') or scene.get('caption') or chapter['chapter_title'])
+                    visual_scenes_props.append(scene_prop)
+                    continue
 
                 if asset.get("asset_path"):
                     rel_path = os.path.relpath(
@@ -226,7 +240,7 @@ def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourc
             visual_scenes_props = []
 
     # --- Path B: Legacy image_queries fallback ---
-    if not visual_scenes or not chapter_images:
+    if not visual_scenes_props:
         queries = chapter.get("image_queries", [])
         if not queries:
             queries = [f"{chapter.get('chapter_title', 'football')} soccer"]
@@ -249,6 +263,10 @@ def main():
     parser = argparse.ArgumentParser(description="FootyBitez Documentary Pipeline")
     parser.add_argument("--topic", help="Topic for the documentary")
     args = parser.parse_args()
+    skipped = Path('remotion-video/output/skip-publication.json')
+    skipped.unlink(missing_ok=True)
+    from footybitez.content.history import ContentHistory
+    history = ContentHistory()
 
     # Unique job ID for asset manifest and temp directories
     job_id = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
@@ -264,37 +282,15 @@ def main():
             topic = args.topic
             category = "Manual"
             used_topics = topic_gen._load_used_topics()
-            if topic.lower() in used_topics:
+            if topic.lower() in used_topics or history.is_duplicate(topic):
                 logger.warning(f"Topic '{topic}' has already been processed. Skipping.")
-                sys.exit(0)
+                skipped.parent.mkdir(parents=True,exist_ok=True)
+                skipped.write_text(json.dumps({'reason':'Topic already used','topic':topic}),encoding='utf-8')
+                return
         else:
             topic, category = topic_gen.get_random_topic()
 
         logger.info(f"Selected Topic: {topic} ({category})")
-
-        # Pre-flight SFX generation - ensure all sound effects exist
-        from footybitez.media.sfx_manager import SFXManager
-        sfx_out_dir = "remotion-video/public/assets/sounds"
-        os.makedirs(sfx_out_dir, exist_ok=True)
-        try:
-            sfx_man = SFXManager(sfx_dir=sfx_out_dir)
-            sfx_mapping = {
-                "whoosh": "whoosh",
-                "impact": "impact",
-                "rise": "rise",
-                "kick": "kick",
-                "crowd_cheer": "riser_shake",
-                "transition": "whoosh",
-                "drum": "kick",
-            }
-            for sfx_file, sfx_gen in sfx_mapping.items():
-                out_path = os.path.join(sfx_out_dir, f"{sfx_file}.mp3")
-                if not os.path.exists(out_path):
-                    logger.info(f"Pre-flight SFX generation: {sfx_file}")
-                    clip = sfx_man.get_sfx(sfx_gen)
-                    clip.write_audiofile(out_path, fps=44100, logger=None)
-        except Exception as e:
-            logger.warning(f"Pre-flight SFX check failed: {e}")
 
         # 2. Generate Documentary Script
         doc_gen = DocumentaryGenerator()
@@ -377,6 +373,7 @@ def main():
                 "duration_in_frames": duration_frames,
                 "audio_path": f"assets/audio/{audio_filename}",
                 "images": chapter_images,
+                "timing": timing_data if visual_scenes_props else [],
             }
             if visual_scenes_props:
                 chapter_data["visual_scenes"] = visual_scenes_props
@@ -414,7 +411,6 @@ def main():
         from footybitez.media.music_selector import select_music
         chosen = select_music(script_data.get("music_mood", "neutral"))
         if chosen:
-            import shutil
             safe_dest = os.path.join(public_music_dir, os.path.basename(chosen))
             shutil.copy2(chosen, safe_dest)
             music_file = f"music/{os.path.basename(chosen)}"
@@ -423,34 +419,11 @@ def main():
         credits_file = os.path.join(media_sourcer.download_dir, "image_credits.txt")
         if os.path.exists(credits_file):
             with open(credits_file, "r", encoding="utf-8") as f:
-                image_credits = [line.strip() for line in f if line.strip()]
+                image_credits = list(dict.fromkeys(line.strip() for line in f if line.strip()))
 
-        logger.info("Setting up sound effects...")
-        sfx_out_dir = "remotion-video/public/assets/sounds"
-        os.makedirs(sfx_out_dir, exist_ok=True)
-        sound_effects = {}
-        
-        try:
-            sfx_manager = SFXManager(sfx_dir=sfx_out_dir)
-            
-            sfx_mapping = {
-                "whoosh": "whoosh",
-                "transition": "whoosh",
-                "rise": "rise",
-                "impact": "impact",
-                "drum": "kick",
-                "crowd_cheer": "riser_shake"
-            }
-            
-            for sfx_key, gen_name in sfx_mapping.items():
-                out_path = os.path.join(sfx_out_dir, f"{sfx_key}.mp3")
-                if not os.path.exists(out_path):
-                    logger.info(f"Generating SFX: {sfx_key} at {out_path}")
-                    clip = sfx_manager.get_sfx(gen_name)
-                    clip.write_audiofile(out_path, fps=44100, logger=None)
-                sound_effects[sfx_key] = f"assets/sounds/{sfx_key}.mp3"
-        except Exception as e:
-            logger.error(f"Error setting up sound effects: {e}")
+        from footybitez.media.edit_audio import make_edit_sounds
+        sounds = make_edit_sounds('remotion-video/public/assets/sounds')
+        sound_effects = {'chapter': os.path.relpath(sounds['tick'],'remotion-video/public').replace('\\','/')}
 
         props = {
             "chapters": chapters_props,
@@ -467,8 +440,11 @@ def main():
         title = script_data["title"]
         metadata = {
             "title": title,
-            "tags": script_data.get("tags", ["football", "documentary"]),
             "topic": topic,
+            "tags": script_data.get("tags", ["football", "documentary"]),
+            "narration": "\n\n".join(chapter['script'] for chapter in script_data['chapters']),
+            "image_credits": image_credits,
+            "sources": list(dict.fromkeys(re.findall(r'https?://[^\s]+',script_data.get('research_context',''))))[:3],
         }
         with open("remotion-video/public/metadata.json", "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=2)
@@ -481,7 +457,6 @@ def main():
 
         # 7. Render Video via Remotion CLI
         import platform
-        import shutil
         logger.info("Starting Remotion render step...")
         cmd = [
             "npx", "remotion", "render",
@@ -523,7 +498,6 @@ def main():
             report = inspect_video("remotion-video/output/video.mp4")
             with open("remotion-video/output/quality.json", "w", encoding="utf-8") as f:
                 json.dump({"script": script_data, "render": report}, f, indent=2)
-            topic_gen.mark_topic_as_used(topic)
 
             # Clean up temp assets on success
             temp_dir = os.path.join("remotion-video", "public", "assets", "temp", job_id)

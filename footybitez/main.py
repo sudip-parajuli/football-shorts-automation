@@ -16,6 +16,7 @@ project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
+from footybitez.content.history import DuplicateContent
 from footybitez.content.topic_generator import TopicGenerator
 from footybitez.content.script_generator import ScriptGenerator
 from footybitez.media.media_sourcer import MediaSourcer
@@ -52,7 +53,7 @@ def main():
         tried = set()
         had_script = False
         for attempt in range(1, 4):
-            topic, category = topic_gen.get_random_topic()
+            topic, category = topic_gen.get_random_topic(excluded_topics=tried)
             if topic in tried:
                 continue
             tried.add(topic)
@@ -130,16 +131,10 @@ def main():
         # Check for upload flag or environment variable, default to True if API available
         # But we need to be careful not to spam if testing.
         should_upload = os.getenv("ENABLE_UPLOAD", "false").lower() == "true"
-        if should_upload or os.getenv('ENABLE_SOCIAL_PUBLISHING','false').lower()=='true':
-            with open(os.path.join(video_creator.output_dir,'visual-coverage.json'),encoding='utf-8') as report:
-                coverage=json.load(report)
-            if coverage['media_fraction'] < float(os.getenv('MIN_REAL_MEDIA_FRACTION','0.25')):
-                raise RuntimeError('Real photos/footage cover less than the required part of this Short; keeping preview instead of publishing an all-diagram video')
-        
         if should_upload:
             logger.info("Attempting upload to YouTube...")
             uploader = YouTubeUploader()
-            video_id = uploader.upload_video(video_path, title, description, tags)
+            video_id = uploader.upload_video(video_path, title, description, tags, topic=topic)
             if video_id:
                 logger.info(f"Successfully uploaded video: {video_id}")
             else:
@@ -152,7 +147,7 @@ def main():
         if should_publish_socials:
             logger.info("Attempting upload to Meta (Facebook/Instagram) and TikTok...")
             orchestrator = SocialOrchestrator()
-            orchestrator.publish_to_all(video_path, title, description)
+            orchestrator.publish_to_all(video_path, title, description, topic=topic)
         else:
             logger.info("Social publishing skipped (ENABLE_SOCIAL_PUBLISHING not set to true).")
 
@@ -171,6 +166,11 @@ def main():
 
         logger.info("Workflow completed successfully.")
         
+    except DuplicateContent as error:
+        logger.info("Skipping repeated content: %s", error)
+        if os.getenv('GITHUB_OUTPUT'):
+            with open(os.environ['GITHUB_OUTPUT'],'a',encoding='utf-8') as output:
+                output.write('skipped=true\n')
     except Exception as e:
         logger.error(f"Critical workflow error: {e}", exc_info=True)
         sys.exit(1)

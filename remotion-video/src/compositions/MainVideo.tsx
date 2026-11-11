@@ -1,3 +1,5 @@
+import {EditorialGraphic} from './EditorialGraphic';
+import {SpokenCaptions} from '../SpokenCaptions';
 import { cleanDisplayFields } from '../displayText';
 import React from 'react';
 import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig } from 'remotion';
@@ -15,7 +17,6 @@ import { DataVisualizationScene } from './DataVisualizationScene';
 import { MotionGraphicScene } from './MotionGraphicScene';
 import { Chapter, MainVideoProps, VisualScene } from '../types';
 
-const SFX_ROTATION = ['whoosh', 'transition', 'rise', 'impact', 'drum'];
 
 // Ken Burns styles cycle — ensures consecutive images never repeat the same style
 const KB_STYLES = [
@@ -56,7 +57,6 @@ export const MainVideo: React.FC<MainVideoProps> = ({
   let currentFrame = 0;
 
 
-  let sfxIndex = 0;
   let globalKbIndex = 0; // Global index for Ken Burns cycling across all scenes
 
   return (
@@ -75,9 +75,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
         const chapterStartTime = currentFrame;
 
         // ── Chapter Intro ───────────────────────────────────────────────────
-        const chapterSfxCategory = SFX_ROTATION[sfxIndex % SFX_ROTATION.length];
-        const chapterSfxPath = sound_effects[chapterSfxCategory];
-        sfxIndex++;
+        const chapterSfxPath = sound_effects['chapter'];
 
         const introSequence = CHAPTER_INTRO_DURATION > 0 ? (
           <React.Fragment key={`intro-frag-${chapterIdx}`}>
@@ -131,7 +129,9 @@ export const MainVideo: React.FC<MainVideoProps> = ({
             let sceneComponent: React.ReactNode = null;
 
             // ── Scene type routing ────────────────────────────────────────
-            if (scene.visual_type === 'typewriter_text') {
+            if (scene.visual_type === 'editorial_graphic' && scene.graphic) {
+              sceneComponent = <EditorialGraphic brief={scene.graphic} durationInFrames={sceneDuration}/>;
+            } else if (scene.visual_type === 'typewriter_text') {
               sceneComponent = (
                 <TypewriterScene
                   typewriter_words={scene.typewriter_words || []}
@@ -221,18 +221,10 @@ export const MainVideo: React.FC<MainVideoProps> = ({
             // Hard cuts preserve the exact narration timeline. TransitionSeries
             // overlaps shorten coverage and used to leave the end of chapters blank.
 
-            // ── SFX on scene entry ─────────────────────────────────────────
-            const sceneSfxPath = i > 0 && i % 4 === 0 ? sound_effects[SFX_ROTATION[sfxIndex % SFX_ROTATION.length]] : null;
-            if (i > 0) sfxIndex++;
-
             transitionChildren.push(
               <TransitionSeries.Sequence key={`scene-${chapterIdx}-${i}`} durationInFrames={sceneDuration}>
                 {sceneComponent}
-                {sceneSfxPath && (
-                  <Sequence from={0} durationInFrames={18}>
-                    <Audio src={staticFile(sceneSfxPath)} volume={() => 0.10} />
-                  </Sequence>
-                )}
+
               </TransitionSeries.Sequence>
             );
           }
@@ -269,11 +261,6 @@ export const MainVideo: React.FC<MainVideoProps> = ({
             const kbStyle = KB_STYLES[globalKbIndex % KB_STYLES.length];
             globalKbIndex++;
 
-            const isFirstSlide = imgIdx === 0 && chapterIdx === 0;
-            const sfxCat = SFX_ROTATION[sfxIndex % SFX_ROTATION.length];
-            const sfxPath = sound_effects[sfxCat];
-            sfxIndex++;
-
             slides.push(
               <React.Fragment key={`slide-frag-${chapterIdx}-${imgIdx}`}>
                 <Sequence from={slideFrame} durationInFrames={duration}>
@@ -284,11 +271,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
                   />
                   <CinematicBars />
                 </Sequence>
-                {sfxPath && !isFirstSlide && (
-                  <Sequence from={slideFrame} durationInFrames={18}>
-                    <Audio src={staticFile(sfxPath)} volume={() => 0.10} />
-                  </Sequence>
-                )}
+
               </React.Fragment>
             );
             slideFrame += duration;
@@ -316,6 +299,9 @@ export const MainVideo: React.FC<MainVideoProps> = ({
             {introSequence}
             {visualContent}
             {narration}
+            {chapter.timing?.length ? <Sequence from={chapterStartTime+CHAPTER_INTRO_DURATION} durationInFrames={chapterContentDuration}>
+              <SpokenCaptions timing={chapter.timing}/>
+            </Sequence> : null}
           </React.Fragment>
         );
       })}

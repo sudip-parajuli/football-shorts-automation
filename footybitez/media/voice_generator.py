@@ -80,6 +80,7 @@ class VoiceGenerator:
 
     def generate(self, text, filename, voice_index=0):
         """Choose a provider once per video, retaining accent and timbre."""
+        self._timing_source = "provider_word_marks"
         clean_text = self._clean_text(text)
         output_path = os.path.join(self.output_dir, filename)
         json_path = output_path.replace('.mp3', '.json')
@@ -109,12 +110,18 @@ class VoiceGenerator:
                 except Exception:
                     pass
             if success:
+                timings = []
+                if os.path.exists(json_path):
+                    with open(json_path, encoding='utf-8') as timing_file:
+                        timings = json.load(timing_file)
+                if not timings:
+                    self._generate_json_fallback(clean_text, json_path, output_path)
                 self._selected_provider = provider
                 self._master_narration(output_path)
                 voice = self.gcp_tts_voice if provider == "google" else os.getenv("EDGE_TTS_VOICE", DEFAULT_EDGE_VOICE) if provider == "edge" else "configured Hume voice"
                 logger.info("Narration: provider=%s voice=%s file=%s", provider, voice, filename)
                 with open(output_path + ".voice.json", "w", encoding="utf-8") as report:
-                    json.dump({"provider":provider,"voice":voice,"style":"UK football storyteller","pitch":0,"rate":float(os.getenv("NARRATION_RATE", "1.0"))},report,indent=2)
+                    json.dump({"provider":provider,"voice":voice,"style":"UK football storyteller","timing_source":self._timing_source,"pitch":0,"rate":float(os.getenv("NARRATION_RATE", "1.0"))},report,indent=2)
                 return output_path
         if self._selected_provider:
             logger.error("Selected narration provider failed; refusing to switch voice midway through a video")
@@ -260,7 +267,7 @@ class VoiceGenerator:
                 duration = audio.duration
                 audio.close()
             except: pass
-        avg = duration / max(len(words), 1)
-        word_map = [{"word": w, "start": i*avg, "duration": avg*0.9} for i, w in enumerate(words)]
-        with open(json_path, 'w', encoding='utf-8') as f:
-            json.dump(word_map, f, indent=2)
+        from footybitez.media.caption_alignment import fallback_timings
+        word_map, self._timing_source = fallback_timings(text, audio_path, duration)
+        with open(json_path, 'w', encoding='utf-8') as output:
+            json.dump(word_map, output, indent=2)

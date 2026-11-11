@@ -65,7 +65,7 @@ class SocialOrchestrator:
             logger.error("Temporary video hosting failed; content checkout was preserved")
             return None
 
-    def publish_to_all(self, local_video_path, title, description=None):
+    def publish_to_all(self, local_video_path, title, description=None, content_text=None, topic=None):
         """
         Coordinates the publishing of videos to Facebook, Instagram Reels, and TikTok.
         """
@@ -82,6 +82,15 @@ class SocialOrchestrator:
         if not self.dry_run:
             from footybitez.video.preflight import inspect_video
             inspect_video(local_video_path)
+        history = None
+        claim = None
+        if not self.dry_run:
+            from footybitez.content.history import ContentHistory, media_identity
+            history = ContentHistory()
+            claim = history.claim(topic or title, content_text if content_text is not None else desc, 'social', piece_id=media_identity(local_video_path))
+            if claim['previous'] is not None:
+                logger.info('This piece has already been sent to its social platforms.')
+                return claim['previous']
         results = {}
 
         # 1. Publish to Facebook
@@ -122,6 +131,8 @@ class SocialOrchestrator:
         logger.info(f"Publishing Results: {results}")
         if not self.dry_run and not any(results.values()):
             raise RuntimeError("No social platform published successfully; check credentials and results")
+        if history is not None:
+            history.complete(claim['key'], 'social', results)
         return results
 
 if __name__ == "__main__":

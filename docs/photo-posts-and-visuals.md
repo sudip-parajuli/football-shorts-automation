@@ -15,7 +15,7 @@ Photo captions use the existing evidence-backed writer. Image sourcing requires
 an exact football entity article and a supported Commons reuse license. Cropped
 and overlaid images include author, source and license links in the caption.
 The image is an entity portrait, not proof of a particular match or event.
-No suitable photo means a failed preview rather than an unrelated photograph.
+When a verified photo is unavailable, the image post can use an original editorial graphic drawn from the sourced caption.
 
 Every Facebook/Instagram workflow, including video uploads, news, match posts,
 backfill and auto-replies, uses `FOOTYBITEZ_META_ACCESS_TOKEN`, `FOOTYBITEZ_FACEBOOK_PAGE_ID`
@@ -37,20 +37,13 @@ Meta rejection may be retried after credentials/configuration are corrected.
 
 ## Video layouts and narration
 
-Shorts use measured headlines, brief captions, relevant real photos and supported
-explanatory diagrams. Photos are never replaced by graphics on a fixed rotation.
-A diagram is allowed only for a matching spoken explanation (currently contract
-negotiation or kit design). Selection news, biographies, results, pressure and
-transfer announcements do not automatically trigger diagrams. Missing relevant
-media stops the Short before rendering/uploading, with `visual-gaps.json`, rather
-than inserting unrelated filler. Explicit match-data cards remain supported.
-Stock clips are not used as substitute portraits of named people.
-Scene boundaries follow word timestamps rather
-than dividing paragraphs into equal time slices. Missing timing marks are
-interpolated and reported. Daily public uploads require at least 25% real-media
-coverage; `MIN_REAL_MEDIA_FRACTION` can change that threshold. Previews remain
-available when coverage is insufficient. Inspect `render-props.json`,
-`visual-plan.json`, `visual-coverage.json`, and `narration-report.json` artifacts.
+Shorts use measured headlines, brief captions and relevant real media. When
+photos are unavailable, narration-derived editorial graphics can cover the story.
+Decision cards and actual-number reveals use the words being spoken. The graphic
+plan does not require a minimum percentage of real photographs. Word marks or
+local Whisper anchors drive the captions, with interpolation reported when
+alignment is unavailable. See [the shared style breakdown](editorial-style.md)
+for typography, colours, sound design, reference tools and runtime settings.
 
 The shared narration defaults to `en-GB-Neural2-B`, conversational rate 1.0 and
 neutral pitch, with sentence-aware SSML and word marks. Edge UK Ryan is the next

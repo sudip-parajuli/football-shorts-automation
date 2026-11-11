@@ -60,7 +60,7 @@ class YouTubeUploader:
             print(f"Auth Error: {e}")
             return None
 
-    def upload_video(self, file_path, title, description, tags, category_id="17"):
+    def upload_video(self, file_path, title, description, tags, category_id="17", content_text=None, topic=None):
         """Uploads a video to YouTube."""
         if not self.youtube:
             print("Cannot upload: Service not authenticated.")
@@ -68,6 +68,13 @@ class YouTubeUploader:
 
         from footybitez.video.preflight import inspect_video
         inspect_video(file_path)
+
+        from footybitez.content.history import ContentHistory, media_identity
+        history = ContentHistory()
+        claim = history.claim(topic or title, content_text if content_text is not None else description, 'youtube', piece_id=media_identity(file_path))
+        if claim['previous'] is not None:
+            print('This piece is already on YouTube. Reusing its existing video ID.')
+            return claim['previous']
 
         # Metadata handling
         is_short = tags and "shorts" in [t.lower() for t in tags]
@@ -92,6 +99,7 @@ class YouTubeUploader:
                 media_body=googleapiclient.http.MediaFileUpload(file_path, chunksize=-1, resumable=True)
             )
             response = request.execute()
+            history.complete(claim['key'], 'youtube', response['id'])
             print(f"Uploaded Video ID: {response['id']}")
             return response['id']
             

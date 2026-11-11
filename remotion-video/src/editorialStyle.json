@@ -1,0 +1,16 @@
+{
+  "name": "FootyBitez Matchroom",
+  "font": "Barlow Condensed",
+  "ink": "#101b24",
+  "paper": "#f4efe4",
+  "muted": "#a9bbc2",
+  "accent": "#f7c64d",
+  "secondary": "#7dc7c0",
+  "shortSafeX": 100,
+  "shortCaptionBottom": 275,
+  "captionWords": 4,
+  "transitionFrames": 6,
+  "numberBackground": "#f4efe4",
+  "numberAccent": "#9b5313",
+  "decisionBackground": "#152b3b"
+}

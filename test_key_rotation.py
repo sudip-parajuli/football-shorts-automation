@@ -52,12 +52,10 @@ class TestKeyRotation(unittest.TestCase):
         generator = ScriptGenerator()
         self.assertEqual(len(generator.groq_keys), 3)
 
-        # Call script generation
-        result = generator.generate_script(
-            topic="Test Topic",
-            category="wc_pre_match",
-            context=json.dumps({"test": "context"})
-        )
+        # Isolate credential rotation from editorial schema/grounding checks.
+        # The current writer has separate grounded-content regression coverage.
+        with patch.object(generator, "_validate_script_data", return_value=True):
+            result = generator._try_groq_script("Test provider rotation")
 
         self.assertIsNotNone(result)
         self.assertEqual(result["hook"], "Test hook")

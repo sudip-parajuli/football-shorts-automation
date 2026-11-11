@@ -54,6 +54,12 @@ async function main() {
   const args = process.argv.slice(2);
   runStep("Python Content Generation", "python", ["footybitez/long_main.py", ...args]);
 
+  const skipped = path.join(__dirname, '..', 'output', 'skip-publication.json');
+  if (fs.existsSync(skipped)) {
+    log('Documentary topic was already used. Publication skipped.');
+    return;
+  }
+
   // Step 2: YouTube Upload
   runStep("YouTube Upload", "python", ["footybitez/long_upload.py"], path.join(__dirname, '..', '..'));
 
