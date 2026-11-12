@@ -512,5 +512,94 @@
     "facebook_pending": {},
     "instagram_container_id": "18123837383062407",
     "instagram_id": "18023788937933633"
+  },
+  "2026-11-12": {
+    "plan": {
+      "slot": "2026-11-12",
+      "topic": "Miroslav Klose World Cup goal record",
+      "category": "stats",
+      "format": "text",
+      "title": "Klose\u2019s World Cup Goal Record Explained",
+      "caption": "How did a Polish\u2011born striker become Germany\u2019s World Cup goal king?\n\nMiroslav Klose, born in Poland in 1978, turned German striker and now coaches 1. FC N\u00fcrnberg.\n\nHe played for Kaiserslautern, Werder Bremen and Bayern Munich, racking up goals for Germany at four World Cups.\n\nThat consistency made him the all\u2011time World Cup scorer, a record that still stands.\n\nWill anyone ever break Klose\u2019s World Cup tally?\n\nSources: https://en.wikipedia.org/wiki/Miroslav_Klose\n\n#football #footballstats #FootyBitez",
+      "entities": [
+        "Miroslav Klose",
+        "1. FC N\u00fcrnberg"
+      ],
+      "evidence": {
+        "title": "Klose\u2019s World Cup Goal Record Explained",
+        "hook": "How did a Polish\u2011born striker become Germany\u2019s World Cup goal king?",
+        "primary_entity": "Miroslav Klose",
+        "music_mood": "energetic",
+        "segments": [
+          {
+            "text": "Miroslav Klose, born in Poland in 1978, turned German striker and now coaches 1. FC N\u00fcrnberg.",
+            "visual_keyword": "miroslav klose born poland 1978 turned german striker now coaches football illustration",
+            "visual_entities": [
+              "Miroslav Klose",
+              "1. FC N\u00fcrnberg"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Miroslav Josef Klose (German: [\u02c8mi\u02d0\u0281oslaf \u02c8klo\u02d0z\u0259] ; Polish: Miros\u0142aw J\u00f3zef Klose; born Miros\u0142aw Marian Klose; 9 June 1978) is a professional football manager and former player who is the head coach of 2. Bundesliga club 1. FC N\u00fcrnberg. Born in Poland, Klose played as a striker for the Germany national team.\nStarting his career at FC 08 Homburg, Klose played in the Bundesliga for Kaiserslautern before becoming one of the most prolific scorers in the league with Werder Bremen, where he was awarded the German Footballer of the Year in 2006 and also named in the kicker Bundesliga Team of the Season in 2004\u201305 and 2005\u201306. His performances saw him move to Bayern Munich in 2007. During his time a"
+            ],
+            "source_quote": "SUMMARY: Miroslav Josef Klose (German: [\u02c8mi\u02d0\u0281oslaf \u02c8klo\u02d0z\u0259] ; Polish: Miros\u0142aw J\u00f3zef Klose; born Miros\u0142aw Marian Klose; 9 June 1978) is a professional football manager and former player who is the head coach of 2. Bundesliga club 1. FC N\u00fcrnberg. Born in Poland, Klose played as a striker for the Germany national team.\nStarting his career at FC 08 Homburg, Klose played in the Bundesliga for Kaiserslautern before becoming one of the most prolific scorers in the league with Werder Bremen, where he was awarded the German Footballer of the Year in 2006 and also named in the kicker Bundesliga Team of the Season in 2004\u201305 and 2005\u201306. His performances saw him move to Bayern Munich in 2007. During his time a",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Miroslav_Klose"
+            ]
+          },
+          {
+            "text": "He played for Kaiserslautern, Werder Bremen and Bayern Munich, racking up goals for Germany at four World Cups.",
+            "visual_keyword": "he played kaiserslautern werder bremen bayern munich racking up goals football illustration",
+            "visual_entities": [
+              "Miroslav Klose"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Miroslav Josef Klose (German: [\u02c8mi\u02d0\u0281oslaf \u02c8klo\u02d0z\u0259] ; Polish: Miros\u0142aw J\u00f3zef Klose; born Miros\u0142aw Marian Klose; 9 June 1978) is a professional football manager and former player who is the head coach of 2. Bundesliga club 1. FC N\u00fcrnberg. Born in Poland, Klose played as a striker for the Germany national team.\nStarting his career at FC 08 Homburg, Klose played in the Bundesliga for Kaiserslautern before becoming one of the most prolific scorers in the league with Werder Bremen, where he was awarded the German Footballer of the Year in 2006 and also named in the kicker Bundesliga Team of the Season in 2004\u201305 and 2005\u201306. His performances saw him move to Bayern Munich in 2007. During his time a"
+            ],
+            "source_quote": "SUMMARY: Miroslav Josef Klose (German: [\u02c8mi\u02d0\u0281oslaf \u02c8klo\u02d0z\u0259] ; Polish: Miros\u0142aw J\u00f3zef Klose; born Miros\u0142aw Marian Klose; 9 June 1978) is a professional football manager and former player who is the head coach of 2. Bundesliga club 1. FC N\u00fcrnberg. Born in Poland, Klose played as a striker for the Germany national team.\nStarting his career at FC 08 Homburg, Klose played in the Bundesliga for Kaiserslautern before becoming one of the most prolific scorers in the league with Werder Bremen, where he was awarded the German Footballer of the Year in 2006 and also named in the kicker Bundesliga Team of the Season in 2004\u201305 and 2005\u201306. His performances saw him move to Bayern Munich in 2007. During his time a",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Miroslav_Klose"
+            ]
+          },
+          {
+            "text": "That consistency made him the all\u2011time World Cup scorer, a record that still stands.",
+            "visual_keyword": "consistency made him all time world cup scorer record still football illustration",
+            "visual_entities": [
+              "Miroslav Klose"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Miroslav Josef Klose (German: [\u02c8mi\u02d0\u0281oslaf \u02c8klo\u02d0z\u0259] ; Polish: Miros\u0142aw J\u00f3zef Klose; born Miros\u0142aw Marian Klose; 9 June 1978) is a professional football manager and former player who is the head coach of 2. Bundesliga club 1. FC N\u00fcrnberg. Born in Poland, Klose played as a striker for the Germany national team.\nStarting his career at FC 08 Homburg, Klose played in the Bundesliga for Kaiserslautern before becoming one of the most prolific scorers in the league with Werder Bremen, where he was awarded the German Footballer of the Year in 2006 and also named in the kicker Bundesliga Team of the Season in 2004\u201305 and 2005\u201306. His performances saw him move to Bayern Munich in 2007. During his time a"
+            ],
+            "source_quote": "SUMMARY: Miroslav Josef Klose (German: [\u02c8mi\u02d0\u0281oslaf \u02c8klo\u02d0z\u0259] ; Polish: Miros\u0142aw J\u00f3zef Klose; born Miros\u0142aw Marian Klose; 9 June 1978) is a professional football manager and former player who is the head coach of 2. Bundesliga club 1. FC N\u00fcrnberg. Born in Poland, Klose played as a striker for the Germany national team.\nStarting his career at FC 08 Homburg, Klose played in the Bundesliga for Kaiserslautern before becoming one of the most prolific scorers in the league with Werder Bremen, where he was awarded the German Footballer of the Year in 2006 and also named in the kicker Bundesliga Team of the Season in 2004\u201305 and 2005\u201306. His performances saw him move to Bayern Munich in 2007. During his time a",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Miroslav_Klose"
+            ]
+          }
+        ],
+        "outro": "Will anyone ever break Klose\u2019s World Cup tally?",
+        "full_text": "How did a Polish\u2011born striker become Germany\u2019s World Cup goal king? Miroslav Klose, born in Poland in 1978, turned German striker and now coaches 1. FC N\u00fcrnberg. He played for Kaiserslautern, Werder Bremen and Bayern Munich, racking up goals for Germany at four World Cups. That consistency made him the all\u2011time World Cup scorer, a record that still stands. Will anyone ever break Klose\u2019s World Cup tally?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: Miroslav Josef Klose (German: [\u02c8mi\u02d0\u0281oslaf \u02c8klo\u02d0z\u0259] ; Polish: Miros\u0142aw J\u00f3zef Klose; born Miros\u0142aw Marian Klose; 9 June 1978) is a professional football manager and former player who is the head coach of 2. Bundesliga club 1. FC N\u00fcrnberg. Born in Poland, Klose played as a striker for the Germany national team.\nStarting his career at FC 08 Homburg, Klose played in the Bundesliga for Kaiserslautern before becoming one of the most prolific scorers in the league with Werder Bremen, where he was awarded the German Footballer of the Year in 2006 and also named in the kicker Bundesliga Team of the Season in 2004\u201305 and 2005\u201306. His performances saw him move to Bayern Munich in 2007. During his time a",
+            "url": "https://en.wikipedia.org/wiki/Miroslav_Klose"
+          }
+        ],
+        "research_context": "ENTITY: Miroslav Klose\nSOURCE URL: https://en.wikipedia.org/wiki/Miroslav_Klose\nSUMMARY: Miroslav Josef Klose (German: [\u02c8mi\u02d0\u0281oslaf \u02c8klo\u02d0z\u0259] ; Polish: Miros\u0142aw J\u00f3zef Klose; born Miros\u0142aw Marian Klose; 9 June 1978) is a professional football manager and former player who is the head coach of 2. Bundesliga club 1. FC N\u00fcrnberg. Born in Poland, Klose played as a striker for the Germany national team.\nStarting his career at FC 08 Homburg, Klose played in the Bundesliga for Kaiserslautern before becoming one of the most prolific scorers in the league with Werder Bremen, where he was awarded the German Footballer of the Year in 2006 and also named in the kicker Bundesliga Team of the Season in 2004\u201305 and 2005\u201306. His performances saw him move to Bayern Munich in 2007. During his time a"
+      }
+    },
+    "facebook": {
+      "1098623579997373": "1098623579997373_122119634924340601"
+    },
+    "facebook_pending": {},
+    "instagram_skipped": "Facebook text-only post; Instagram requires an image"
   }
 }
