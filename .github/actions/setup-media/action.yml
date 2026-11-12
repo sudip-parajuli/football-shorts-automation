@@ -5,7 +5,6 @@ runs:
   steps:
     - name: Install FFmpeg and ffprobe
       shell: bash
-      timeout-minutes: 8
       run: |
         if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
           sudo timeout 180 apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
