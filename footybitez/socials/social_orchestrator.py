@@ -1,7 +1,5 @@
 import os
-import sys
 import logging
-import subprocess
 from footybitez.socials.meta_publisher import MetaPublisher
 from footybitez.socials.tiktok_publisher import TikTokPublisher
 
@@ -16,54 +14,6 @@ class SocialOrchestrator:
         self.tiktok = TikTokPublisher()
         self.dry_run = os.getenv("DRY_RUN", "false").lower() == "true"
         self.is_ci = os.getenv("GITHUB_ACTIONS") == "true"
-
-    def _host_video_on_github(self, local_video_path):
-        """
-        Pushes the generated video to a temporary orphan branch 'temp-video-host' on GitHub.
-        Exposes a raw.githubusercontent.com public URL for Meta's servers to fetch.
-        Overwrites the branch completely on every run to keep repo size at zero growth.
-        """
-        if not self.is_ci:
-            logger.warning("Not running in GitHub Actions CI. Cannot host video on Git automatically.")
-            return None
-
-        repo_slug = os.getenv("GITHUB_REPOSITORY")
-        if not repo_slug:
-            logger.error("GITHUB_REPOSITORY environment variable not found.")
-            return None
-
-        # Clean git URL for raw content download
-        raw_url = f"https://raw.githubusercontent.com/{repo_slug}/temp-video-host/hosted_video.mp4"
-        logger.info(f"Preparing to host video on Git. Targeted URL: {raw_url}")
-
-        # Isolate hosting from the content checkout: no stash, orphan checkout,
-        # git rm, global config or hard-coded restoration branch.
-        import tempfile
-        import shutil
-        from pathlib import Path
-        source = Path(local_video_path).resolve()
-        try:
-            with tempfile.TemporaryDirectory(prefix="footybitez-host-") as temporary:
-                def run(args):
-                    result = subprocess.run(["git", *args], cwd=temporary,
-                                            capture_output=True, text=True)
-                    if result.returncode:
-                        raise RuntimeError("Temporary video hosting Git operation failed")
-                run(["init", "--initial-branch=temp-video-host"])
-                run(["config", "user.name", "github-actions[bot]"])
-                run(["config", "user.email", "github-actions[bot]@users.noreply.github.com"])
-                shutil.copy2(source, Path(temporary) / "hosted_video.mp4")
-                run(["add", "hosted_video.mp4"])
-                run(["commit", "-m", "Host video for Instagram fetch"])
-                token = os.getenv("GITHUB_TOKEN")
-                remote = (f"https://x-access-token:{token}@github.com/{repo_slug}.git"
-                          if token else f"https://github.com/{repo_slug}.git")
-                run(["push", remote, "temp-video-host", "--force"])
-            return raw_url
-        except Exception:
-            # Do not expose a credential-bearing command or subprocess error.
-            logger.error("Temporary video hosting failed; content checkout was preserved")
-            return None
 
     def publish_to_all(self, local_video_path, title, description=None, content_text=None, topic=None):
         """
@@ -98,25 +48,16 @@ class SocialOrchestrator:
         fb_id = self.meta.publish_to_facebook(local_video_path, title, desc)
         results["facebook"] = fb_id
 
-        # 2. Publish to Instagram Reels (Requires git hosting)
+        # 2. Upload the local file directly to Instagram; no Git hosting limit.
         logger.info("--- Publishing to Instagram Reels ---")
         if not self.dry_run and not self.meta.preflight_instagram():
-            logger.error("Instagram token/account preflight failed; skipping video hosting")
+            logger.error("Instagram token/account preflight failed; skipping upload")
             results["instagram"] = None
         elif self.dry_run:
             ig_id = self.meta.publish_to_instagram_reel("https://example.com/video.mp4", title)
             results["instagram"] = ig_id
         else:
-            public_url = self._host_video_on_github(local_video_path)
-            if public_url:
-                # Wait 5 seconds to ensure GitHub CDN has indexed the file
-                import time
-                time.sleep(5)
-                ig_id = self.meta.publish_to_instagram_reel(public_url, desc)
-                results["instagram"] = ig_id
-            else:
-                logger.error("Skipping Instagram Reels publishing because video hosting failed.")
-                results["instagram"] = None
+            results['instagram'] = self.meta.publish_to_instagram_reel(None, desc, local_file=local_video_path)
 
         # 3. Publish to TikTok
         if not self.skip_tiktok:

@@ -15,7 +15,7 @@ jobs:
           python-version: '3.12'
       - uses: ./.github/actions/setup-media
       - run: pip install python-dotenv pillow requests google-genai
-      - run: python -m unittest test_content_quality test_media_recovery test_video_preflight_integration test_reliable_writer test_spoken_visuals test_social_posts test_workflow_recovery test_editorial_editing test_content_history -v
+      - run: python -m unittest test_content_quality test_media_recovery test_video_preflight_integration test_reliable_writer test_spoken_visuals test_social_posts test_workflow_recovery test_editorial_editing test_content_history test_large_video_publishing test_fb_page_routing -v
       - run: python -m compileall -q footybitez
   remotion:
     runs-on: ubuntu-latest

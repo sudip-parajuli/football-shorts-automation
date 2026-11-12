@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 from datetime import datetime
+from pathlib import Path
 from dotenv import load_dotenv
 
 # Ensure the project root is in sys.path
@@ -25,6 +26,19 @@ logging.basicConfig(
     ]
 )
 logger = logging.getLogger(__name__)
+
+def save_publication_report(report):
+    path = Path('remotion-video/output/publication-results.json')
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(report, indent=2), encoding='utf-8')
+    summary = os.getenv('GITHUB_STEP_SUMMARY')
+    if summary:
+        with open(summary, 'a', encoding='utf-8') as target:
+            target.write(f"\nDocumentary publication: **{report['status']}**. "
+                         f"[YouTube video](https://www.youtube.com/watch?v={report['youtube']['id']}). "
+                         f"Social status: {report['social']['status']}. "
+                         "See publication-results.json in the documentary artifact.\n")
+
 
 def main():
     load_dotenv()
@@ -74,6 +88,9 @@ def main():
 
     if video_id:
         logger.info(f"SUCCESS: Video uploaded with ID: {video_id}")
+        report = {'status':'youtube_published', 'youtube':{'id':video_id, 'status':'published'},
+                  'social':{'status':'not_requested'}}
+        save_publication_report(report)
         from footybitez.content.topic_generator import TopicGenerator
         TopicGenerator().mark_topic_as_used(topic)
         
@@ -90,7 +107,7 @@ def main():
         comment_manager = CommentManager()
         comment_text = "Which football legend should we cover next? Let us know in the comments! 👇"
         if comment_manager.pin_comment(video_id, comment_text):
-            logger.info("Comment pinned successfully.")
+            logger.info("Comment posted successfully (manual pinning is required).")
     else:
         raise RuntimeError("Long-form YouTube upload failed")
 
@@ -98,8 +115,18 @@ def main():
     should_publish_socials = os.getenv("ENABLE_SOCIAL_PUBLISHING", "false").lower() == "true"
     if should_publish_socials:
         logger.info("Attempting long-form video upload to Meta (Facebook/Instagram) and TikTok...")
-        orchestrator = SocialOrchestrator()
-        orchestrator.publish_to_all(video_path, title, description, content_text=narration or description, topic=topic)
+        try:
+            orchestrator = SocialOrchestrator()
+            results = orchestrator.publish_to_all(video_path, title, description, content_text=narration or description, topic=topic)
+            report['social'] = {'status':'completed', 'results':results}
+            report['status'] = 'published'
+        except Exception as error:
+            # The primary upload is complete. Preserve that outcome and make the
+            # optional cross-post failure visible without suggesting re-upload.
+            report['status'] = 'partial_success'
+            report['social'] = {'status':'failed_or_needs_review', 'error_type':type(error).__name__}
+            logger.warning('YouTube upload succeeded (%s); social publishing failed (%s). See publication-results.json; do not re-upload YouTube.', video_id, type(error).__name__)
+        save_publication_report(report)
     else:
         logger.info("Social publishing skipped (ENABLE_SOCIAL_PUBLISHING not set to true).")
 

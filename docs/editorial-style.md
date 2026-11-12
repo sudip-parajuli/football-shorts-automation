@@ -103,3 +103,19 @@ ambiguous failure remains blocked for review, to prevent duplicate uploads. Phot
 post retries can resume through their saved per-platform ledger. Automated topic
 selection chooses unused topics and stops when the configured pool is exhausted.
 Manual preview rendering does not reserve a new topic.
+
+
+## Documentary publication results
+
+A successful YouTube upload remains successful if optional social cross-posting
+fails. The documentary artifact includes `publication-results.json` and the run
+summary links to the published video. `partial_success` means social publication
+failed or needs review; it does not mean that YouTube should be uploaded again.
+The shared history continues to block ambiguous repeat publication attempts.
+
+Large Facebook files use Meta's start/transfer/finish protocol on
+`graph-video.facebook.com`, with server-requested byte ranges. Instagram videos
+use local-file resumable upload and processing polling; generated videos are no
+longer committed to a Git hosting branch. This avoids GitHub's 100 MiB repository
+file limit. The same FootyBitez credentials are retained. Meta requests default to
+Graph API v25.0, configurable through `META_GRAPH_API_VERSION`.

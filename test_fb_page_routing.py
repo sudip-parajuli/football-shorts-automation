@@ -36,7 +36,7 @@ class TestFBPageRouting(unittest.TestCase):
         self.assertEqual(publisher.page_id, "12345_footybitez_page")
 
         # Mock open() to avoid actual file read
-        with patch("builtins.open", unittest.mock.mock_open(read_data=b"dummy_video")):
+        with patch("os.path.getsize", return_value=11), patch("builtins.open", unittest.mock.mock_open(read_data=b"dummy_video")):
             video_id = publisher.publish_to_facebook("dummy.mp4", "Test Match", "Description")
 
         self.assertEqual(video_id, "mock_video_post_id")
@@ -69,7 +69,7 @@ class TestFBPageRouting(unittest.TestCase):
 
         publisher = MetaPublisher(use_footybitez=True)
 
-        with patch("builtins.open", unittest.mock.mock_open(read_data=b"dummy_video")):
+        with patch("os.path.getsize", return_value=11), patch("builtins.open", unittest.mock.mock_open(read_data=b"dummy_video")):
             video_id = publisher.publish_to_facebook("dummy.mp4", "Test Match", "Description")
 
         self.assertEqual(video_id, "mock_fallback_video_post_id")
