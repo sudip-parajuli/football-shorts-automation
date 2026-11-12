@@ -22,7 +22,7 @@ def graphic_brief(text):
     if re.search(r"\b(if|whether|decide|decision|vote)\b", lower):
         layout = "decision"
     # All displayed factual text is a contiguous excerpt from this narration.
-    detail = " ".join(words[:18])
+    detail = text
     actors = []
     for match in re.finditer(r"\b(board|manager|coach|club|fans|player|squad)\b", text, re.I):
         actor = match.group()
@@ -30,7 +30,19 @@ def graphic_brief(text):
         if identity(actor) not in {identity(value) for value in actors}:
             actors.append(actor)
     status = re.search(r"\b(not announced|not confirmed|pending|discussion|discussing|vote|reported)\b", text, re.I)
+    motif = ''
+    for name, pattern in (
+        ('contract', r'\b(contract|contracts|agreement|signing)\b'),
+        ('trophy', r'\b(trophy|trophies|silverware|champion|champions)\b'),
+        ('calendar', r'\b(schedule|deadline|calendar|season|retirement|retirements|farewell)\b'),
+        ('recovery', r'\b(injury|injured|recovery|rehabilitation)\b'),
+        ('passing', r'\b(pass|passes|passing|backpass|backpasses)\b'),
+    ):
+        if re.search(pattern, lower):
+            motif = name
+            break
     return {
+        "motif": motif,
         "layout": layout,
         "label": label,
         "headline": " ".join(words[:7]),

@@ -1,3 +1,4 @@
+import {FramedImage} from '../FramedImage';
 import React from 'react';
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
 
@@ -85,49 +86,6 @@ export const ImageScene: React.FC<ImageSceneProps> = ({
     return <AbsoluteFill><Img src={staticFile(cleanSrc)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></AbsoluteFill>;
   }
 
-  // ── Ken Burns ─────────────────────────────────────────────────────────────
-  let scale = 1.0;
-  let translateX = 0;
-  let translateY = 0;
-
-  const t = frame / Math.max(1, durationInFrames);
-
-  switch (ken_burns_style) {
-    case 'zoom_in_topleft':
-      scale = interpolate(frame, [0, durationInFrames], [1.0, 1.11], { extrapolateRight: 'clamp' });
-      translateX = interpolate(frame, [0, durationInFrames], [0, -35], { extrapolateRight: 'clamp' });
-      translateY = interpolate(frame, [0, durationInFrames], [0, -20], { extrapolateRight: 'clamp' });
-      break;
-    case 'zoom_out_center':
-      scale = interpolate(frame, [0, durationInFrames], [1.12, 1.0], { extrapolateRight: 'clamp' });
-      break;
-    case 'pan_left':
-      scale = 1.06;
-      translateX = interpolate(frame, [0, durationInFrames], [40, -40], { extrapolateRight: 'clamp' });
-      break;
-    case 'pan_right':
-      scale = 1.06;
-      translateX = interpolate(frame, [0, durationInFrames], [-40, 40], { extrapolateRight: 'clamp' });
-      break;
-    case 'pan_diagonal':
-      scale = 1.07;
-      translateX = interpolate(frame, [0, durationInFrames], [-30, 30], { extrapolateRight: 'clamp' });
-      translateY = interpolate(frame, [0, durationInFrames], [20, -20], { extrapolateRight: 'clamp' });
-      break;
-    case 'tilt_up':
-      scale = 1.06;
-      translateY = interpolate(frame, [0, durationInFrames], [40, -20], { extrapolateRight: 'clamp' });
-      break;
-    case 'tilt_down':
-      scale = 1.06;
-      translateY = interpolate(frame, [0, durationInFrames], [-20, 40], { extrapolateRight: 'clamp' });
-      break;
-    case 'zoom_in_center':
-    default:
-      scale = interpolate(frame, [0, durationInFrames], [1.0, 1.09], { extrapolateRight: 'clamp' });
-      break;
-  }
-
   // Fade in over first 6 frames
   const opacity = interpolate(frame, [0, 6], [0, 1], { extrapolateRight: 'clamp' });
 
@@ -148,16 +106,8 @@ export const ImageScene: React.FC<ImageSceneProps> = ({
           }}
         />
       ) : (
-        <Img
-          src={staticFile(cleanSrc)}
-          style={{
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            transform: `scale(${scale}) translate(${translateX}px, ${translateY}px)`,
-            filter: 'contrast(1.18) saturate(0.85) brightness(0.92)',
-          }}
-        />
+        <FramedImage src={cleanSrc} durationInFrames={durationInFrames} reverse={ken_burns_style==='zoom_out_center'}/>
+
       )}
 
       {/* Cinematic Vignette */}
@@ -210,7 +160,7 @@ export const ImageScene: React.FC<ImageSceneProps> = ({
         >
           <Img
             src={staticFile(cleanSecondarySrc)}
-            style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(1.1)' }}
+            style={{ width: '100%', height: '100%', objectFit: 'contain', background:'#101b24' }}
           />
         </div>
       )}

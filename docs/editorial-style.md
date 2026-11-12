@@ -119,3 +119,21 @@ use local-file resumable upload and processing polling; generated videos are no
 longer committed to a Git hosting branch. This avoids GitHub's 100 MiB repository
 file limit. The same FootyBitez credentials are retained. Meta requests default to
 Graph API v25.0, configurable through `META_GRAPH_API_VERSION`.
+
+
+## Complete text and uncropped photographs
+
+Editorial briefs retain the full narrated passage. The renderer divides it into
+short, fitted pages, changing pages at word timestamps when available. No text is
+silently discarded after eighteen words. Landscape and portrait layouts reserve
+separate areas for the copy, illustrations, footer and spoken captions.
+
+Photographs use a contained foreground over a blurred backdrop. The entire source
+stays visible throughout a gentle zoom that never exceeds its safe frame. This
+also applies to secondary photo badges and Short photo scenes. The backdrop may
+crop; the foreground does not crop faces or other source content.
+
+Narrated contract, trophy, calendar/retirement, injury recovery and passing terms
+can select original animated SVG illustrations. These are neutral explanations,
+not fabricated player reactions or reconstructions of match events. Unmatched
+passages retain a clean text treatment.

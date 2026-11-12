@@ -1,3 +1,5 @@
+import {FramedImage} from '../FramedImage';
+import type {CaptionWord} from '../SpokenCaptions';
 import {EditorialGraphic, GraphicBrief} from './EditorialGraphic';
 import React, { useMemo } from 'react';
 import { AbsoluteFill, Img, Video, interpolate, staticFile, useCurrentFrame } from 'remotion';
@@ -102,13 +104,13 @@ const Kit: React.FC<{t:number}> = ({t}) => <g>
   <Label x={400} y={800}>FOOTBALL KIT / ILLUSTRATION</Label>
 </g>;
 
-export const ShortsScene: React.FC<{scene:ShortVisual; hook?:boolean; hookText?:string}> = ({scene,hook=false,hookText=''}) => {
+export const ShortsScene: React.FC<{scene:ShortVisual; hook?:boolean; hookText?:string; timing?:CaptionWord[]}> = ({scene,hook=false,hookText='',timing=[]}) => {
   const frame = useCurrentFrame();
   const progress = Math.min(1,frame/Math.max(1,scene.duration_frames));
   const t = .5-.5*Math.cos(progress*Math.PI*2);
   if (scene.kind === 'editorial' || scene.kind === 'unavailable') {
     const brief = scene.graphic || {layout:'statement',label:'THE STORY',headline:'',detail:scene.narration_snippet,focus:''};
-    return <EditorialGraphic brief={brief} durationInFrames={scene.duration_frames}/>;
+    return <EditorialGraphic brief={brief} durationInFrames={scene.duration_frames} timing={timing}/>;
   }
   const hasMedia = scene.kind==='media' && Boolean(scene.src);
   if (!hasMedia && (scene.kind!=='diagram' || !['contract','kit'].includes(scene.theme))) {
@@ -118,7 +120,7 @@ export const ShortsScene: React.FC<{scene:ShortVisual; hook?:boolean; hookText?:
     {hasMedia ? <>
       {/\.(mp4|mov|webm)$/i.test(scene.src)
         ? <Video src={staticFile(scene.src)} muted loop style={{width:'100%',height:'100%',objectFit:'cover'}}/>
-        : <Img src={staticFile(scene.src)} style={{width:'100%',height:'100%',objectFit:'cover',transform:`scale(${1+progress*.04})`}}/>}
+        : <FramedImage src={scene.src} durationInFrames={scene.duration_frames}/>}
       <AbsoluteFill style={{background:'linear-gradient(#04131bd9 0%,#04131b22 42%,#04131bd9 85%)'}}/>
       <div style={{position:'absolute',left:100,top:1380,color:'#a5c5bb',fontSize:24,fontFamily:'Barlow Condensed'}}>{scene.src.startsWith('card_') ? 'MATCH DATA GRAPHIC' : 'ILLUSTRATIVE FOOTAGE'}</div>
     </> : <>

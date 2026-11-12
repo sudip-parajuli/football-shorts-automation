@@ -41,3 +41,26 @@ test('all nested documentary display fields are cleaned without mutating sources
   assert.deepEqual(output.quiz.options, ['Messi', 'Ronaldo']);
   assert.equal(input.chapters[0].chapter_title, '**A career**');
 });
+const pagesFilename=path.join(__dirname,'../src/editorialPages.ts');
+const pagesModule=new Module(pagesFilename,module);
+pagesModule._compile(ts.transpileModule(fs.readFileSync(pagesFilename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,pagesFilename);
+test('editorial pages keep every word after the old eighteen-word cutoff and follow narration',()=>{
+  const text='The player reviewed the contract carefully before explaining why the final decision would depend on his family and the next stage of his career rather than the size of the offer.';
+  const timing=text.split(' ').map((word,index)=>({word,start:index*.7,duration:.7}));
+  const pages=pagesModule.exports.editorialPages(text,25,timing);
+  assert.equal(pages.map(page=>page.text).join(' '),text);
+  assert.equal(pages[1].start,timing[14].start);
+  for(const page of pages){
+    for(const [width,height] of [[830,410],[1040,330]]){
+      const fitted=layoutModule.exports.fitHeadline(page.text,width,height,(value,size)=>value.length*size*.65,88);
+      assert.ok(fitted.lines.every(line=>line.length*fitted.fontSize*.65<=width));
+      assert.ok(fitted.lines.length*fitted.fontSize*1.12<=height);
+    }
+  }
+});
+test('editorial fallback pages preserve all sentences without word marks',()=>{
+  const text='The first sentence is complete. The second sentence remains visible until the next narrated point.';
+  const pages=pagesModule.exports.editorialPages(text,12);
+  assert.equal(pages.map(page=>page.text).join(' '),text);
+  assert.ok(pages[1].start>0);
+});

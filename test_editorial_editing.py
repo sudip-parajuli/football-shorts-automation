@@ -26,6 +26,14 @@ class EditorialEditingTests(unittest.TestCase):
                 self.assertIn(graphic['focus'], text)
         self.assertEqual(graphic_brief('The board will decide after the vote.')['layout'], 'decision')
 
+    def test_complete_sentences_and_contextual_motifs_are_preserved(self):
+        text = 'The player reviewed the contract carefully before explaining why the final decision would depend on his family and the next stage of his career rather than the size of the offer.'
+        self.assertEqual(graphic_brief(text)['detail'], text)
+        self.assertEqual(graphic_brief(text)['motif'], 'contract')
+        self.assertEqual(graphic_brief('The board has not announced the decision.')['motif'], '')
+        self.assertEqual(graphic_brief('The team lifted the trophy.')['motif'], 'trophy')
+        self.assertEqual(graphic_brief('Recovery from injury took time.')['motif'], 'recovery')
+
     def test_no_photo_plan_is_complete_and_does_not_invent_diagrams(self):
         scenes, _, _ = plan_visual_beats('The board discussed the coach. No final decision has been announced. Reports describe talks about the next steps.', [], 12)
         self.assertTrue(all(scene['kind']=='editorial' for scene in scenes))

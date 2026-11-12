@@ -112,6 +112,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
           const scenes = chapter.visual_scenes;
           const transitionChildren: React.ReactNode[] = [];
 
+          let sceneStart=0;
           for (let i = 0; i < scenes.length; i++) {
             const scene = scenes[i];
             const sceneDuration = scene.duration_frames;
@@ -130,7 +131,8 @@ export const MainVideo: React.FC<MainVideoProps> = ({
 
             // ── Scene type routing ────────────────────────────────────────
             if (scene.visual_type === 'editorial_graphic' && scene.graphic) {
-              sceneComponent = <EditorialGraphic brief={scene.graphic} durationInFrames={sceneDuration}/>;
+              const timing=chapter.timing?.filter(word=>word.start>=sceneStart/fps && word.start<(sceneStart+sceneDuration)/fps).map(word=>({...word,start:word.start-sceneStart/fps}));
+              sceneComponent = <EditorialGraphic brief={scene.graphic} durationInFrames={sceneDuration} timing={timing}/>;
             } else if (scene.visual_type === 'typewriter_text') {
               sceneComponent = (
                 <TypewriterScene
@@ -218,6 +220,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
               );
             }
 
+            sceneStart+=sceneDuration;
             // Hard cuts preserve the exact narration timeline. TransitionSeries
             // overlaps shorten coverage and used to leave the end of chapters blank.
 
