@@ -601,5 +601,129 @@
     },
     "facebook_pending": {},
     "instagram_skipped": "Facebook text-only post; Instagram requires an image"
+  },
+  "2026-11-13": {
+    "plan": {
+      "slot": "2026-11-13",
+      "topic": "Liverpool 2005 Champions League final comeback",
+      "category": "matches",
+      "format": "photo",
+      "title": "Liverpool's Istanbul Final: A Monumental Challenge",
+      "caption": "Could Liverpool really come back from three goals down?\n\nThe 2005 Champions League final was a monumental match. Italy's Milan faced England's Liverpool in Istanbul. This was Europe's primary club football competition.\n\nThe Atat\u00fcrk Olympic Stadium hosted this showpiece event on 25 May 2005. Both clubs had a long journey, playing twelve matches to reach the final stage.\n\nLiverpool, a four-time winner, was in their sixth final, their first since 1985. Milan, with six wins, appeared in their tenth final overall.\n\nLiverpool finished second in their group stage, behind the 2004 runners-up. They progressed through knockout rounds to reach this highly anticipated final.\n\nDid anyone truly believe Liverpool could achieve the impossible that night?\n\nSources: https://en.wikipedia.org/wiki/2005_UEFA_Champions_League_final\n\n#football #matchday #FootyBitez\n\nPhoto: \u0412\u0430\u043b\u0435\u0440\u0438\u0439 \u0414\u0435\u0434 / CC BY 3.0 / https://commons.wikimedia.org/wiki/File:Istanbul_Atat%C3%BCrk_Olympic_Stadium_1.jpg / https://creativecommons.org/licenses/by/3.0. Cropped with text overlay; entity photograph.",
+      "entities": [
+        "Milan",
+        "Liverpool",
+        "UEFA Champions League final",
+        "Atat\u00fcrk Olympic Stadium"
+      ],
+      "evidence": {
+        "title": "Liverpool's Istanbul Final: A Monumental Challenge",
+        "hook": "Could Liverpool really come back from three goals down?",
+        "primary_entity": "Liverpool",
+        "music_mood": "energetic",
+        "segments": [
+          {
+            "text": "The 2005 Champions League final was a monumental match. Italy's Milan faced England's Liverpool in Istanbul. This was Europe's primary club football competition.",
+            "visual_keyword": "2005 champions league final monumental match italy s milan faced football illustration",
+            "visual_entities": [
+              "Milan",
+              "Liverpool",
+              "UEFA Champions League final"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: The 2005 UEFA Champions League final was the final match of the 2004\u201305 UEFA Champions League, Europe's primary club football competition. The showpiece event was contested between Milan of Italy and Liverpool of England at the Atat\u00fcrk Olympic Stadium in Istanbul on 25 May 2005. Liverpool, who had won the competition four times, were appearing in their sixth final, and their first since 1985. Milan, who had won the competition six times, were appearing in their second final in three years and tenth overall.\nEach club needed to progress through the group stage and knockout rounds to reach the final, playing 12 matches in total. Liverpool finished second in their group behind 2004 runners-up M"
+            ],
+            "source_quote": "SUMMARY: The 2005 UEFA Champions League final was the final match of the 2004\u201305 UEFA Champions League, Europe's primary club football competition. The showpiece event was contested between Milan of Italy and Liverpool of England at the Atat\u00fcrk Olympic Stadium in Istanbul on 25 May 2005. Liverpool, who had won the competition four times, were appearing in their sixth final, and their first since 1985. Milan, who had won the competition six times, were appearing in their second final in three years and tenth overall.\nEach club needed to progress through the group stage and knockout rounds to reach the final, playing 12 matches in total. Liverpool finished second in their group behind 2004 runners-up M",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/2005_UEFA_Champions_League_final"
+            ]
+          },
+          {
+            "text": "The Atat\u00fcrk Olympic Stadium hosted this showpiece event on 25 May 2005. Both clubs had a long journey, playing twelve matches to reach the final stage.",
+            "visual_keyword": "Atat\u00fcrk Olympic Stadium 2005 final",
+            "visual_entities": [
+              "Atat\u00fcrk Olympic Stadium",
+              "Milan",
+              "Liverpool"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: The 2005 UEFA Champions League final was the final match of the 2004\u201305 UEFA Champions League, Europe's primary club football competition. The showpiece event was contested between Milan of Italy and Liverpool of England at the Atat\u00fcrk Olympic Stadium in Istanbul on 25 May 2005. Liverpool, who had won the competition four times, were appearing in their sixth final, and their first since 1985. Milan, who had won the competition six times, were appearing in their second final in three years and tenth overall.\nEach club needed to progress through the group stage and knockout rounds to reach the final, playing 12 matches in total. Liverpool finished second in their group behind 2004 runners-up M"
+            ],
+            "source_quote": "SUMMARY: The 2005 UEFA Champions League final was the final match of the 2004\u201305 UEFA Champions League, Europe's primary club football competition. The showpiece event was contested between Milan of Italy and Liverpool of England at the Atat\u00fcrk Olympic Stadium in Istanbul on 25 May 2005. Liverpool, who had won the competition four times, were appearing in their sixth final, and their first since 1985. Milan, who had won the competition six times, were appearing in their second final in three years and tenth overall.\nEach club needed to progress through the group stage and knockout rounds to reach the final, playing 12 matches in total. Liverpool finished second in their group behind 2004 runners-up M",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/2005_UEFA_Champions_League_final"
+            ]
+          },
+          {
+            "text": "Liverpool, a four-time winner, was in their sixth final, their first since 1985. Milan, with six wins, appeared in their tenth final overall.",
+            "visual_keyword": "liverpool four time winner sixth final first since 1985 milan football illustration",
+            "visual_entities": [
+              "Liverpool",
+              "Milan"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: The 2005 UEFA Champions League final was the final match of the 2004\u201305 UEFA Champions League, Europe's primary club football competition. The showpiece event was contested between Milan of Italy and Liverpool of England at the Atat\u00fcrk Olympic Stadium in Istanbul on 25 May 2005. Liverpool, who had won the competition four times, were appearing in their sixth final, and their first since 1985. Milan, who had won the competition six times, were appearing in their second final in three years and tenth overall.\nEach club needed to progress through the group stage and knockout rounds to reach the final, playing 12 matches in total. Liverpool finished second in their group behind 2004 runners-up M"
+            ],
+            "source_quote": "SUMMARY: The 2005 UEFA Champions League final was the final match of the 2004\u201305 UEFA Champions League, Europe's primary club football competition. The showpiece event was contested between Milan of Italy and Liverpool of England at the Atat\u00fcrk Olympic Stadium in Istanbul on 25 May 2005. Liverpool, who had won the competition four times, were appearing in their sixth final, and their first since 1985. Milan, who had won the competition six times, were appearing in their second final in three years and tenth overall.\nEach club needed to progress through the group stage and knockout rounds to reach the final, playing 12 matches in total. Liverpool finished second in their group behind 2004 runners-up M",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/2005_UEFA_Champions_League_final"
+            ]
+          },
+          {
+            "text": "Liverpool finished second in their group stage, behind the 2004 runners-up. They progressed through knockout rounds to reach this highly anticipated final.",
+            "visual_keyword": "liverpool finished second group stage behind 2004 runners up progressed football illustration",
+            "visual_entities": [
+              "Liverpool"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: The 2005 UEFA Champions League final was the final match of the 2004\u201305 UEFA Champions League, Europe's primary club football competition. The showpiece event was contested between Milan of Italy and Liverpool of England at the Atat\u00fcrk Olympic Stadium in Istanbul on 25 May 2005. Liverpool, who had won the competition four times, were appearing in their sixth final, and their first since 1985. Milan, who had won the competition six times, were appearing in their second final in three years and tenth overall.\nEach club needed to progress through the group stage and knockout rounds to reach the final, playing 12 matches in total. Liverpool finished second in their group behind 2004 runners-up M"
+            ],
+            "source_quote": "SUMMARY: The 2005 UEFA Champions League final was the final match of the 2004\u201305 UEFA Champions League, Europe's primary club football competition. The showpiece event was contested between Milan of Italy and Liverpool of England at the Atat\u00fcrk Olympic Stadium in Istanbul on 25 May 2005. Liverpool, who had won the competition four times, were appearing in their sixth final, and their first since 1985. Milan, who had won the competition six times, were appearing in their second final in three years and tenth overall.\nEach club needed to progress through the group stage and knockout rounds to reach the final, playing 12 matches in total. Liverpool finished second in their group behind 2004 runners-up M",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/2005_UEFA_Champions_League_final"
+            ]
+          }
+        ],
+        "outro": "Did anyone truly believe Liverpool could achieve the impossible that night?",
+        "full_text": "Could Liverpool really come back from three goals down? The 2005 Champions League final was a monumental match. Italy's Milan faced England's Liverpool in Istanbul. This was Europe's primary club football competition. The Atat\u00fcrk Olympic Stadium hosted this showpiece event on 25 May 2005. Both clubs had a long journey, playing twelve matches to reach the final stage. Liverpool, a four-time winner, was in their sixth final, their first since 1985. Milan, with six wins, appeared in their tenth final overall. Liverpool finished second in their group stage, behind the 2004 runners-up. They progressed through knockout rounds to reach this highly anticipated final. Did anyone truly believe Liverpool could achieve the impossible that night?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: The 2005 UEFA Champions League final was the final match of the 2004\u201305 UEFA Champions League, Europe's primary club football competition. The showpiece event was contested between Milan of Italy and Liverpool of England at the Atat\u00fcrk Olympic Stadium in Istanbul on 25 May 2005. Liverpool, who had won the competition four times, were appearing in their sixth final, and their first since 1985. Milan, who had won the competition six times, were appearing in their second final in three years and tenth overall.\nEach club needed to progress through the group stage and knockout rounds to reach the final, playing 12 matches in total. Liverpool finished second in their group behind 2004 runners-up M",
+            "url": "https://en.wikipedia.org/wiki/2005_UEFA_Champions_League_final"
+          }
+        ],
+        "research_context": "ENTITY: 2005 UEFA Champions League final\nSOURCE URL: https://en.wikipedia.org/wiki/2005_UEFA_Champions_League_final\nSUMMARY: The 2005 UEFA Champions League final was the final match of the 2004\u201305 UEFA Champions League, Europe's primary club football competition. The showpiece event was contested between Milan of Italy and Liverpool of England at the Atat\u00fcrk Olympic Stadium in Istanbul on 25 May 2005. Liverpool, who had won the competition four times, were appearing in their sixth final, and their first since 1985. Milan, who had won the competition six times, were appearing in their second final in three years and tenth overall.\nEach club needed to progress through the group stage and knockout rounds to reach the final, playing 12 matches in total. Liverpool finished second in their group behind 2004 runners-up M"
+      },
+      "image_path": "footybitez/output/social_posts/post.jpg",
+      "image_source": {
+        "source": "Wikipedia primary entity image",
+        "subject": "Atat\u00fcrk Olympic Stadium",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Istanbul_Atat%C3%BCrk_Olympic_Stadium_1.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=original",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Istanbul_Atat%C3%BCrk_Olympic_Stadium_1.jpg",
+        "license": "CC BY 3.0",
+        "license_url": "https://creativecommons.org/licenses/by/3.0",
+        "creator": "\u0412\u0430\u043b\u0435\u0440\u0438\u0439 \u0414\u0435\u0434",
+        "verification": "exact football article identity; entity portrait, not match footage"
+      }
+    },
+    "facebook": {
+      "1098623579997373": "122119712120340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18124157372062407",
+    "instagram_id": "18145198834716188"
   }
 }
