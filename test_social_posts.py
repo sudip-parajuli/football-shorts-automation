@@ -1,3 +1,5 @@
+import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -129,6 +131,40 @@ class SocialPostTests(unittest.TestCase):
         get.return_value.json.return_value={'matches':[{'utcDate':'2026-11-06T08:00:00Z','status':'SCHEDULED','score':{'fullTime':{'home':None,'away':None}}}]}
         with self.assertRaises(RuntimeError):
             verified_result(datetime(2026,11,6,12,tzinfo=timezone.utc))
+
+    @patch.dict('os.environ',{'FOOTBALL_DATA_API_KEY':'test'})
+    @patch('footybitez.social_post_main.requests.get')
+    def test_no_result_is_a_clean_cli_skip_without_publishing_or_claiming(self,get):
+        from footybitez.social_post_main import main
+        get.return_value.json.return_value={'matches':[]}
+        with tempfile.TemporaryDirectory() as folder:
+            previous=os.getcwd()
+            try:
+                os.chdir(folder)
+                output=Path(folder)/'github-output.txt'
+                summary=Path(folder)/'summary.md'
+                with patch.dict('os.environ',{'GITHUB_OUTPUT':str(output),'GITHUB_STEP_SUMMARY':str(summary)}), patch('sys.argv',['social-post','--category','results','--publish']), patch('footybitez.content.history.ContentHistory') as history, patch('footybitez.social_post_main.publish_post') as publish:
+                    history.return_value.is_duplicate.return_value=False
+                    main()
+                    publish.assert_not_called()
+                    history.return_value.claim.assert_not_called()
+                report=json.loads(Path('footybitez/output/social_posts/run-status.json').read_text())
+                self.assertEqual(report['status'],'skipped')
+                self.assertIn('skipped=true',output.read_text())
+                self.assertIn('Nothing was published',summary.read_text())
+                self.assertFalse(Path('footybitez/data/social_posts_state.json').exists())
+            finally:
+                os.chdir(previous)
+
+    @patch.dict('os.environ',{'FOOTBALL_DATA_API_KEY':'test'})
+    @patch('footybitez.social_post_main.requests.get')
+    def test_result_api_failure_is_not_hidden_as_an_empty_match_day(self,get):
+        import requests
+        from footybitez.social_post_main import NoVerifiedResult
+        get.return_value.raise_for_status.side_effect=requests.HTTPError('HTTP 401')
+        with self.assertRaises(requests.HTTPError):
+            verified_result(datetime(2026,11,6,12,tzinfo=timezone.utc))
+        self.assertFalse(issubclass(requests.HTTPError,NoVerifiedResult))
 
 
 if __name__=='__main__': unittest.main()

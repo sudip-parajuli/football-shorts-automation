@@ -19,6 +19,22 @@ TOPICS = {
 }
 
 
+class NoVerifiedResult(RuntimeError):
+    """The source responded successfully but has no eligible recent result."""
+
+
+def record_skipped_result(out, reason):
+    report = {'status':'skipped', 'category':'results', 'reason':str(reason)}
+    (out/'run-status.json').write_text(json.dumps(report, indent=2), encoding='utf-8')
+    logging.info('Result post skipped: %s', reason)
+    if os.getenv('GITHUB_OUTPUT'):
+        with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as target:
+            target.write('skipped=true\n')
+    if os.getenv('GITHUB_STEP_SUMMARY'):
+        with open(os.environ['GITHUB_STEP_SUMMARY'], 'a', encoding='utf-8') as target:
+            target.write('\nFootball result post skipped: no verified finished match from the last 24 hours. Nothing was published.\n')
+
+
 def result_headline(match):
     home,away=match['homeTeam']['name'],match['awayTeam']['name']
     score=match['score']['fullTime']
@@ -52,7 +68,7 @@ def verified_result(now=None):
         if match.get('status')=='FINISHED' and timedelta(0)<=now-kickoff<=timedelta(hours=24) and all(type(score.get(k)) is int for k in ('home','away')):
             candidates.append(match)
     if not candidates:
-        raise RuntimeError('No verified finished match from the last 24 hours; skipping result post')
+        raise NoVerifiedResult('No verified finished match from the last 24 hours')
     match=sorted(candidates,key=lambda m:m['utcDate'],reverse=True)[0]
     home,away=match['homeTeam']['name'],match['awayTeam']['name']
     title=result_headline(match)
@@ -71,6 +87,7 @@ def main():
     history = ContentHistory() if args.publish else None
     day=datetime.now(timezone.utc).date()
     out=Path('footybitez/output/social_posts'); out.mkdir(parents=True,exist_ok=True)
+    (out/'run-status.json').unlink(missing_ok=True)
     state_path=Path('footybitez/data/social_posts_state.json')
     state=json.loads(state_path.read_text(encoding='utf-8')) if state_path.exists() else {}
     # One durable daily slot prevents a manual retry from posting a second topic.
@@ -95,7 +112,11 @@ def main():
             logging.info('Topic already used. Skipping %s',topic)
             return
         if category=='results':
-            title,caption,entities,evidence=verified_result()
+            try:
+                title,caption,entities,evidence=verified_result()
+            except NoVerifiedResult as reason:
+                record_skipped_result(out, reason)
+                return
             topic = title + " | " + evidence["utcDate"][:10]
         else:
             from footybitez.content.script_generator import ScriptGenerator

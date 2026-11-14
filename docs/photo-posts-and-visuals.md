@@ -69,3 +69,10 @@ documented Barcelona badge. Add verified athletes/teams/competitions there with
 their name, type, ID, imageVersion and verification source. Athlete IDs must not
 come from another provider or a language model. Public image access is separate
 from the authenticated name-search API and underlying image rights.
+
+
+When the results category has no verified finished match from the previous 24
+hours, the workflow exits successfully without publishing. The run summary and
+`run-status.json` artifact explain the skip. It does not substitute an old score,
+invent a result, or consume the daily publication slot. Missing API credentials
+and unsuccessful API requests remain errors.
