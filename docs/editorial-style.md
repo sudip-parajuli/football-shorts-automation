@@ -137,3 +137,28 @@ Narrated contract, trophy, calendar/retirement, injury recovery and passing term
 can select original animated SVG illustrations. These are neutral explanations,
 not fabricated player reactions or reconstructions of match events. Unmatched
 passages retain a clean text treatment.
+
+
+## Open-ended narration SVG director
+
+The five built-in drawings are fallbacks, not the subject catalogue. Before
+rendering Shorts and documentaries, `SvgDirector` batches editorial passages and
+asks the existing Groq/Gemini providers for original illustrations of the objects,
+settings, relationships or mechanisms actually narrated. New subjects require no
+new React component or keyword entry. Matching real photographs stay in use.
+
+Each generated drawing must cite a contiguous subject phrase from its passage.
+The validator permits only bounded geometric SVG primitives; it rejects scripts,
+links, external assets, embedded text, styling and executable SVG elements. The
+renderer loads accepted geometry as an inert image and supplies draw, float or
+pulse motion. The authored narration supplies factual text and numbers separately.
+Illustration relevance still depends on the model; inspect the visual-plan and
+preview artifacts rather than treating structural validation as a factual check.
+
+`svg-report.json` records eligible scenes, generated/cache hits, rejections and
+provider requests. Cache entries are revalidated before reuse. API errors and
+rejected drawings keep the existing clean graphic fallback and do not stop a
+video. `ENABLE_GENERATED_SVG=false` disables new generation. `SVG_MAX_REQUESTS`
+defaults to six provider calls per video (at most twelve); each batch contains up
+to four distinct passages. Existing API credentials are reused, so generation uses
+their normal quota. The cache is local to the runner and not committed to Git.

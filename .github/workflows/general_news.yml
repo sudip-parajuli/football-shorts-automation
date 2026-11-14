@@ -116,6 +116,7 @@ jobs:
         path: |
           footybitez/output/visual-gaps.json
           footybitez/output/visual-plan.json
+          footybitez/output/svg-report.json
           footybitez/output/render-props.json
 
     - name: Commit State File Updates

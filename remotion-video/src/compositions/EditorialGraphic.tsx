@@ -1,3 +1,4 @@
+import {GeneratedIllustration} from './GeneratedIllustration';
 import React, {useMemo} from 'react';
 import {AbsoluteFill, useCurrentFrame, useVideoConfig} from 'remotion';
 import {fitHeadline} from '../shortLayout';
@@ -7,7 +8,7 @@ import {ContextIllustration} from './ContextIllustration';
 import style from '../editorialStyle.json';
 export interface GraphicBrief {
   layout:string; label:string; headline:string; detail:string; focus:string;
-  actors?:string[]; status?:string; motif?:string;
+  actors?:string[]; status?:string; motif?:string; artwork?:{svg:string;anchor:string;motion:'draw'|'float'|'pulse'};
 }
 export const EditorialGraphic:React.FC<{brief:GraphicBrief;durationInFrames:number;timing?:CaptionWord[]}> = ({brief,durationInFrames,timing=[]}) => {
   const frame=useCurrentFrame();
@@ -21,7 +22,8 @@ export const EditorialGraphic:React.FC<{brief:GraphicBrief;durationInFrames:numb
   const foreground=number?style.ink:style.paper;
   const accent=number?style.numberAccent:style.accent;
   const motif=['contract','trophy','calendar','recovery','passing'].includes(brief.motif || '')?brief.motif:undefined;
-  const textWidth=portrait?830:motif?1040:1640;
+  const illustrated=Boolean(motif || brief.artwork);
+  const textWidth=portrait?830:illustrated?1040:1640;
   const textHeight=portrait?(number?410:570):(number?330:450);
   const measure=(text:string,size:number)=>{
     const context=typeof document==='undefined'?null:document.createElement('canvas').getContext('2d');
@@ -42,8 +44,8 @@ export const EditorialGraphic:React.FC<{brief:GraphicBrief;durationInFrames:numb
         {fitted.lines.map((line,index)=><div key={index} style={{whiteSpace:'pre-wrap'}}>{line}</div>)}
       </div>
     </div>
-    {motif && <div style={{position:'absolute',left:portrait?300:1250,top:portrait?1070:280,width:portrait?430:470,height:portrait?320:390}}>
-      <ContextIllustration motif={motif} frame={frame} accent={accent}/>
+    {illustrated && <div style={{position:'absolute',left:portrait?300:1250,top:portrait?1070:280,width:portrait?430:470,height:portrait?320:390}}>
+      {brief.artwork?<GeneratedIllustration artwork={brief.artwork} frame={frame} accent={accent}/>:<ContextIllustration motif={motif} frame={frame} accent={accent}/>}
     </div>}
     {decision && brief.status && <div style={{position:'absolute',left:100,top:portrait?1440:810,padding:'12px 22px',border:`2px solid ${accent}`,borderRadius:8,color:accent,fontSize:28,textTransform:'uppercase'}}>{brief.status}</div>}
     <div style={{position:'absolute',left:100,bottom:portrait?380:150,fontSize:24,letterSpacing:3,color:number?style.ink:style.muted}}>FOOTBALL EXPLAINED</div>

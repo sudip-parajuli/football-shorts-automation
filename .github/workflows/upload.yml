@@ -151,6 +151,7 @@ jobs:
           footybitez/output/remotion-render.log
           footybitez/output/render-props.json
           footybitez/output/visual-plan.json
+          footybitez/output/svg-report.json
           footybitez/output/visual-coverage.json
           footybitez/output/narration-report.json
           footybitez/output/visual-gaps.json

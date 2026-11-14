@@ -235,6 +235,11 @@ class RemotionVideoCreator:
 
             current_time += audio_duration
 
+        from footybitez.content.svg_director import SvgDirector
+        svg_report = SvgDirector().enrich([scene for segment in remotion_props['segments'] for scene in segment['visual_scenes']])
+        with open(os.path.join(self.output_dir, 'svg-report.json'), 'w', encoding='utf-8') as report:
+            json.dump(svg_report, report, indent=2)
+
         from footybitez.media.edit_audio import make_edit_sounds, plan_sound_cues
         sounds = make_edit_sounds(os.path.join(self.output_dir,'edit_sounds'))
         remotion_props['edit_sounds'] = {name:self._copy_to_public(path) for name,path in sounds.items()}

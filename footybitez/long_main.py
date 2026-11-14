@@ -425,6 +425,11 @@ def main():
         sounds = make_edit_sounds('remotion-video/public/assets/sounds')
         sound_effects = {'chapter': os.path.relpath(sounds['tick'],'remotion-video/public').replace('\\','/')}
 
+        from footybitez.content.svg_director import SvgDirector
+        svg_report = SvgDirector().enrich([scene for chapter in chapters_props for scene in chapter.get('visual_scenes', [])])
+        Path('remotion-video/output').mkdir(parents=True, exist_ok=True)
+        Path('remotion-video/output/svg-report.json').write_text(json.dumps(svg_report, indent=2), encoding='utf-8')
+
         props = {
             "chapters": chapters_props,
             "background_music": music_file,

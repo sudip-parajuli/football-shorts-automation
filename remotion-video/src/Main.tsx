@@ -22,7 +22,7 @@ export const SegmentSchema = z.object({
   visual_scenes: z.array(z.object({
     from_frame:z.number(), duration_frames:z.number(), headline:z.string(), narration_snippet:z.string(),
     theme:z.string(), src:z.string(), kind:z.string(),
-    graphic:z.object({motif:z.string().optional(),layout:z.string(),label:z.string(),headline:z.string(),detail:z.string(),focus:z.string(),actors:z.array(z.string()).optional(),status:z.string().optional()}).nullable().optional(),
+    graphic:z.object({artwork:z.object({svg:z.string(),anchor:z.string(),motion:z.enum(['draw','float','pulse'])}).optional(),motif:z.string().optional(),layout:z.string(),label:z.string(),headline:z.string(),detail:z.string(),focus:z.string(),actors:z.array(z.string()).optional(),status:z.string().optional()}).nullable().optional(),
   })).optional(),
 });
 
