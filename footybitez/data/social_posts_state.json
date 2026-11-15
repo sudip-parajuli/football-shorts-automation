@@ -725,5 +725,129 @@
     "facebook_pending": {},
     "instagram_container_id": "18124157372062407",
     "instagram_id": "18145198834716188"
+  },
+  "2026-11-15": {
+    "plan": {
+      "slot": "2026-11-15",
+      "topic": "Lionel Messi early years at Barcelona",
+      "category": "players",
+      "format": "photo",
+      "title": "Lionel Messi's Unforgettable Barcelona Youth Years",
+      "caption": "How did a young Lionel Messi rise to global football stardom at Barcelona?\n\nRemember when Lionel Messi first burst onto the scene? His incredible journey at Barcelona truly began in their youth ranks. He wasn't just good; he quickly rose through the system. Messi made his first-team debut for the club back in 2004, a moment that changed everything.\n\nFrom that moment, he became an unstoppable force. Messi didn't just play; he became Barcelona's all-time top scorer. His individual brilliance was clear for all to see, setting him apart.\n\nTogether, they dominated European football for years. Barcelona secured ten La Liga titles with him leading the charge. They also lifted four UEFA Champions Leagues, a truly remarkable feat. Plus, seven Copa del Reys were added to the cabinet.\n\nHis time at Barcelona was simply legendary. Messi's individual achievements include eight Ballon d'Or awards. He's also the most decorated player in history, with 47 team trophies overall.\n\nSources: https://en.wikipedia.org/wiki/Career_of_Lionel_Messi\n\n#football #footballplayers #FootyBitez\n\nPhoto: Bryan Berlin / CC BY-SA 4.0 / https://commons.wikimedia.org/wiki/File:Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg / https://creativecommons.org/licenses/by-sa/4.0. Cropped with text overlay; entity photograph.",
+      "entities": [
+        "Lionel Messi",
+        "Barcelona",
+        "La Liga",
+        "Ballon d'Or"
+      ],
+      "evidence": {
+        "title": "Lionel Messi's Unforgettable Barcelona Youth Years",
+        "hook": "How did a young Lionel Messi rise to global football stardom at Barcelona?",
+        "primary_entity": "Lionel Messi",
+        "music_mood": "reflective",
+        "segments": [
+          {
+            "text": "Remember when Lionel Messi first burst onto the scene? His incredible journey at Barcelona truly began in their youth ranks. He wasn't just good; he quickly rose through the system. Messi made his first-team debut for the club back in 2004, a moment that changed everything.",
+            "visual_keyword": "remember when lionel messi first burst onto scene his incredible football illustration",
+            "visual_entities": [
+              "Lionel Messi",
+              "Barcelona"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Lionel Messi is an Argentine professional footballer who plays as a forward for and captains the Major League Soccer club Inter Miami. His individual achievements include eight Ballon d'Or awards, the most for any footballer. With 47 team trophies, he is the most decorated player in the history of professional football.\nMessi's club career began with Barcelona, where he rose through the youth ranks, making his first-team debut in 2004. During his tenure, Barcelona secured ten La Liga titles, seven Copa del Reys, four UEFA Champions Leagues, seven Supercopa de Espa\u00f1as, three UEFA Super Cups, and three FIFA Club World Cups, and Messi became the club's all-time top scorer. In 2021, due to club"
+            ],
+            "source_quote": "SUMMARY: Lionel Messi is an Argentine professional footballer who plays as a forward for and captains the Major League Soccer club Inter Miami. His individual achievements include eight Ballon d'Or awards, the most for any footballer. With 47 team trophies, he is the most decorated player in the history of professional football.\nMessi's club career began with Barcelona, where he rose through the youth ranks, making his first-team debut in 2004. During his tenure, Barcelona secured ten La Liga titles, seven Copa del Reys, four UEFA Champions Leagues, seven Supercopa de Espa\u00f1as, three UEFA Super Cups, and three FIFA Club World Cups, and Messi became the club's all-time top scorer. In 2021, due to club",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Career_of_Lionel_Messi"
+            ]
+          },
+          {
+            "text": "From that moment, he became an unstoppable force. Messi didn't just play; he became Barcelona's all-time top scorer. His individual brilliance was clear for all to see, setting him apart.",
+            "visual_keyword": "moment he became unstoppable force messi didn t just play football illustration",
+            "visual_entities": [
+              "Lionel Messi",
+              "Barcelona"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Lionel Messi is an Argentine professional footballer who plays as a forward for and captains the Major League Soccer club Inter Miami. His individual achievements include eight Ballon d'Or awards, the most for any footballer. With 47 team trophies, he is the most decorated player in the history of professional football.\nMessi's club career began with Barcelona, where he rose through the youth ranks, making his first-team debut in 2004. During his tenure, Barcelona secured ten La Liga titles, seven Copa del Reys, four UEFA Champions Leagues, seven Supercopa de Espa\u00f1as, three UEFA Super Cups, and three FIFA Club World Cups, and Messi became the club's all-time top scorer. In 2021, due to club"
+            ],
+            "source_quote": "SUMMARY: Lionel Messi is an Argentine professional footballer who plays as a forward for and captains the Major League Soccer club Inter Miami. His individual achievements include eight Ballon d'Or awards, the most for any footballer. With 47 team trophies, he is the most decorated player in the history of professional football.\nMessi's club career began with Barcelona, where he rose through the youth ranks, making his first-team debut in 2004. During his tenure, Barcelona secured ten La Liga titles, seven Copa del Reys, four UEFA Champions Leagues, seven Supercopa de Espa\u00f1as, three UEFA Super Cups, and three FIFA Club World Cups, and Messi became the club's all-time top scorer. In 2021, due to club",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Career_of_Lionel_Messi"
+            ]
+          },
+          {
+            "text": "Together, they dominated European football for years. Barcelona secured ten La Liga titles with him leading the charge. They also lifted four UEFA Champions Leagues, a truly remarkable feat. Plus, seven Copa del Reys were added to the cabinet.",
+            "visual_keyword": "together dominated european football years barcelona secured ten la liga football illustration",
+            "visual_entities": [
+              "Barcelona",
+              "Lionel Messi",
+              "La Liga"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Lionel Messi is an Argentine professional footballer who plays as a forward for and captains the Major League Soccer club Inter Miami. His individual achievements include eight Ballon d'Or awards, the most for any footballer. With 47 team trophies, he is the most decorated player in the history of professional football.\nMessi's club career began with Barcelona, where he rose through the youth ranks, making his first-team debut in 2004. During his tenure, Barcelona secured ten La Liga titles, seven Copa del Reys, four UEFA Champions Leagues, seven Supercopa de Espa\u00f1as, three UEFA Super Cups, and three FIFA Club World Cups, and Messi became the club's all-time top scorer. In 2021, due to club"
+            ],
+            "source_quote": "SUMMARY: Lionel Messi is an Argentine professional footballer who plays as a forward for and captains the Major League Soccer club Inter Miami. His individual achievements include eight Ballon d'Or awards, the most for any footballer. With 47 team trophies, he is the most decorated player in the history of professional football.\nMessi's club career began with Barcelona, where he rose through the youth ranks, making his first-team debut in 2004. During his tenure, Barcelona secured ten La Liga titles, seven Copa del Reys, four UEFA Champions Leagues, seven Supercopa de Espa\u00f1as, three UEFA Super Cups, and three FIFA Club World Cups, and Messi became the club's all-time top scorer. In 2021, due to club",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Career_of_Lionel_Messi"
+            ]
+          },
+          {
+            "text": "His time at Barcelona was simply legendary. Messi's individual achievements include eight Ballon d'Or awards. He's also the most decorated player in history, with 47 team trophies overall.",
+            "visual_keyword": "Messi individual and team trophies",
+            "visual_entities": [
+              "Lionel Messi",
+              "Ballon d'Or"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Lionel Messi is an Argentine professional footballer who plays as a forward for and captains the Major League Soccer club Inter Miami. His individual achievements include eight Ballon d'Or awards, the most for any footballer. With 47 team trophies, he is the most decorated player in the history of professional football.\nMessi's club career began with Barcelona, where he rose through the youth ranks, making his first-team debut in 2004. During his tenure, Barcelona secured ten La Liga titles, seven Copa del Reys, four UEFA Champions Leagues, seven Supercopa de Espa\u00f1as, three UEFA Super Cups, and three FIFA Club World Cups, and Messi became the club's all-time top scorer. In 2021, due to club"
+            ],
+            "source_quote": "SUMMARY: Lionel Messi is an Argentine professional footballer who plays as a forward for and captains the Major League Soccer club Inter Miami. His individual achievements include eight Ballon d'Or awards, the most for any footballer. With 47 team trophies, he is the most decorated player in the history of professional football.\nMessi's club career began with Barcelona, where he rose through the youth ranks, making his first-team debut in 2004. During his tenure, Barcelona secured ten La Liga titles, seven Copa del Reys, four UEFA Champions Leagues, seven Supercopa de Espa\u00f1as, three UEFA Super Cups, and three FIFA Club World Cups, and Messi became the club's all-time top scorer. In 2021, due to club",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Career_of_Lionel_Messi"
+            ]
+          }
+        ],
+        "outro": "What an era, truly defining a legend's path!",
+        "full_text": "How did a young Lionel Messi rise to global football stardom at Barcelona? Remember when Lionel Messi first burst onto the scene? His incredible journey at Barcelona truly began in their youth ranks. He wasn't just good; he quickly rose through the system. Messi made his first-team debut for the club back in 2004, a moment that changed everything. From that moment, he became an unstoppable force. Messi didn't just play; he became Barcelona's all-time top scorer. His individual brilliance was clear for all to see, setting him apart. Together, they dominated European football for years. Barcelona secured ten La Liga titles with him leading the charge. They also lifted four UEFA Champions Leagues, a truly remarkable feat. Plus, seven Copa del Reys were added to the cabinet. His time at Barcelona was simply legendary. Messi's individual achievements include eight Ballon d'Or awards. He's also the most decorated player in history, with 47 team trophies overall. What an era, truly defining a legend's path!",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: Lionel Messi is an Argentine professional footballer who plays as a forward for and captains the Major League Soccer club Inter Miami. His individual achievements include eight Ballon d'Or awards, the most for any footballer. With 47 team trophies, he is the most decorated player in the history of professional football.\nMessi's club career began with Barcelona, where he rose through the youth ranks, making his first-team debut in 2004. During his tenure, Barcelona secured ten La Liga titles, seven Copa del Reys, four UEFA Champions Leagues, seven Supercopa de Espa\u00f1as, three UEFA Super Cups, and three FIFA Club World Cups, and Messi became the club's all-time top scorer. In 2021, due to club",
+            "url": "https://en.wikipedia.org/wiki/Career_of_Lionel_Messi"
+          }
+        ],
+        "research_context": "ENTITY: Career of Lionel Messi\nSOURCE URL: https://en.wikipedia.org/wiki/Career_of_Lionel_Messi\nSUMMARY: Lionel Messi is an Argentine professional footballer who plays as a forward for and captains the Major League Soccer club Inter Miami. His individual achievements include eight Ballon d'Or awards, the most for any footballer. With 47 team trophies, he is the most decorated player in the history of professional football.\nMessi's club career began with Barcelona, where he rose through the youth ranks, making his first-team debut in 2004. During his tenure, Barcelona secured ten La Liga titles, seven Copa del Reys, four UEFA Champions Leagues, seven Supercopa de Espa\u00f1as, three UEFA Super Cups, and three FIFA Club World Cups, and Messi became the club's all-time top scorer. In 2021, due to club "
+      },
+      "image_path": "footybitez/output/social_posts/post.jpg",
+      "image_source": {
+        "source": "Wikipedia primary entity image",
+        "subject": "Lionel Messi",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=original",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "creator": "Bryan Berlin",
+        "verification": "exact football article identity; entity portrait, not match footage"
+      }
+    },
+    "facebook": {
+      "1098623579997373": "122119864328340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18124533929062407",
+    "instagram_id": "18016562696985685"
   }
 }
