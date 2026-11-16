@@ -849,5 +849,113 @@
     "facebook_pending": {},
     "instagram_container_id": "18124533929062407",
     "instagram_id": "18016562696985685"
+  },
+  "2026-11-16": {
+    "plan": {
+      "slot": "2026-11-16",
+      "topic": "Pep Guardiola positional play",
+      "category": "coaches",
+      "format": "text",
+      "title": "How Guardiola\u2019s Positional Play Shapes Modern Football",
+      "caption": "Why does every team copy Guardiola\u2019s spacing on the pitch?\n\nGuardiola built his game on a tight grid, players occupying specific zones to stretch defences.\n\nHe forces the ball into half\u2011spaces, pulling centre\u2011backs out of position and creating gaps.\n\nThe system relies on a deep\u2011lying midfielder to recycle possession, linking defence to attack.\n\nResult? teams win more duels, dominate possession and keep opponents guessing.\n\nWill any coach crack Guardiola\u2019s positional code without copying it?\n\nSources: https://en.wikipedia.org/wiki/Pep_Guardiola\n\n#football #footballtactics #FootyBitez",
+      "entities": [
+        "Pep Guardiola",
+        "Barcelona",
+        "Manchester City"
+      ],
+      "evidence": {
+        "title": "How Guardiola\u2019s Positional Play Shapes Modern Football",
+        "hook": "Why does every team copy Guardiola\u2019s spacing on the pitch?",
+        "primary_entity": "Pep Guardiola",
+        "music_mood": "energetic",
+        "segments": [
+          {
+            "text": "Guardiola built his game on a tight grid, players occupying specific zones to stretch defences.",
+            "visual_keyword": "guardiola built his game tight grid players occupying specific zones football illustration",
+            "visual_entities": [
+              "Pep Guardiola",
+              "Barcelona"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Josep \"Pep\" Guardiola Sala (Catalan: [\u02c8p\u025bb\u203f\u0261w\u0259\u027e\u00f0i\u02c8\u0254l\u0259]; born 18 January 1971) is a Catalan football manager and former player from Spain. He is the global ambassador of the City Football Group and was most recently manager of Premier League club Manchester City. Widely regarded as one of the greatest football managers in history, Guardiola is one of only two managers to have won the continental treble twice, and holds the record for the most consecutive league matches won in La Liga, Bundesliga, and the Premier League.\nA defensive midfielder who played in a deep-lying playmaker's role, Guardiola spent most of his career with Barcelona, forming part of Johan Cruyff's Dream Team that won the c"
+            ],
+            "source_quote": "SUMMARY: Josep \"Pep\" Guardiola Sala (Catalan: [\u02c8p\u025bb\u203f\u0261w\u0259\u027e\u00f0i\u02c8\u0254l\u0259]; born 18 January 1971) is a Catalan football manager and former player from Spain. He is the global ambassador of the City Football Group and was most recently manager of Premier League club Manchester City. Widely regarded as one of the greatest football managers in history, Guardiola is one of only two managers to have won the continental treble twice, and holds the record for the most consecutive league matches won in La Liga, Bundesliga, and the Premier League.\nA defensive midfielder who played in a deep-lying playmaker's role, Guardiola spent most of his career with Barcelona, forming part of Johan Cruyff's Dream Team that won the c",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Pep_Guardiola"
+            ]
+          },
+          {
+            "text": "He forces the ball into half\u2011spaces, pulling centre\u2011backs out of position and creating gaps.",
+            "visual_keyword": "he forces ball into half spaces pulling centre backs out football illustration",
+            "visual_entities": [
+              "Pep Guardiola",
+              "Manchester City"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Josep \"Pep\" Guardiola Sala (Catalan: [\u02c8p\u025bb\u203f\u0261w\u0259\u027e\u00f0i\u02c8\u0254l\u0259]; born 18 January 1971) is a Catalan football manager and former player from Spain. He is the global ambassador of the City Football Group and was most recently manager of Premier League club Manchester City. Widely regarded as one of the greatest football managers in history, Guardiola is one of only two managers to have won the continental treble twice, and holds the record for the most consecutive league matches won in La Liga, Bundesliga, and the Premier League.\nA defensive midfielder who played in a deep-lying playmaker's role, Guardiola spent most of his career with Barcelona, forming part of Johan Cruyff's Dream Team that won the c"
+            ],
+            "source_quote": "SUMMARY: Josep \"Pep\" Guardiola Sala (Catalan: [\u02c8p\u025bb\u203f\u0261w\u0259\u027e\u00f0i\u02c8\u0254l\u0259]; born 18 January 1971) is a Catalan football manager and former player from Spain. He is the global ambassador of the City Football Group and was most recently manager of Premier League club Manchester City. Widely regarded as one of the greatest football managers in history, Guardiola is one of only two managers to have won the continental treble twice, and holds the record for the most consecutive league matches won in La Liga, Bundesliga, and the Premier League.\nA defensive midfielder who played in a deep-lying playmaker's role, Guardiola spent most of his career with Barcelona, forming part of Johan Cruyff's Dream Team that won the c",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Pep_Guardiola"
+            ]
+          },
+          {
+            "text": "The system relies on a deep\u2011lying midfielder to recycle possession, linking defence to attack.",
+            "visual_keyword": "deep\u2011lying playmaker linking defence and attack",
+            "visual_entities": [
+              "Pep Guardiola"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Josep \"Pep\" Guardiola Sala (Catalan: [\u02c8p\u025bb\u203f\u0261w\u0259\u027e\u00f0i\u02c8\u0254l\u0259]; born 18 January 1971) is a Catalan football manager and former player from Spain. He is the global ambassador of the City Football Group and was most recently manager of Premier League club Manchester City. Widely regarded as one of the greatest football managers in history, Guardiola is one of only two managers to have won the continental treble twice, and holds the record for the most consecutive league matches won in La Liga, Bundesliga, and the Premier League.\nA defensive midfielder who played in a deep-lying playmaker's role, Guardiola spent most of his career with Barcelona, forming part of Johan Cruyff's Dream Team that won the c"
+            ],
+            "source_quote": "SUMMARY: Josep \"Pep\" Guardiola Sala (Catalan: [\u02c8p\u025bb\u203f\u0261w\u0259\u027e\u00f0i\u02c8\u0254l\u0259]; born 18 January 1971) is a Catalan football manager and former player from Spain. He is the global ambassador of the City Football Group and was most recently manager of Premier League club Manchester City. Widely regarded as one of the greatest football managers in history, Guardiola is one of only two managers to have won the continental treble twice, and holds the record for the most consecutive league matches won in La Liga, Bundesliga, and the Premier League.\nA defensive midfielder who played in a deep-lying playmaker's role, Guardiola spent most of his career with Barcelona, forming part of Johan Cruyff's Dream Team that won the c",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Pep_Guardiola"
+            ]
+          },
+          {
+            "text": "Result? teams win more duels, dominate possession and keep opponents guessing.",
+            "visual_keyword": "result teams win more duels dominate possession keep opponents guessing football illustration",
+            "visual_entities": [
+              "Manchester City"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Josep \"Pep\" Guardiola Sala (Catalan: [\u02c8p\u025bb\u203f\u0261w\u0259\u027e\u00f0i\u02c8\u0254l\u0259]; born 18 January 1971) is a Catalan football manager and former player from Spain. He is the global ambassador of the City Football Group and was most recently manager of Premier League club Manchester City. Widely regarded as one of the greatest football managers in history, Guardiola is one of only two managers to have won the continental treble twice, and holds the record for the most consecutive league matches won in La Liga, Bundesliga, and the Premier League.\nA defensive midfielder who played in a deep-lying playmaker's role, Guardiola spent most of his career with Barcelona, forming part of Johan Cruyff's Dream Team that won the c"
+            ],
+            "source_quote": "SUMMARY: Josep \"Pep\" Guardiola Sala (Catalan: [\u02c8p\u025bb\u203f\u0261w\u0259\u027e\u00f0i\u02c8\u0254l\u0259]; born 18 January 1971) is a Catalan football manager and former player from Spain. He is the global ambassador of the City Football Group and was most recently manager of Premier League club Manchester City. Widely regarded as one of the greatest football managers in history, Guardiola is one of only two managers to have won the continental treble twice, and holds the record for the most consecutive league matches won in La Liga, Bundesliga, and the Premier League.\nA defensive midfielder who played in a deep-lying playmaker's role, Guardiola spent most of his career with Barcelona, forming part of Johan Cruyff's Dream Team that won the c",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Pep_Guardiola"
+            ]
+          }
+        ],
+        "outro": "Will any coach crack Guardiola\u2019s positional code without copying it?",
+        "full_text": "Why does every team copy Guardiola\u2019s spacing on the pitch? Guardiola built his game on a tight grid, players occupying specific zones to stretch defences. He forces the ball into half\u2011spaces, pulling centre\u2011backs out of position and creating gaps. The system relies on a deep\u2011lying midfielder to recycle possession, linking defence to attack. Result? teams win more duels, dominate possession and keep opponents guessing. Will any coach crack Guardiola\u2019s positional code without copying it?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: Josep \"Pep\" Guardiola Sala (Catalan: [\u02c8p\u025bb\u203f\u0261w\u0259\u027e\u00f0i\u02c8\u0254l\u0259]; born 18 January 1971) is a Catalan football manager and former player from Spain. He is the global ambassador of the City Football Group and was most recently manager of Premier League club Manchester City. Widely regarded as one of the greatest football managers in history, Guardiola is one of only two managers to have won the continental treble twice, and holds the record for the most consecutive league matches won in La Liga, Bundesliga, and the Premier League.\nA defensive midfielder who played in a deep-lying playmaker's role, Guardiola spent most of his career with Barcelona, forming part of Johan Cruyff's Dream Team that won the c",
+            "url": "https://en.wikipedia.org/wiki/Pep_Guardiola"
+          }
+        ],
+        "research_context": "ENTITY: Pep Guardiola\nSOURCE URL: https://en.wikipedia.org/wiki/Pep_Guardiola\nSUMMARY: Josep \"Pep\" Guardiola Sala (Catalan: [\u02c8p\u025bb\u203f\u0261w\u0259\u027e\u00f0i\u02c8\u0254l\u0259]; born 18 January 1971) is a Catalan football manager and former player from Spain. He is the global ambassador of the City Football Group and was most recently manager of Premier League club Manchester City. Widely regarded as one of the greatest football managers in history, Guardiola is one of only two managers to have won the continental treble twice, and holds the record for the most consecutive league matches won in La Liga, Bundesliga, and the Premier League.\nA defensive midfielder who played in a deep-lying playmaker's role, Guardiola spent most of his career with Barcelona, forming part of Johan Cruyff's Dream Team that won the c"
+      }
+    },
+    "facebook": {
+      "1098623579997373": "1098623579997373_122119953338340601"
+    },
+    "facebook_pending": {},
+    "instagram_skipped": "Facebook text-only post; Instagram requires an image"
   }
 }
