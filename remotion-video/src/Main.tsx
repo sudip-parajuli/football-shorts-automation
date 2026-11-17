@@ -21,8 +21,8 @@ export const SegmentSchema = z.object({
   audio_path: z.string().optional(),
   visual_scenes: z.array(z.object({
     from_frame:z.number(), duration_frames:z.number(), headline:z.string(), narration_snippet:z.string(),
-    theme:z.string(), src:z.string(), kind:z.string(),
-    graphic:z.object({artwork:z.object({svg:z.string(),anchor:z.string(),motion:z.enum(['draw','float','pulse'])}).optional(),motif:z.string().optional(),layout:z.string(),label:z.string(),headline:z.string(),detail:z.string(),focus:z.string(),actors:z.array(z.string()).optional(),status:z.string().optional()}).nullable().optional(),
+    theme:z.string(), src:z.string(), kind:z.string(), photo_treatment:z.enum(['photo','archive','comparison']).optional(),
+    graphic:z.object({artwork:z.object({svg:z.string(),anchor:z.string(),motion:z.enum(['draw','float','pulse']),layers:z.array(z.object({svg:z.string(),anchor:z.string(),motion:z.enum(['draw','float','pulse'])})).max(4).optional()}).optional(),motif:z.string().optional(),layout:z.string(),label:z.string(),headline:z.string(),detail:z.string(),focus:z.string(),actors:z.array(z.string()).optional(),status:z.string().optional()}).nullable().optional(),
   })).optional(),
 });
 
@@ -54,7 +54,7 @@ export const Main: React.FC<MainProps> = (props) => {
       const frames=Math.max(1,Math.round(segment.duration*fps));
       const from=cumulative;cumulative+=frames;
       const fallback: ShortVisual = {from_frame:0,duration_frames:frames,headline:stripCaptionMarkup(segment.text).split(/\s+/).slice(0,5).join(' '),
-        narration_snippet:segment.text,theme:'',src:segment.media?.find(src=>!/(editorial_|placeholder)/.test(src)) || '',kind:'editorial',graphic:{layout:'statement',label:'THE STORY',headline:'',detail:stripCaptionMarkup(segment.text),focus:''}};
+        narration_snippet:segment.text,theme:'',src:segment.media?.find(src=>!/(editorial_|placeholder|card_(?:-?\d+|[a-f0-9]{16})\.(?:jpg|jpeg|png)$)/i.test(src)) || '',kind:'editorial',graphic:{layout:'statement',label:'THE STORY',headline:'',detail:stripCaptionMarkup(segment.text),focus:''}};
       if(fallback.src) fallback.kind='media';
       const scenes=segment.visual_scenes?.length ? segment.visual_scenes : [fallback];
       return <Sequence key={index} from={from} durationInFrames={frames}>

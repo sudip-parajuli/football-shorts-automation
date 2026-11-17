@@ -198,6 +198,11 @@ def _fetch_chapter_visuals(chapter: dict, job_id: str, media_sourcer: MediaSourc
                     if field in scene:
                         scene_prop[field] = scene[field]
 
+                from footybitez.content.staging import photo_treatment
+                scene_prop['photo_treatment'] = asset.get('photo_treatment') or photo_treatment(scene.get('narration_snippet',''))
+                if asset.get('secondary_asset_path'):
+                    scene_prop['secondary_asset_path'] = os.path.relpath(asset['secondary_asset_path'],'remotion-video/public').replace('\\','/')
+                    chapter_images.append(scene_prop['secondary_asset_path'])
                 asset_path = asset.get("asset_path")
                 needs_graphic = (not asset_path and scene['visual_type'] in ('image','image_tag','ai_image','ai_video','motion_graphic'))
                 if asset_path and os.path.basename(asset_path).startswith(('editorial_', 'placeholder')):
@@ -501,6 +506,8 @@ def main():
             
             from footybitez.video.preflight import inspect_video
             report = inspect_video("remotion-video/output/video.mp4")
+            from footybitez.video.visual_review import try_review_render
+            try_review_render('remotion-video/output/video.mp4','remotion-video/output/visual-review',props,report['duration_seconds'])
             with open("remotion-video/output/quality.json", "w", encoding="utf-8") as f:
                 json.dump({"script": script_data, "render": report}, f, indent=2)
 

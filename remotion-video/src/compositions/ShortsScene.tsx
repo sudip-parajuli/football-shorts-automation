@@ -1,3 +1,4 @@
+import {PaperPhotoStage} from './PaperPhotoStage';
 import {FramedImage} from '../FramedImage';
 import type {CaptionWord} from '../SpokenCaptions';
 import {EditorialGraphic, GraphicBrief} from './EditorialGraphic';
@@ -14,6 +15,7 @@ export interface ShortVisual {
   src: string;
   kind: string;
   graphic?: GraphicBrief | null;
+  photo_treatment?: 'photo'|'archive'|'comparison';
 }
 
 export const SafeHeadline: React.FC<{text: string; hook?: boolean}> = ({text, hook = false}) => {
@@ -108,7 +110,7 @@ export const ShortsScene: React.FC<{scene:ShortVisual; hook?:boolean; hookText?:
   const frame = useCurrentFrame();
   const progress = Math.min(1,frame/Math.max(1,scene.duration_frames));
   const t = .5-.5*Math.cos(progress*Math.PI*2);
-  if (scene.kind === 'editorial' || scene.kind === 'unavailable') {
+  if (scene.kind === 'editorial' || scene.kind === 'unavailable' || /(?:^|\/)card_(?:-?\d+|[a-f0-9]{16})\.(?:jpg|jpeg|png)$/i.test(scene.src)) {
     const brief = scene.graphic || {layout:'statement',label:'THE STORY',headline:'',detail:scene.narration_snippet,focus:''};
     return <EditorialGraphic brief={brief} durationInFrames={scene.duration_frames} timing={timing}/>;
   }
@@ -116,6 +118,7 @@ export const ShortsScene: React.FC<{scene:ShortVisual; hook?:boolean; hookText?:
   if (!hasMedia && (scene.kind!=='diagram' || !['contract','kit'].includes(scene.theme))) {
     throw new Error('Missing context-matching photo or supported explanatory diagram; unrelated filler is disabled');
   }
+  if (hasMedia && scene.photo_treatment==='archive' && !/\.(mp4|mov|webm)$/i.test(scene.src)) return <PaperPhotoStage sources={[scene.src]} durationInFrames={scene.duration_frames} caption={hook?hookText:scene.headline}/>;
   return <AbsoluteFill style={{background:'#0b2027',overflow:'hidden'}}>
     {hasMedia ? <>
       {/\.(mp4|mov|webm)$/i.test(scene.src)

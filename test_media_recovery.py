@@ -63,7 +63,9 @@ class RecoveryTests(unittest.TestCase):
         from footybitez.media.card_generator import _draw_text
         from unittest.mock import Mock
         draw = Mock()
-        _draw_text(draw, (10, 20), '**Juventus** vs *Milan*', fill='white')
+        draw._image.size=(1080,1920)
+        draw.textbbox.return_value=(100,200,400,230)
+        _draw_text(draw, (100, 200), '**Juventus** vs *Milan*', fill='white')
         self.assertEqual(draw.text.call_args.args[1], 'Juventus vs Milan')
 
     def test_unsupported_juventus_date_and_messi_query_rejected(self):

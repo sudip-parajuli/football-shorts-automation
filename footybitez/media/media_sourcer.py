@@ -1573,18 +1573,18 @@ class MediaSourcer:
             # Amber accent line at top
             draw.rectangle([0, 0, w, 8], fill=(245, 166, 35))
 
-            # Centered text
-            label = text.upper()[:40]
-            bbox = draw.textbbox((0, 0), label, font=font)
-            tw = bbox[2] - bbox[0]
-            tx = (w - tw) // 2
-            ty = h // 2 - 60
-            for ox in range(-4, 5):
-                for oy in range(-4, 5):
-                    draw.text((tx + ox, ty + oy), label, font=font, fill=(0, 0, 0))
-            draw.text((tx, ty), label, font=font, fill=(245, 166, 35))
-
-            fname = f"card_{hash(text)}.jpg"
+            # Legacy callers still receive a bounded card; never crop or discard words.
+            from footybitez.media.text_fit import fit_text_box
+            label = re.sub(r"[*_`]", "", str(text)).upper()
+            layout = fit_text_box(label, 840, 900, font_candidates, maximum=80)
+            y = (h-layout['height'])/2
+            for line in layout['lines']:
+                box = draw.textbbox((0,0),line,font=layout['font'])
+                x = (w-(box[2]-box[0]))/2-box[0]
+                draw.text((x,y-box[1]),line,font=layout['font'],fill=(245,166,35))
+                y += layout['line_height']
+            import hashlib
+            fname = 'card_' + hashlib.sha256(label.encode()).hexdigest()[:16] + '.jpg'
             fpath = os.path.join(self.download_dir, fname)
             os.makedirs(self.download_dir, exist_ok=True)
             img.save(fpath, "JPEG", quality=90)

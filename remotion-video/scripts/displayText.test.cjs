@@ -64,3 +64,19 @@ test('editorial fallback pages preserve all sentences without word marks',()=>{
   assert.equal(pages.map(page=>page.text).join(' '),text);
   assert.ok(pages[1].start>0);
 });
+const safetyFilename=path.join(__dirname,'../src/layoutSafety.ts');
+const safetyModule=new Module(safetyFilename,module);
+safetyModule._compile(ts.transpileModule(fs.readFileSync(safetyFilename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,safetyFilename);
+test('visible text crossing any canvas boundary is rejected',()=>{
+  const canvas={left:0,top:0,right:1080,bottom:1920};
+  assert.equal(safetyModule.exports.outside({left:100,top:200,right:900,bottom:400},canvas),false);
+  for(const rect of [{left:-10,top:200,right:900,bottom:400},{left:100,top:200,right:1100,bottom:400},{left:100,top:-20,right:900,bottom:400},{left:100,top:1800,right:900,bottom:2000}]) assert.equal(safetyModule.exports.outside(rect,canvas),true);
+});
+const artworkFilename=path.join(__dirname,'../src/artwork.ts');
+const artworkModule=new Module(artworkFilename,module);
+artworkModule._compile(ts.transpileModule(fs.readFileSync(artworkFilename,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,artworkFilename);
+test('illustration layers enter at spoken subjects and preserve a stable first layer',()=>{
+  const words=['The','stadium','expanded','its','seating','capacity.'].map((word,index)=>({word,start:index*.5,duration:.5}));
+  const layers=[{anchor:'stadium expanded'},{anchor:'seating capacity'}];
+  assert.deepEqual(artworkModule.exports.layerStartFrames(layers,words,24,144),[0,48]);
+});

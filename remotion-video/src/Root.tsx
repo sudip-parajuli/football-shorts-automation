@@ -1,7 +1,10 @@
+import {RenderSafety} from './RenderSafety';
 import { Composition, getInputProps } from 'remotion';
 import { MainVideo } from './compositions/MainVideo';
 import { MainVideoProps } from './types';
 import { Main } from './Main';
+const SafeMainVideo:React.FC<any>=(props)=><RenderSafety><MainVideo {...props}/></RenderSafety>;
+const SafeMain:React.FC<any>=(props)=><RenderSafety><Main {...props}/></RenderSafety>;
 import './style.css';
 
 export const RemotionRoot: React.FC = () => {
@@ -33,7 +36,7 @@ export const RemotionRoot: React.FC = () => {
     <>
       <Composition
         id="MainVideo"
-        component={MainVideo as any}
+        component={SafeMainVideo as any}
         durationInFrames={Math.max(1, totalDuration)}
         fps={24}
         width={1920}
@@ -46,7 +49,7 @@ export const RemotionRoot: React.FC = () => {
       />
       <Composition
         id="Main"
-        component={Main as any}
+        component={SafeMain as any}
         durationInFrames={Math.max(1, shortDuration)}
         fps={24}
         width={1080}

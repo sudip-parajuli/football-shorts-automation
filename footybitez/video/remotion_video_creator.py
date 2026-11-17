@@ -193,7 +193,8 @@ class RemotionVideoCreator:
                         if not isinstance(pool, list): pool = [pool]
                         media_files = [self._copy_to_public(p) for p in pool if p]
                 
-            media_files = [path for path in media_files if path and not os.path.basename(path).startswith(('editorial_','placeholder'))]
+            from footybitez.video.short_timeline import is_placeholder_asset
+            media_files = [path for path in media_files if path and not is_placeholder_asset(path)]
             if not media_files and chunk.get('index') is not None:
                 # Older news/match callers use broad visual queries. Recover
                 # actual named subjects using the same sourcing as daily Shorts.
@@ -318,6 +319,8 @@ class RemotionVideoCreator:
                 
             from footybitez.video.preflight import inspect_video
             report = inspect_video(output_abs_path)
+            from footybitez.video.visual_review import try_review_render
+            try_review_render(output_abs_path, os.path.join(self.output_dir,'visual-review'),remotion_props,report['duration_seconds'])
             with open(output_abs_path + ".quality.json", "w", encoding="utf-8") as f:
                 json.dump({"script": script_data, "media": visual_assets, "render": report}, f, indent=2)
             return output_abs_path

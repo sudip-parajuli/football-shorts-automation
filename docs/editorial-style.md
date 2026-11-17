@@ -162,3 +162,19 @@ video. `ENABLE_GENERATED_SVG=false` disables new generation. `SVG_MAX_REQUESTS`
 defaults to six provider calls per video (at most twelve); each batch contains up
 to four distinct passages. Existing API credentials are reused, so generation uses
 their normal quota. The cache is local to the runner and not committed to Git.
+
+
+## Staging and render safety update
+
+See [the editing-tool review](editing-tool-review.md) for the five supplied
+repositories and the native features implemented after reviewing them.
+Generated artwork can now carry two to four validated SVG components; their
+entrances follow narrated phrase timestamps. Archive passages can use complete
+photo-paper layouts. Verified two-subject documentary comparisons can use paired
+photos. No additional video-generation subscription or SDK is required.
+
+Typography waits for the bundled font. A browser check validates visible text
+against canvas/clipping bounds on each rendered frame and cancels unsafe renders.
+Legacy hash-named text cards are replaced by fitted narration graphics; raster
+match labels fit or raise before writing clipped text. Sampled visual-review
+contact sheets are included in Actions artifacts for additional human review.

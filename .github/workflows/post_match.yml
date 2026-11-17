@@ -118,5 +118,6 @@ jobs:
           path: |
             footybitez/output/final_short.mp4
             footybitez/output/visual-plan.json
+            footybitez/output/visual-review/
             footybitez/output/svg-report.json
             footybitez/output/visual-gaps.json

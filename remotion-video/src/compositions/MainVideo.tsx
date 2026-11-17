@@ -214,6 +214,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
                     named_entity={scene.named_entity}
                     caption={scene.caption}
                     secondary_asset_path={scene.secondary_asset_path}
+                    photo_treatment={scene.photo_treatment}
                   />
                   <CinematicBars />
                 </>

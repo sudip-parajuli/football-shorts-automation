@@ -1,3 +1,4 @@
+import {PaperPhotoStage} from './PaperPhotoStage';
 import {FramedImage} from '../FramedImage';
 import React from 'react';
 import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame, useVideoConfig } from 'remotion';
@@ -8,6 +9,7 @@ export interface ImageSceneProps {
   ken_burns_style?: string;
   named_entity?: { name: string; description: string };
   caption?: string;
+  photo_treatment?: 'photo'|'archive'|'comparison';
   secondary_asset_path?: string; // Optional corner overlay image
 }
 
@@ -75,6 +77,7 @@ export const ImageScene: React.FC<ImageSceneProps> = ({
   named_entity,
   caption,
   secondary_asset_path,
+  photo_treatment,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -84,6 +87,11 @@ export const ImageScene: React.FC<ImageSceneProps> = ({
 
   if (/(^|\/)editorial_/.test(cleanSrc)) {
     return <AbsoluteFill><Img src={staticFile(cleanSrc)} style={{ width: '100%', height: '100%', objectFit: 'contain' }} /></AbsoluteFill>;
+  }
+
+  if (photo_treatment==='archive' || photo_treatment==='comparison') {
+    const sources=[cleanSrc,...(photo_treatment==='comparison' && cleanSecondarySrc?[cleanSecondarySrc]:[])];
+    return <PaperPhotoStage sources={sources} durationInFrames={durationInFrames} caption={caption || named_entity?.name || ''}/>;
   }
 
   // Fade in over first 6 frames

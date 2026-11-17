@@ -64,6 +64,7 @@ export interface VisualScene {
   caption?: string;
 
   // collage: multiple images shown side-by-side (up to 3)
+  photo_treatment?: 'photo'|'archive'|'comparison';
   secondary_asset_path?: string;
 }
 

@@ -6,8 +6,20 @@ from PIL import Image, ImageDraw, ImageFont, ImageFilter
 logger = logging.getLogger(__name__)
 
 def _draw_text(draw, position, text, **kwargs):
-    # Match cards are also displayed as full-screen captions in event workflows.
-    return draw.text(position, re.sub(r"\\?\*", "", str(text)), **kwargs)
+    # Fail rather than encode clipped glyphs into an image where browser QA
+    # cannot inspect them. Long labels shrink only while remaining readable.
+    text=re.sub(r"\\?\*", "", str(text))
+    width,height=draw._image.size
+    font=kwargs.get('font')
+    while True:
+        bounds=draw.textbbox(position,text,font=font,anchor=kwargs.get('anchor'),stroke_width=kwargs.get('stroke_width',0))
+        if bounds[0]>=16 and bounds[1]>=16 and bounds[2]<=width-16 and bounds[3]<=height-16:
+            return draw.text(position,text,**kwargs)
+        size=getattr(font,'size',0)
+        if size<=18 or not hasattr(font,'font_variant'):
+            raise ValueError('Match-card text cannot fit inside its image bounds')
+        font=font.font_variant(size=max(18,size-2))
+        kwargs['font']=font
 
 
 # Color Palette

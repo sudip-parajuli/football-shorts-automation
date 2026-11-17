@@ -130,6 +130,7 @@ jobs:
         path: |
           remotion-video/output/video.mp4
           remotion-video/output/quality.json
+          remotion-video/output/visual-review/
           remotion-video/output/svg-report.json
           remotion-video/output/publication-results.json
           remotion-video/public/metadata.json

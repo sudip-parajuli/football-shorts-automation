@@ -8,7 +8,8 @@
     "start": "remotion studio src/index.ts",
     "build": "remotion render src/index.ts Main out/video.mp4",
     "typecheck": "tsc --noEmit",
-    "test:captions": "node --test scripts/displayText.test.cjs"
+    "test:captions": "node --test scripts/displayText.test.cjs",
+    "test:render-safety": "node scripts/checkRenderSafety.cjs"
   },
   "keywords": [],
   "author": "",
