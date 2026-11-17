@@ -8,6 +8,16 @@ on:
     - cron: '0 13 * * *'
   workflow_dispatch:
     inputs:
+      topic:
+        description: 'Optional specific topic, e.g. England vs Croatia UEFA Nations League (include match date)'
+        type: string
+        required: false
+        default: ''
+      category:
+        description: 'Optional angle for your topic, e.g. pre-match preview, post-match analysis, or explainer'
+        type: string
+        required: false
+        default: 'General'
       publish:
         description: 'Publish publicly to YouTube and social platforms (false creates a downloadable preview)'
         type: boolean
@@ -68,6 +78,8 @@ jobs:
     - name: Run Automation
       id: automation
       env:
+        SHORT_TOPIC: ${{ inputs.topic }}
+        SHORT_CATEGORY: ${{ inputs.category || 'General' }}
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
@@ -102,7 +114,7 @@ jobs:
       run: |
 
         export PYTHONPATH=$PYTHONPATH:.
-        python footybitez/main.py
+        python -m footybitez.main --topic "$SHORT_TOPIC" --category "$SHORT_CATEGORY"
 
     - name: Dump Python Logs (on Failure or Success)
       if: always()

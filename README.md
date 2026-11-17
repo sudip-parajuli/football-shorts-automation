@@ -4,6 +4,23 @@ A Python and Remotion system for creating football videos and coordinating
 scheduled publishing. It connects topic selection, AI-assisted scripting,
 narration, visual assets, captions, rendering and platform upload workflows.
 
+## Request a specific Short
+
+In GitHub **Actions → Daily YouTube Upload → Run workflow**, fill in **topic**
+(for example, `England vs Croatia UEFA Nations League — [match date]`) and optionally
+**category** (`pre-match preview`, `post-match analysis`, or `explainer`). Include
+an exact date or season for a particular fixture. Leave **publish** unchecked to
+render a downloadable preview; check it to publish. Leave **topic** empty for the
+normal automatic selection. Scheduled runs continue to select topics automatically.
+
+A custom request keeps your topic: research or editorial failure will not substitute
+an unrelated story. Publication still uses the shared duplicate-topic safeguards.
+For local previews, with uploads disabled:
+
+```sh
+python -m footybitez.main --topic "England vs Croatia UEFA Nations League — [match date]" --category "pre-match preview"
+```
+
 ## Engineering areas
 
 - Football topics and news-driven pre/post-match pipelines.

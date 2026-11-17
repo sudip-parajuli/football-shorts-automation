@@ -1,3 +1,4 @@
+import argparse
 import os
 import sys
 from PIL import Image
@@ -16,7 +17,7 @@ project_root = os.path.dirname(current_dir)
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from footybitez.content.history import DuplicateContent
+from footybitez.content.history import ContentHistory, DuplicateContent
 from footybitez.content.topic_generator import TopicGenerator
 from footybitez.content.script_generator import ScriptGenerator
 from footybitez.media.media_sourcer import MediaSourcer
@@ -37,7 +38,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def main():
+def main(argv=None):
+    parser=argparse.ArgumentParser(description='Create a football Short from a requested or automatically selected topic.')
+    parser.add_argument('--topic',default='',help='Specific football topic. Leave empty for automatic selection.')
+    parser.add_argument('--category',default='General',help='Editorial angle for a custom topic, e.g. pre-match preview or post-match analysis.')
+    args=parser.parse_args(argv)
+    requested_topic=' '.join(args.topic.split())
+    requested_category=' '.join(args.category.split()) or 'General'
     load_dotenv()
     
     try:
@@ -45,19 +52,27 @@ def main():
         require_media_tools()
         logger.info("Starting FootyBitez Automation...")
         
-        # 1-2. Select Topic & Generate Script (With Retry Logic)
+        publishing=any(os.getenv(name,'false').lower()=='true' for name in ('ENABLE_UPLOAD','ENABLE_SOCIAL_PUBLISHING'))
+        if requested_topic and publishing and ContentHistory().is_duplicate(requested_topic):
+            raise DuplicateContent(f'Requested topic has already been published: {requested_topic}')
+
+        # A manual request must never silently change to an unrelated topic.
         topic_gen = TopicGenerator()
         script_gen = ScriptGenerator()
         
         from footybitez.video.remotion_video_creator import MissingVisualError
         tried = set()
         had_script = False
-        for attempt in range(1, 4):
-            topic, category = topic_gen.get_random_topic(excluded_topics=tried)
-            if topic in tried:
+        attempts=1 if requested_topic else 3
+        for attempt in range(1, attempts+1):
+            if requested_topic:
+                topic,category=requested_topic,requested_category
+            else:
+                topic,category=topic_gen.get_random_topic(excluded_topics=tried)
+            if not requested_topic and topic in tried:
                 continue
             tried.add(topic)
-            logger.info("Attempt %s/3: %s", attempt, topic)
+            logger.info("Attempt %s/%s: %s", attempt, attempts, topic)
             script = script_gen.generate_script(topic, category)
             if not script:
                 continue
@@ -108,6 +123,8 @@ def main():
             break
         else:
             if not had_script:
+                if requested_topic:
+                    raise RuntimeError(f'No grounded script passed editorial checks for requested topic: {requested_topic}')
                 raise RuntimeError("All candidate topics failed editorial or research checks")
             logger.warning("No topic had both a grounded script and relevant visuals. Skipping upload.")
             if os.getenv("GITHUB_OUTPUT"):
