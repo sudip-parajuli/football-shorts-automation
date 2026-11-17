@@ -957,5 +957,131 @@
     },
     "facebook_pending": {},
     "instagram_skipped": "Facebook text-only post; Instagram requires an image"
+  },
+  "2026-11-17": {
+    "plan": {
+      "slot": "2026-11-17",
+      "topic": "Cristiano Ronaldo professional training routine",
+      "category": "lifestyle",
+      "format": "photo",
+      "title": "The Relentless Career of Luis Su\u00e1rez",
+      "caption": "How do top strikers sustain elite physical performance for nearly two decades?\n\nWe often hear about strict daily routines, but true physical longevity is proven on the pitch.\n\nTake Uruguayan striker Luis Su\u00e1rez, nicknamed El Pistolero. He has racked up over 1,050 career appearances.\n\nAcross his career, Su\u00e1rez scored over 600 goals. He also provided over 300 assists for club and country.\n\nHe won two European Golden Shoes alongside a Pichichi Trophy and a Premier League Golden Boot.\n\nNow playing for Inter Miami in Major League Soccer, his numbers show what elite dedication produces.\n\nDoes Luis Su\u00e1rez rank as the ultimate modern striker?\n\nSources: https://en.wikipedia.org/wiki/Luis_Su%C3%A1rez_(Uruguayan_footballer)\n\n#football #footballplayers #FootyBitez",
+      "entities": [
+        "Luis Su\u00e1rez",
+        "Inter Miami",
+        "Major League Soccer"
+      ],
+      "evidence": {
+        "title": "The Relentless Career of Luis Su\u00e1rez",
+        "hook": "How do top strikers sustain elite physical performance for nearly two decades?",
+        "primary_entity": "Luis Su\u00e1rez",
+        "music_mood": "energetic",
+        "segments": [
+          {
+            "text": "We often hear about strict daily routines, but true physical longevity is proven on the pitch.",
+            "visual_keyword": "we often hear about strict daily routines but true physical football illustration",
+            "visual_entities": [],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the"
+            ],
+            "source_quote": "SUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Luis_Su%C3%A1rez_(Uruguayan_footballer)"
+            ]
+          },
+          {
+            "text": "Take Uruguayan striker Luis Su\u00e1rez, nicknamed El Pistolero. He has racked up over 1,050 career appearances.",
+            "visual_keyword": "take uruguayan striker luis su\u00e1rez nicknamed el pistolero he has football illustration",
+            "visual_entities": [
+              "Luis Su\u00e1rez"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the"
+            ],
+            "source_quote": "SUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Luis_Su%C3%A1rez_(Uruguayan_footballer)"
+            ]
+          },
+          {
+            "text": "Across his career, Su\u00e1rez scored over 600 goals. He also provided over 300 assists for club and country.",
+            "visual_keyword": "across his career su\u00e1rez scored over 600 goals he also football illustration",
+            "visual_entities": [
+              "Luis Su\u00e1rez"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the"
+            ],
+            "source_quote": "SUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Luis_Su%C3%A1rez_(Uruguayan_footballer)"
+            ]
+          },
+          {
+            "text": "He won two European Golden Shoes alongside a Pichichi Trophy and a Premier League Golden Boot.",
+            "visual_keyword": "he won two european golden shoes alongside pichichi trophy premier football illustration",
+            "visual_entities": [
+              "Luis Su\u00e1rez"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the"
+            ],
+            "source_quote": "SUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Luis_Su%C3%A1rez_(Uruguayan_footballer)"
+            ]
+          },
+          {
+            "text": "Now playing for Inter Miami in Major League Soccer, his numbers show what elite dedication produces.",
+            "visual_keyword": "now playing inter miami major league soccer his numbers show football illustration",
+            "visual_entities": [
+              "Luis Su\u00e1rez",
+              "Inter Miami",
+              "Major League Soccer"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the"
+            ],
+            "source_quote": "SUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Luis_Su%C3%A1rez_(Uruguayan_footballer)"
+            ]
+          }
+        ],
+        "outro": "Does Luis Su\u00e1rez rank as the ultimate modern striker?",
+        "full_text": "How do top strikers sustain elite physical performance for nearly two decades? We often hear about strict daily routines, but true physical longevity is proven on the pitch. Take Uruguayan striker Luis Su\u00e1rez, nicknamed El Pistolero. He has racked up over 1,050 career appearances. Across his career, Su\u00e1rez scored over 600 goals. He also provided over 300 assists for club and country. He won two European Golden Shoes alongside a Pichichi Trophy and a Premier League Golden Boot. Now playing for Inter Miami in Major League Soccer, his numbers show what elite dedication produces. Does Luis Su\u00e1rez rank as the ultimate modern striker?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the",
+            "url": "https://en.wikipedia.org/wiki/Luis_Su%C3%A1rez_(Uruguayan_footballer)"
+          }
+        ],
+        "research_context": "ENTITY: Luis Su\u00e1rez (Uruguayan footballer)\nSOURCE URL: https://en.wikipedia.org/wiki/Luis_Su%C3%A1rez_(Uruguayan_footballer)\nSUMMARY: Luis Alberto Su\u00e1rez D\u00edaz (Spanish pronunciation: [\u02c8lwis \u02c8swa\u027ees]; born 24 January 1987) is a Uruguayan professional footballer who plays as a striker for Major League Soccer club Inter Miami. He is regarded as one of the best players of his generation and one of the greatest strikers of all time. Nicknamed \"El Pistolero\" (lit.\u2009'the Gunman'), individually, he won two European Golden Shoes, an Eredivisie Golden Boot, a Premier League Golden Boot and a Pichichi Trophy. He has scored over 600 career goals and provided over 300 assists for club and country. In addition, he is also one of a select number of players who have amassed over 1,050 career appearances (the first Uruguayan to achieve the "
+      },
+      "visual_type": "editorial",
+      "image_path": "footybitez/output/social_posts/post.jpg"
+    },
+    "facebook": {
+      "1098623579997373": "122120043812340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18124929836062407",
+    "instagram_id": "18250169956310408"
   }
 }
