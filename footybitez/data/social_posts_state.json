@@ -1083,5 +1083,108 @@
     "facebook_pending": {},
     "instagram_container_id": "18124929836062407",
     "instagram_id": "18250169956310408"
+  },
+  "2026-11-18": {
+    "plan": {
+      "slot": "2026-11-18",
+      "topic": "UEFA Champions League trophy history",
+      "category": "trophies",
+      "format": "photo",
+      "title": "The Champions League Cup at Wembley 2013",
+      "caption": "Why does the Champions League trophy still sparkle the same?\n\nOn 25 May 2013 the cup was lifted at Wembley, a first all\u2011German final.\n\nBayern Munich lifted the silver cup after a 2\u20111 win over Borussia Dortmund.\n\nThe design stayed the same \u2013 a classic silver bowl on a star\u2011studded base.\n\nDo you think the trophy still feels as iconic as it did in 2013?\n\nSources: https://en.wikipedia.org/wiki/2013_UEFA_Champions_League_final\n\n#football #footballhistory #FootyBitez\n\nPhoto: Arne M\u00fcseler / CC BY-SA 3.0 de / https://commons.wikimedia.org/wiki/File:London_Wembley.jpg / https://creativecommons.org/licenses/by-sa/3.0/de/deed.en. Cropped with text overlay; entity photograph.",
+      "entities": [
+        "Wembley Stadium",
+        "UEFA Champions League trophy",
+        "Bayern Munich"
+      ],
+      "evidence": {
+        "title": "The Champions League Cup at Wembley 2013",
+        "hook": "Why does the Champions League trophy still sparkle the same?",
+        "primary_entity": "UEFA Champions League trophy",
+        "music_mood": "reflective",
+        "segments": [
+          {
+            "text": "On 25 May 2013 the cup was lifted at Wembley, a first all\u2011German final.",
+            "visual_keyword": "25 may 2013 cup lifted wembley first all german final football illustration",
+            "visual_entities": [
+              "Wembley Stadium",
+              "UEFA Champions League trophy"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: The 2013 UEFA Champions League final was the final match of the 2012\u201313 UEFA Champions League, the 58th season of Europe's premier club football tournament organised by UEFA, and the 21st season since it was renamed from the European Champion Clubs' Cup to the UEFA Champions League.\nThe match took place on Saturday, 25 May 2013, at Wembley Stadium in London, England, between German Bundesliga clubs Borussia Dortmund and Bayern Munich. In the first all-German Champions League final, Bayern won the match 2\u20131 with goals from Mario Mand\u017euki\u0107 and man of the match Arjen Robben coming either side of an \u0130lkay G\u00fcndo\u011fan penalty for Dortmund.\nOne week later, Bayern won the 2012\u201313 DFB-Pokal and, having"
+            ],
+            "source_quote": "SUMMARY: The 2013 UEFA Champions League final was the final match of the 2012\u201313 UEFA Champions League, the 58th season of Europe's premier club football tournament organised by UEFA, and the 21st season since it was renamed from the European Champion Clubs' Cup to the UEFA Champions League.\nThe match took place on Saturday, 25 May 2013, at Wembley Stadium in London, England, between German Bundesliga clubs Borussia Dortmund and Bayern Munich. In the first all-German Champions League final, Bayern won the match 2\u20131 with goals from Mario Mand\u017euki\u0107 and man of the match Arjen Robben coming either side of an \u0130lkay G\u00fcndo\u011fan penalty for Dortmund.\nOne week later, Bayern won the 2012\u201313 DFB-Pokal and, having",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/2013_UEFA_Champions_League_final"
+            ]
+          },
+          {
+            "text": "Bayern Munich lifted the silver cup after a 2\u20111 win over Borussia Dortmund.",
+            "visual_keyword": "bayern munich lifted silver cup after 2 1 win over football illustration",
+            "visual_entities": [
+              "Bayern Munich",
+              "UEFA Champions League trophy"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: The 2013 UEFA Champions League final was the final match of the 2012\u201313 UEFA Champions League, the 58th season of Europe's premier club football tournament organised by UEFA, and the 21st season since it was renamed from the European Champion Clubs' Cup to the UEFA Champions League.\nThe match took place on Saturday, 25 May 2013, at Wembley Stadium in London, England, between German Bundesliga clubs Borussia Dortmund and Bayern Munich. In the first all-German Champions League final, Bayern won the match 2\u20131 with goals from Mario Mand\u017euki\u0107 and man of the match Arjen Robben coming either side of an \u0130lkay G\u00fcndo\u011fan penalty for Dortmund.\nOne week later, Bayern won the 2012\u201313 DFB-Pokal and, having"
+            ],
+            "source_quote": "SUMMARY: The 2013 UEFA Champions League final was the final match of the 2012\u201313 UEFA Champions League, the 58th season of Europe's premier club football tournament organised by UEFA, and the 21st season since it was renamed from the European Champion Clubs' Cup to the UEFA Champions League.\nThe match took place on Saturday, 25 May 2013, at Wembley Stadium in London, England, between German Bundesliga clubs Borussia Dortmund and Bayern Munich. In the first all-German Champions League final, Bayern won the match 2\u20131 with goals from Mario Mand\u017euki\u0107 and man of the match Arjen Robben coming either side of an \u0130lkay G\u00fcndo\u011fan penalty for Dortmund.\nOne week later, Bayern won the 2012\u201313 DFB-Pokal and, having",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/2013_UEFA_Champions_League_final"
+            ]
+          },
+          {
+            "text": "The design stayed the same \u2013 a classic silver bowl on a star\u2011studded base.",
+            "visual_keyword": "design stayed same classic silver bowl star studded base football illustration",
+            "visual_entities": [
+              "UEFA Champions League trophy"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: The 2013 UEFA Champions League final was the final match of the 2012\u201313 UEFA Champions League, the 58th season of Europe's premier club football tournament organised by UEFA, and the 21st season since it was renamed from the European Champion Clubs' Cup to the UEFA Champions League.\nThe match took place on Saturday, 25 May 2013, at Wembley Stadium in London, England, between German Bundesliga clubs Borussia Dortmund and Bayern Munich. In the first all-German Champions League final, Bayern won the match 2\u20131 with goals from Mario Mand\u017euki\u0107 and man of the match Arjen Robben coming either side of an \u0130lkay G\u00fcndo\u011fan penalty for Dortmund.\nOne week later, Bayern won the 2012\u201313 DFB-Pokal and, having"
+            ],
+            "source_quote": "SUMMARY: The 2013 UEFA Champions League final was the final match of the 2012\u201313 UEFA Champions League, the 58th season of Europe's premier club football tournament organised by UEFA, and the 21st season since it was renamed from the European Champion Clubs' Cup to the UEFA Champions League.\nThe match took place on Saturday, 25 May 2013, at Wembley Stadium in London, England, between German Bundesliga clubs Borussia Dortmund and Bayern Munich. In the first all-German Champions League final, Bayern won the match 2\u20131 with goals from Mario Mand\u017euki\u0107 and man of the match Arjen Robben coming either side of an \u0130lkay G\u00fcndo\u011fan penalty for Dortmund.\nOne week later, Bayern won the 2012\u201313 DFB-Pokal and, having",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/2013_UEFA_Champions_League_final"
+            ]
+          }
+        ],
+        "outro": "Do you think the trophy still feels as iconic as it did in 2013?",
+        "full_text": "Why does the Champions League trophy still sparkle the same? On 25 May 2013 the cup was lifted at Wembley, a first all\u2011German final. Bayern Munich lifted the silver cup after a 2\u20111 win over Borussia Dortmund. The design stayed the same \u2013 a classic silver bowl on a star\u2011studded base. Do you think the trophy still feels as iconic as it did in 2013?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: The 2013 UEFA Champions League final was the final match of the 2012\u201313 UEFA Champions League, the 58th season of Europe's premier club football tournament organised by UEFA, and the 21st season since it was renamed from the European Champion Clubs' Cup to the UEFA Champions League.\nThe match took place on Saturday, 25 May 2013, at Wembley Stadium in London, England, between German Bundesliga clubs Borussia Dortmund and Bayern Munich. In the first all-German Champions League final, Bayern won the match 2\u20131 with goals from Mario Mand\u017euki\u0107 and man of the match Arjen Robben coming either side of an \u0130lkay G\u00fcndo\u011fan penalty for Dortmund.\nOne week later, Bayern won the 2012\u201313 DFB-Pokal and, having",
+            "url": "https://en.wikipedia.org/wiki/2013_UEFA_Champions_League_final"
+          }
+        ],
+        "research_context": "ENTITY: 2013 UEFA Champions League final\nSOURCE URL: https://en.wikipedia.org/wiki/2013_UEFA_Champions_League_final\nSUMMARY: The 2013 UEFA Champions League final was the final match of the 2012\u201313 UEFA Champions League, the 58th season of Europe's premier club football tournament organised by UEFA, and the 21st season since it was renamed from the European Champion Clubs' Cup to the UEFA Champions League.\nThe match took place on Saturday, 25 May 2013, at Wembley Stadium in London, England, between German Bundesliga clubs Borussia Dortmund and Bayern Munich. In the first all-German Champions League final, Bayern won the match 2\u20131 with goals from Mario Mand\u017euki\u0107 and man of the match Arjen Robben coming either side of an \u0130lkay G\u00fcndo\u011fan penalty for Dortmund.\nOne week later, Bayern won the 2012\u201313 DFB-Pokal and, having"
+      },
+      "image_path": "footybitez/output/social_posts/post.jpg",
+      "image_source": {
+        "source": "Wikipedia primary entity image",
+        "subject": "Wembley Stadium",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/d/d2/London_Wembley.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=original",
+        "source_page": "https://commons.wikimedia.org/wiki/File:London_Wembley.jpg",
+        "license": "CC BY-SA 3.0 de",
+        "license_url": "https://creativecommons.org/licenses/by-sa/3.0/de/deed.en",
+        "creator": "Arne M\u00fcseler",
+        "verification": "exact football article identity; entity portrait, not match footage"
+      }
+    },
+    "facebook": {
+      "1098623579997373": "122120109218340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18125057600062407",
+    "instagram_id": "18090396380311852"
   }
 }
