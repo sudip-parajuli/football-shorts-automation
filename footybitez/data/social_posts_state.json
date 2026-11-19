@@ -1186,5 +1186,128 @@
     "facebook_pending": {},
     "instagram_container_id": "18125057600062407",
     "instagram_id": "18090396380311852"
+  },
+  "2026-11-19": {
+    "plan": {
+      "slot": "2026-11-19",
+      "topic": "Just Fontaine 1958 World Cup goals",
+      "category": "stats",
+      "format": "photo",
+      "title": "Just Fontaine's 1958 World Cup Goal Record Still Stands",
+      "caption": "How did a single tournament rewrite scoring history?\n\nFontaine burst onto the world stage in Sweden 1958, netting thirteen goals in just six games \u2013 the highest tally any player has ever achieved in a single World Cup.\n\nHe scored four in the opening match, then a hat\u2011trick against West Germany, and capped it with a brace in the final, leaving a mark no one has matched since.\n\nEven as the 2026 tournament looms, the record remains untouched, reminding us how extraordinary that lone French striker\u2019s feat truly was.\n\nWill any future star ever eclipse Fontaine\u2019s legendary tally?\n\nSources: https://en.wikipedia.org/wiki/Just_Fontaine https://soccerwizdom.com/2026/06/19/twelve-games-thirteen-goals-how-just-fontaine-became-an-eternal-legend-of-the-world-cup/\n\n#football #footballstats #FootyBitez\n\nPhoto: Panini / Public domain / https://commons.wikimedia.org/wiki/File:Just_Fontaine_en_1958.jpg / . Cropped with text overlay; entity photograph.",
+      "entities": [
+        "Just Fontaine"
+      ],
+      "evidence": {
+        "title": "Just Fontaine's 1958 World Cup Goal Record Still Stands",
+        "hook": "How did a single tournament rewrite scoring history?",
+        "primary_entity": "Just Fontaine",
+        "music_mood": "reflective",
+        "segments": [
+          {
+            "text": "Fontaine burst onto the world stage in Sweden 1958, netting thirteen goals in just six games \u2013 the highest tally any player has ever achieved in a single World Cup.",
+            "visual_keyword": "Just Fontaine 1958 World Cup record",
+            "visual_entities": [
+              "Just Fontaine"
+            ],
+            "evidence_ids": [
+              "S1",
+              "S2"
+            ],
+            "source_quotes": [
+              "SNIPPET: Just Fontaine ... Just Louis Fontaine (French pronunciation: [\u0292yst f\u0254\u0303.t\u025bn]; 18 August 1933 \u2013 28 February 2023) was a French professional footballer who played as a striker. He holds the record for the most goals scored in a single FIFA World Cup, with thirteen in six matches at the 1958 tournament. [2]",
+              "SNIPPET: Jun 19, 2026 \u00b7 Fontaine\u2019s performance in the 1958 World Cup remains one of the greatest individual achievements in soccer history. He scored 13 goals in just six matches, a record that still stands."
+            ],
+            "source_quote": "SNIPPET: Just Fontaine ... Just Louis Fontaine (French pronunciation: [\u0292yst f\u0254\u0303.t\u025bn]; 18 August 1933 \u2013 28 February 2023) was a French professional footballer who played as a striker. He holds the record for the most goals scored in a single FIFA World Cup, with thirteen in six matches at the 1958 tournament. [2]",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Just_Fontaine",
+              "https://soccerwizdom.com/2026/06/19/twelve-games-thirteen-goals-how-just-fontaine-became-an-eternal-legend-of-the-world-cup/"
+            ]
+          },
+          {
+            "text": "He scored four in the opening match, then a hat\u2011trick against West Germany, and capped it with a brace in the final, leaving a mark no one has matched since.",
+            "visual_keyword": "13 goals six matches Sweden 1958",
+            "visual_entities": [
+              "Just Fontaine"
+            ],
+            "evidence_ids": [
+              "S3",
+              "S4"
+            ],
+            "source_quotes": [
+              "SNIPPET: Jun 11, 2026 \u00b7 Just Fontaine played in only one World Cup and left behind a record that seems impossible to surpass. The French striker scored 13 goals at Sweden 1958, a mark that no player has been...",
+              "SNIPPET: May 29, 2026 \u00b7 FIFA counts down to the World Cup 2026 with a daily statistical story. France striker Just Fontaine astonishingly hit 13 goals in six games at Sweden 1958 \u2013 a record for one World Cup."
+            ],
+            "source_quote": "SNIPPET: Jun 11, 2026 \u00b7 Just Fontaine played in only one World Cup and left behind a record that seems impossible to surpass. The French striker scored 13 goals at Sweden 1958, a mark that no player has been...",
+            "source_urls": [
+              "https://www.beinsports.com/en-us/soccer/fifa-world-cup-2026/articles/the-most-lethal-goalscorer-in-history-played-only-one-world-cup-just-fontaine-s-incredible-record-that-still-stands-2026-06-11",
+              "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/just-fontaine-thirteen-goals-1958"
+            ]
+          },
+          {
+            "text": "Even as the 2026 tournament looms, the record remains untouched, reminding us how extraordinary that lone French striker\u2019s feat truly was.",
+            "visual_keyword": "record still stands 2026 World Cup",
+            "visual_entities": [
+              "Just Fontaine"
+            ],
+            "evidence_ids": [
+              "S2",
+              "S4"
+            ],
+            "source_quotes": [
+              "SNIPPET: Jun 19, 2026 \u00b7 Fontaine\u2019s performance in the 1958 World Cup remains one of the greatest individual achievements in soccer history. He scored 13 goals in just six matches, a record that still stands.",
+              "SNIPPET: May 29, 2026 \u00b7 FIFA counts down to the World Cup 2026 with a daily statistical story. France striker Just Fontaine astonishingly hit 13 goals in six games at Sweden 1958 \u2013 a record for one World Cup."
+            ],
+            "source_quote": "SNIPPET: Jun 19, 2026 \u00b7 Fontaine\u2019s performance in the 1958 World Cup remains one of the greatest individual achievements in soccer history. He scored 13 goals in just six matches, a record that still stands.",
+            "source_urls": [
+              "https://soccerwizdom.com/2026/06/19/twelve-games-thirteen-goals-how-just-fontaine-became-an-eternal-legend-of-the-world-cup/",
+              "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/just-fontaine-thirteen-goals-1958"
+            ]
+          }
+        ],
+        "outro": "Will any future star ever eclipse Fontaine\u2019s legendary tally?",
+        "full_text": "How did a single tournament rewrite scoring history? Fontaine burst onto the world stage in Sweden 1958, netting thirteen goals in just six games \u2013 the highest tally any player has ever achieved in a single World Cup. He scored four in the opening match, then a hat\u2011trick against West Germany, and capped it with a brace in the final, leaving a mark no one has matched since. Even as the 2026 tournament looms, the record remains untouched, reminding us how extraordinary that lone French striker\u2019s feat truly was. Will any future star ever eclipse Fontaine\u2019s legendary tally?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SNIPPET: Just Fontaine ... Just Louis Fontaine (French pronunciation: [\u0292yst f\u0254\u0303.t\u025bn]; 18 August 1933 \u2013 28 February 2023) was a French professional footballer who played as a striker. He holds the record for the most goals scored in a single FIFA World Cup, with thirteen in six matches at the 1958 tournament. [2]",
+            "url": "https://en.wikipedia.org/wiki/Just_Fontaine"
+          },
+          {
+            "id": "S2",
+            "text": "SNIPPET: Jun 19, 2026 \u00b7 Fontaine\u2019s performance in the 1958 World Cup remains one of the greatest individual achievements in soccer history. He scored 13 goals in just six matches, a record that still stands.",
+            "url": "https://soccerwizdom.com/2026/06/19/twelve-games-thirteen-goals-how-just-fontaine-became-an-eternal-legend-of-the-world-cup/"
+          },
+          {
+            "id": "S3",
+            "text": "SNIPPET: Jun 11, 2026 \u00b7 Just Fontaine played in only one World Cup and left behind a record that seems impossible to surpass. The French striker scored 13 goals at Sweden 1958, a mark that no player has been...",
+            "url": "https://www.beinsports.com/en-us/soccer/fifa-world-cup-2026/articles/the-most-lethal-goalscorer-in-history-played-only-one-world-cup-just-fontaine-s-incredible-record-that-still-stands-2026-06-11"
+          },
+          {
+            "id": "S4",
+            "text": "SNIPPET: May 29, 2026 \u00b7 FIFA counts down to the World Cup 2026 with a daily statistical story. France striker Just Fontaine astonishingly hit 13 goals in six games at Sweden 1958 \u2013 a record for one World Cup.",
+            "url": "https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/just-fontaine-thirteen-goals-1958"
+          }
+        ],
+        "research_context": "WEB SOURCE: Just Fontaine - Wikipedia\nSOURCE URL: https://en.wikipedia.org/wiki/Just_Fontaine\nSNIPPET: Just Fontaine ... Just Louis Fontaine (French pronunciation: [\u0292yst f\u0254\u0303.t\u025bn]; 18 August 1933 \u2013 28 February 2023) was a French professional footballer who played as a striker. He holds the record for the most goals scored in a single FIFA World Cup, with thirteen in six matches at the 1958 tournament. [2]\n\n=====\n\nWEB SOURCE: Twelve Games, Thirteen Goals: How Just Fontaine Became an ...\nSOURCE URL: https://soccerwizdom.com/2026/06/19/twelve-games-thirteen-goals-how-just-fontaine-became-an-eternal-legend-of-the-world-cup/\nSNIPPET: Jun 19, 2026 \u00b7 Fontaine\u2019s performance in the 1958 World Cup remains one of the greatest individual achievements in soccer history. He scored 13 goals in just six matches, a record that still stands.\n\n=====\n\nWEB SOURCE: Just Fontaine: the most lethal goalscorer in history played ...\nSOURCE URL: https://www.beinsports.com/en-us/soccer/fifa-world-cup-2026/articles/the-most-lethal-goalscorer-in-history-played-only-one-world-cup-just-fontaine-s-incredible-record-that-still-stands-2026-06-11\nSNIPPET: Jun 11, 2026 \u00b7 Just Fontaine played in only one World Cup and left behind a record that seems impossible to surpass. The French striker scored 13 goals at Sweden 1958, a mark that no player has been...\n\n=====\n\nWEB SOURCE: 13 days to go: Fontaine\u2019s unequalled feat - FIFA\nSOURCE URL: https://www.fifa.com/en/tournaments/mens/worldcup/canadamexicousa2026/articles/just-fontaine-thirteen-goals-1958\nSNIPPET: May 29, 2026 \u00b7 FIFA counts down to the World Cup 2026 with a daily statistical story. France striker Just Fontaine astonishingly hit 13 goals in six games at Sweden 1958 \u2013 a record for one World Cup."
+      },
+      "image_path": "footybitez/output/social_posts/post.jpg",
+      "image_source": {
+        "source": "Wikipedia primary entity image",
+        "subject": "Just Fontaine",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/Just_Fontaine_en_1958.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=original",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Just_Fontaine_en_1958.jpg",
+        "license": "Public domain",
+        "license_url": "",
+        "creator": "Panini",
+        "verification": "exact football article identity; entity portrait, not match footage"
+      }
+    },
+    "facebook": {
+      "1098623579997373": "122120175896340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18125199893062407",
+    "instagram_id": "17961665430294647"
   }
 }
