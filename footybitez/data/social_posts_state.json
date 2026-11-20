@@ -1309,5 +1309,92 @@
     "facebook_pending": {},
     "instagram_container_id": "18125199893062407",
     "instagram_id": "17961665430294647"
+  },
+  "2026-11-20": {
+    "plan": {
+      "slot": "2026-11-20",
+      "topic": "Mohamed Salah early football career",
+      "category": "lifestyle",
+      "format": "text",
+      "title": "From Cairo Streets to Basel: Salah's Early Rise",
+      "caption": "How did a kid from Nagrig break into European football?\n\nSalah started at Al\u2011Mokawloon in 2010, scoring plenty in the Egyptian league.\n\nTwo years later Basel signed him, and he helped the Swiss side clinch back\u2011to\u2011back titles.\n\nThose titles put him on the radar of big clubs, paving the way for his Chelsea move.\n\nDid you ever imagine the Egyptian King starting in a modest Egyptian side?\n\nSources: https://en.wikipedia.org/wiki/Mohamed_Salah\n\n#football #footballplayers #FootyBitez",
+      "entities": [
+        "Mohamed Salah"
+      ],
+      "evidence": {
+        "title": "From Cairo Streets to Basel: Salah's Early Rise",
+        "hook": "How did a kid from Nagrig break into European football?",
+        "primary_entity": "Mohamed Salah",
+        "music_mood": "reflective",
+        "segments": [
+          {
+            "text": "Salah started at Al\u2011Mokawloon in 2010, scoring plenty in the Egyptian league.",
+            "visual_keyword": "salah started al mokawloon 2010 scoring plenty egyptian league football illustration",
+            "visual_entities": [
+              "Mohamed Salah"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Mohamed Salah Hamed Mahrous Ghaly (born 15 June 1992) is an Egyptian professional footballer who plays as a right winger for S\u00fcper Lig club Trabzonspor and captains the Egypt national team. He is widely regarded as one of the best players of his generation and one of the greatest African players of all time. Dubbed the \"Egyptian King\", he is the all-time top foreign goalscorer in the Premier League, the all-time top African goalscorer in the UEFA Champions League, and the all-time top scorer of the Egypt national team.\nSalah began his senior career in 2010 at Al-Mokawloon, departing in 2012 to join Basel, where he won two Swiss Super League titles. In 2014, he joined Chelsea for a reported f"
+            ],
+            "source_quote": "SUMMARY: Mohamed Salah Hamed Mahrous Ghaly (born 15 June 1992) is an Egyptian professional footballer who plays as a right winger for S\u00fcper Lig club Trabzonspor and captains the Egypt national team. He is widely regarded as one of the best players of his generation and one of the greatest African players of all time. Dubbed the \"Egyptian King\", he is the all-time top foreign goalscorer in the Premier League, the all-time top African goalscorer in the UEFA Champions League, and the all-time top scorer of the Egypt national team.\nSalah began his senior career in 2010 at Al-Mokawloon, departing in 2012 to join Basel, where he won two Swiss Super League titles. In 2014, he joined Chelsea for a reported f",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Mohamed_Salah"
+            ]
+          },
+          {
+            "text": "Two years later Basel signed him, and he helped the Swiss side clinch back\u2011to\u2011back titles.",
+            "visual_keyword": "two years later basel signed him he helped swiss side football illustration",
+            "visual_entities": [
+              "Mohamed Salah"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Mohamed Salah Hamed Mahrous Ghaly (born 15 June 1992) is an Egyptian professional footballer who plays as a right winger for S\u00fcper Lig club Trabzonspor and captains the Egypt national team. He is widely regarded as one of the best players of his generation and one of the greatest African players of all time. Dubbed the \"Egyptian King\", he is the all-time top foreign goalscorer in the Premier League, the all-time top African goalscorer in the UEFA Champions League, and the all-time top scorer of the Egypt national team.\nSalah began his senior career in 2010 at Al-Mokawloon, departing in 2012 to join Basel, where he won two Swiss Super League titles. In 2014, he joined Chelsea for a reported f"
+            ],
+            "source_quote": "SUMMARY: Mohamed Salah Hamed Mahrous Ghaly (born 15 June 1992) is an Egyptian professional footballer who plays as a right winger for S\u00fcper Lig club Trabzonspor and captains the Egypt national team. He is widely regarded as one of the best players of his generation and one of the greatest African players of all time. Dubbed the \"Egyptian King\", he is the all-time top foreign goalscorer in the Premier League, the all-time top African goalscorer in the UEFA Champions League, and the all-time top scorer of the Egypt national team.\nSalah began his senior career in 2010 at Al-Mokawloon, departing in 2012 to join Basel, where he won two Swiss Super League titles. In 2014, he joined Chelsea for a reported f",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Mohamed_Salah"
+            ]
+          },
+          {
+            "text": "Those titles put him on the radar of big clubs, paving the way for his Chelsea move.",
+            "visual_keyword": "those titles put him radar big clubs paving way his football illustration",
+            "visual_entities": [
+              "Mohamed Salah"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Mohamed Salah Hamed Mahrous Ghaly (born 15 June 1992) is an Egyptian professional footballer who plays as a right winger for S\u00fcper Lig club Trabzonspor and captains the Egypt national team. He is widely regarded as one of the best players of his generation and one of the greatest African players of all time. Dubbed the \"Egyptian King\", he is the all-time top foreign goalscorer in the Premier League, the all-time top African goalscorer in the UEFA Champions League, and the all-time top scorer of the Egypt national team.\nSalah began his senior career in 2010 at Al-Mokawloon, departing in 2012 to join Basel, where he won two Swiss Super League titles. In 2014, he joined Chelsea for a reported f"
+            ],
+            "source_quote": "SUMMARY: Mohamed Salah Hamed Mahrous Ghaly (born 15 June 1992) is an Egyptian professional footballer who plays as a right winger for S\u00fcper Lig club Trabzonspor and captains the Egypt national team. He is widely regarded as one of the best players of his generation and one of the greatest African players of all time. Dubbed the \"Egyptian King\", he is the all-time top foreign goalscorer in the Premier League, the all-time top African goalscorer in the UEFA Champions League, and the all-time top scorer of the Egypt national team.\nSalah began his senior career in 2010 at Al-Mokawloon, departing in 2012 to join Basel, where he won two Swiss Super League titles. In 2014, he joined Chelsea for a reported f",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Mohamed_Salah"
+            ]
+          }
+        ],
+        "outro": "Did you ever imagine the Egyptian King starting in a modest Egyptian side?",
+        "full_text": "How did a kid from Nagrig break into European football? Salah started at Al\u2011Mokawloon in 2010, scoring plenty in the Egyptian league. Two years later Basel signed him, and he helped the Swiss side clinch back\u2011to\u2011back titles. Those titles put him on the radar of big clubs, paving the way for his Chelsea move. Did you ever imagine the Egyptian King starting in a modest Egyptian side?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: Mohamed Salah Hamed Mahrous Ghaly (born 15 June 1992) is an Egyptian professional footballer who plays as a right winger for S\u00fcper Lig club Trabzonspor and captains the Egypt national team. He is widely regarded as one of the best players of his generation and one of the greatest African players of all time. Dubbed the \"Egyptian King\", he is the all-time top foreign goalscorer in the Premier League, the all-time top African goalscorer in the UEFA Champions League, and the all-time top scorer of the Egypt national team.\nSalah began his senior career in 2010 at Al-Mokawloon, departing in 2012 to join Basel, where he won two Swiss Super League titles. In 2014, he joined Chelsea for a reported f",
+            "url": "https://en.wikipedia.org/wiki/Mohamed_Salah"
+          }
+        ],
+        "research_context": "ENTITY: Mohamed Salah\nSOURCE URL: https://en.wikipedia.org/wiki/Mohamed_Salah\nSUMMARY: Mohamed Salah Hamed Mahrous Ghaly (born 15 June 1992) is an Egyptian professional footballer who plays as a right winger for S\u00fcper Lig club Trabzonspor and captains the Egypt national team. He is widely regarded as one of the best players of his generation and one of the greatest African players of all time. Dubbed the \"Egyptian King\", he is the all-time top foreign goalscorer in the Premier League, the all-time top African goalscorer in the UEFA Champions League, and the all-time top scorer of the Egypt national team.\nSalah began his senior career in 2010 at Al-Mokawloon, departing in 2012 to join Basel, where he won two Swiss Super League titles. In 2014, he joined Chelsea for a reported f"
+      }
+    },
+    "facebook": {
+      "1098623579997373": "1098623579997373_122120253626340601"
+    },
+    "facebook_pending": {},
+    "instagram_skipped": "Facebook text-only post; Instagram requires an image"
   }
 }
