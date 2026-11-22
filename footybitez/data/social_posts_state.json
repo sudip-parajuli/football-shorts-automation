@@ -1484,5 +1484,106 @@
     "facebook_pending": {},
     "instagram_container_id": "18125472470062407",
     "instagram_id": "17979272877152900"
+  },
+  "2026-11-22": {
+    "plan": {
+      "slot": "2026-11-22",
+      "topic": "Real Madrid vs Barcelona: The ultimate rivalry",
+      "category": "players",
+      "format": "photo",
+      "title": "El Cl\u00e1sico\u2019s Player Duel: Past Glory Meets Future Hope",
+      "caption": "Which player will tip the balance in today\u2019s El Cl\u00e1sico?\n\nReal Madrid, founded in 1902, still parade their iconic white kit at the Bernab\u00e9u.\n\nBarcelona\u2019s pipeline now features Diego Kochen, a 2006\u2011born keeper on loan from Barcelona Atl\u00e8tic.\n\nBoth clubs lean on their player legacies \u2013 Madrid\u2019s seasoned stars and Barca\u2019s fresh talent \u2013 to fuel the rivalry.\n\nWho will become the next legend to define El Cl\u00e1sico?\n\nSources: https://en.wikipedia.org/wiki/Real_Madrid_CF https://en.wikipedia.org/wiki/Diego_Kochen\n\n#football #footballplayers #FootyBitez",
+      "entities": [
+        "Real Madrid vs Barcelona rivalry",
+        "Real Madrid",
+        "Diego Kochen"
+      ],
+      "evidence": {
+        "title": "El\u202fCl\u00e1sico\u2019s Player Duel: Past Glory Meets Future Hope",
+        "hook": "Which player will tip the balance in today\u2019s El\u202fCl\u00e1sico?",
+        "primary_entity": "Real Madrid vs Barcelona rivalry",
+        "music_mood": "tense",
+        "segments": [
+          {
+            "text": "Real Madrid, founded in 1902, still parade their iconic white kit at the Bernab\u00e9u.",
+            "visual_keyword": "real madrid founded 1902 still parade iconic white kit bernab\u00e9u football illustration",
+            "visual_entities": [
+              "Real Madrid"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Real Madrid Club de F\u00fatbol (Spanish pronunciation: [re\u02c8al ma\u02c8\u00f0\u027ei\u00f0 \u02c8klu\u03b2 \u00f0e \u02c8fu\u00f0\u03b2ol] ) is a Spanish professional association football club based in Madrid. The club competes in La Liga, the top tier of Spanish football.\nFounded in 1902 as Madrid Football Club, the club has traditionally worn a white home kit. The honorific title 'Real' is Spanish for \"Royal\" and was bestowed by Alfonso XIII in 1920. Real Madrid have played their home matches in the Bernab\u00e9u since 1947. Unlike most European sporting clubs, Real Madrid's members have owned and operated the club throughout its history. The club is one of the most widely supported in the world and the most followed sports club across social media"
+            ],
+            "source_quote": "SUMMARY: Real Madrid Club de F\u00fatbol (Spanish pronunciation: [re\u02c8al ma\u02c8\u00f0\u027ei\u00f0 \u02c8klu\u03b2 \u00f0e \u02c8fu\u00f0\u03b2ol] ) is a Spanish professional association football club based in Madrid. The club competes in La Liga, the top tier of Spanish football.\nFounded in 1902 as Madrid Football Club, the club has traditionally worn a white home kit. The honorific title 'Real' is Spanish for \"Royal\" and was bestowed by Alfonso XIII in 1920. Real Madrid have played their home matches in the Bernab\u00e9u since 1947. Unlike most European sporting clubs, Real Madrid's members have owned and operated the club throughout its history. The club is one of the most widely supported in the world and the most followed sports club across social media",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Real_Madrid_CF"
+            ]
+          },
+          {
+            "text": "Barcelona\u2019s pipeline now features Diego Kochen, a 2006\u2011born keeper on loan from Barcelona Atl\u00e8tic.",
+            "visual_keyword": "barcelona s pipeline now features diego kochen 2006 born keeper football illustration",
+            "visual_entities": [
+              "Diego Kochen"
+            ],
+            "evidence_ids": [
+              "S2"
+            ],
+            "source_quotes": [
+              "SUMMARY: Diego Kochen Gamboa (born March 19, 2006) is an American professional soccer player who plays as a goalkeeper for Danish Superliga club Lyngby, on loan from Segunda Federaci\u00f3n team Barcelona Atl\u00e8tic, and the United States national team."
+            ],
+            "source_quote": "SUMMARY: Diego Kochen Gamboa (born March 19, 2006) is an American professional soccer player who plays as a goalkeeper for Danish Superliga club Lyngby, on loan from Segunda Federaci\u00f3n team Barcelona Atl\u00e8tic, and the United States national team.",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Diego_Kochen"
+            ]
+          },
+          {
+            "text": "Both clubs lean on their player legacies \u2013 Madrid\u2019s seasoned stars and Barca\u2019s fresh talent \u2013 to fuel the rivalry.",
+            "visual_keyword": "both clubs lean player legacies madrid s seasoned stars barca football illustration",
+            "visual_entities": [
+              "Real Madrid",
+              "Diego Kochen"
+            ],
+            "evidence_ids": [
+              "S1",
+              "S2"
+            ],
+            "source_quotes": [
+              "SUMMARY: Real Madrid Club de F\u00fatbol (Spanish pronunciation: [re\u02c8al ma\u02c8\u00f0\u027ei\u00f0 \u02c8klu\u03b2 \u00f0e \u02c8fu\u00f0\u03b2ol] ) is a Spanish professional association football club based in Madrid. The club competes in La Liga, the top tier of Spanish football.\nFounded in 1902 as Madrid Football Club, the club has traditionally worn a white home kit. The honorific title 'Real' is Spanish for \"Royal\" and was bestowed by Alfonso XIII in 1920. Real Madrid have played their home matches in the Bernab\u00e9u since 1947. Unlike most European sporting clubs, Real Madrid's members have owned and operated the club throughout its history. The club is one of the most widely supported in the world and the most followed sports club across social media",
+              "SUMMARY: Diego Kochen Gamboa (born March 19, 2006) is an American professional soccer player who plays as a goalkeeper for Danish Superliga club Lyngby, on loan from Segunda Federaci\u00f3n team Barcelona Atl\u00e8tic, and the United States national team."
+            ],
+            "source_quote": "SUMMARY: Real Madrid Club de F\u00fatbol (Spanish pronunciation: [re\u02c8al ma\u02c8\u00f0\u027ei\u00f0 \u02c8klu\u03b2 \u00f0e \u02c8fu\u00f0\u03b2ol] ) is a Spanish professional association football club based in Madrid. The club competes in La Liga, the top tier of Spanish football.\nFounded in 1902 as Madrid Football Club, the club has traditionally worn a white home kit. The honorific title 'Real' is Spanish for \"Royal\" and was bestowed by Alfonso XIII in 1920. Real Madrid have played their home matches in the Bernab\u00e9u since 1947. Unlike most European sporting clubs, Real Madrid's members have owned and operated the club throughout its history. The club is one of the most widely supported in the world and the most followed sports club across social media",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Real_Madrid_CF",
+              "https://en.wikipedia.org/wiki/Diego_Kochen"
+            ]
+          }
+        ],
+        "outro": "Who will become the next legend to define El\u202fCl\u00e1sico?",
+        "full_text": "Which player will tip the balance in today\u2019s El\u202fCl\u00e1sico? Real Madrid, founded in 1902, still parade their iconic white kit at the Bernab\u00e9u. Barcelona\u2019s pipeline now features Diego Kochen, a 2006\u2011born keeper on loan from Barcelona Atl\u00e8tic. Both clubs lean on their player legacies \u2013 Madrid\u2019s seasoned stars and Barca\u2019s fresh talent \u2013 to fuel the rivalry. Who will become the next legend to define El\u202fCl\u00e1sico?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: Real Madrid Club de F\u00fatbol (Spanish pronunciation: [re\u02c8al ma\u02c8\u00f0\u027ei\u00f0 \u02c8klu\u03b2 \u00f0e \u02c8fu\u00f0\u03b2ol] ) is a Spanish professional association football club based in Madrid. The club competes in La Liga, the top tier of Spanish football.\nFounded in 1902 as Madrid Football Club, the club has traditionally worn a white home kit. The honorific title 'Real' is Spanish for \"Royal\" and was bestowed by Alfonso XIII in 1920. Real Madrid have played their home matches in the Bernab\u00e9u since 1947. Unlike most European sporting clubs, Real Madrid's members have owned and operated the club throughout its history. The club is one of the most widely supported in the world and the most followed sports club across social media",
+            "url": "https://en.wikipedia.org/wiki/Real_Madrid_CF"
+          },
+          {
+            "id": "S2",
+            "text": "SUMMARY: Diego Kochen Gamboa (born March 19, 2006) is an American professional soccer player who plays as a goalkeeper for Danish Superliga club Lyngby, on loan from Segunda Federaci\u00f3n team Barcelona Atl\u00e8tic, and the United States national team.",
+            "url": "https://en.wikipedia.org/wiki/Diego_Kochen"
+          }
+        ],
+        "research_context": "ENTITY: Real Madrid CF\nSOURCE URL: https://en.wikipedia.org/wiki/Real_Madrid_CF\nSUMMARY: Real Madrid Club de F\u00fatbol (Spanish pronunciation: [re\u02c8al ma\u02c8\u00f0\u027ei\u00f0 \u02c8klu\u03b2 \u00f0e \u02c8fu\u00f0\u03b2ol] ) is a Spanish professional association football club based in Madrid. The club competes in La Liga, the top tier of Spanish football.\nFounded in 1902 as Madrid Football Club, the club has traditionally worn a white home kit. The honorific title 'Real' is Spanish for \"Royal\" and was bestowed by Alfonso XIII in 1920. Real Madrid have played their home matches in the Bernab\u00e9u since 1947. Unlike most European sporting clubs, Real Madrid's members have owned and operated the club throughout its history. The club is one of the most widely supported in the world and the most followed sports club across social media\n\n=====\n\nENTITY: Diego Kochen\nSOURCE URL: https://en.wikipedia.org/wiki/Diego_Kochen\nSUMMARY: Diego Kochen Gamboa (born March 19, 2006) is an American professional soccer player who plays as a goalkeeper for Danish Superliga club Lyngby, on loan from Segunda Federaci\u00f3n team Barcelona Atl\u00e8tic, and the United States national team."
+      },
+      "visual_type": "editorial",
+      "image_path": "footybitez/output/social_posts/post.jpg"
+    },
+    "facebook": {
+      "1098623579997373": "122120390870340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18125639618062407",
+    "instagram_id": "18137353900676190"
   }
 }
