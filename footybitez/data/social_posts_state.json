@@ -1585,5 +1585,104 @@
     "facebook_pending": {},
     "instagram_container_id": "18125639618062407",
     "instagram_id": "18137353900676190"
+  },
+  "2026-11-23": {
+    "plan": {
+      "slot": "2026-11-23",
+      "topic": "When a goalkeeper scored from 100 meters",
+      "category": "coaches",
+      "format": "photo",
+      "title": "Coach's Gamble: Keeper's Long-Distance Goal",
+      "caption": "Could a coach ever risk a keeper scoring from way out?\n\nIt's incredibly rare for a goalkeeper to score, isn't it? They usually stay in their own penalty area, defending their goal.\n\nBut sometimes, a team desperately needs a goal. A coach might send the keeper forward to join an attack, perhaps for a set piece.\n\nThis leaves the defence vulnerable, of course. But it opens up the chance for a long-distance attempt, a real gamble.\n\nMost goalscoring keepers get theirs from penalties or free kicks. Scoring from open play, far from their box, is a massive tactical choice.\n\nWould your coach ever take that kind of chance?\n\nSources: https://en.wikipedia.org/wiki/List_of_goalscoring_goalkeepers\n\n#football #footballtactics #FootyBitez",
+      "entities": [
+        "goalkeeper"
+      ],
+      "evidence": {
+        "title": "Coach's Gamble: Keeper's Long-Distance Goal",
+        "hook": "Could a coach ever risk a keeper scoring from way out?",
+        "primary_entity": "goalkeeper",
+        "music_mood": "energetic",
+        "segments": [
+          {
+            "text": "It's incredibly rare for a goalkeeper to score, isn't it? They usually stay in their own penalty area, defending their goal.",
+            "visual_keyword": "goalkeeper defending goal",
+            "visual_entities": [],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Goals scored by goalkeepers are a somewhat rare event in football. Goalkeepers spend the majority of a match in the penalty area of their own team, a marked area around the goal they are defending in which they can handle the ball in order to defend their goal. It is highly unusual for a goalkeeper to move far beyond this area and join an attack, as this leaves the defence vulnerable to long-distance attempts until the goalkeeper can return to defend it.\nThe most prolific goalscoring goalkeepers are those who take penalties or free kicks. Other occasions where goalkeepers sometimes score include set pieces where a goalkeeper joins an attack when a team desperately needs a goal to win or prev"
+            ],
+            "source_quote": "SUMMARY: Goals scored by goalkeepers are a somewhat rare event in football. Goalkeepers spend the majority of a match in the penalty area of their own team, a marked area around the goal they are defending in which they can handle the ball in order to defend their goal. It is highly unusual for a goalkeeper to move far beyond this area and join an attack, as this leaves the defence vulnerable to long-distance attempts until the goalkeeper can return to defend it.\nThe most prolific goalscoring goalkeepers are those who take penalties or free kicks. Other occasions where goalkeepers sometimes score include set pieces where a goalkeeper joins an attack when a team desperately needs a goal to win or prev",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/List_of_goalscoring_goalkeepers"
+            ]
+          },
+          {
+            "text": "But sometimes, a team desperately needs a goal. A coach might send the keeper forward to join an attack, perhaps for a set piece.",
+            "visual_keyword": "coach sends goalkeeper forward",
+            "visual_entities": [],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Goals scored by goalkeepers are a somewhat rare event in football. Goalkeepers spend the majority of a match in the penalty area of their own team, a marked area around the goal they are defending in which they can handle the ball in order to defend their goal. It is highly unusual for a goalkeeper to move far beyond this area and join an attack, as this leaves the defence vulnerable to long-distance attempts until the goalkeeper can return to defend it.\nThe most prolific goalscoring goalkeepers are those who take penalties or free kicks. Other occasions where goalkeepers sometimes score include set pieces where a goalkeeper joins an attack when a team desperately needs a goal to win or prev"
+            ],
+            "source_quote": "SUMMARY: Goals scored by goalkeepers are a somewhat rare event in football. Goalkeepers spend the majority of a match in the penalty area of their own team, a marked area around the goal they are defending in which they can handle the ball in order to defend their goal. It is highly unusual for a goalkeeper to move far beyond this area and join an attack, as this leaves the defence vulnerable to long-distance attempts until the goalkeeper can return to defend it.\nThe most prolific goalscoring goalkeepers are those who take penalties or free kicks. Other occasions where goalkeepers sometimes score include set pieces where a goalkeeper joins an attack when a team desperately needs a goal to win or prev",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/List_of_goalscoring_goalkeepers"
+            ]
+          },
+          {
+            "text": "This leaves the defence vulnerable, of course. But it opens up the chance for a long-distance attempt, a real gamble.",
+            "visual_keyword": "leaves defence vulnerable course but opens up chance long distance football illustration",
+            "visual_entities": [],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Goals scored by goalkeepers are a somewhat rare event in football. Goalkeepers spend the majority of a match in the penalty area of their own team, a marked area around the goal they are defending in which they can handle the ball in order to defend their goal. It is highly unusual for a goalkeeper to move far beyond this area and join an attack, as this leaves the defence vulnerable to long-distance attempts until the goalkeeper can return to defend it.\nThe most prolific goalscoring goalkeepers are those who take penalties or free kicks. Other occasions where goalkeepers sometimes score include set pieces where a goalkeeper joins an attack when a team desperately needs a goal to win or prev"
+            ],
+            "source_quote": "SUMMARY: Goals scored by goalkeepers are a somewhat rare event in football. Goalkeepers spend the majority of a match in the penalty area of their own team, a marked area around the goal they are defending in which they can handle the ball in order to defend their goal. It is highly unusual for a goalkeeper to move far beyond this area and join an attack, as this leaves the defence vulnerable to long-distance attempts until the goalkeeper can return to defend it.\nThe most prolific goalscoring goalkeepers are those who take penalties or free kicks. Other occasions where goalkeepers sometimes score include set pieces where a goalkeeper joins an attack when a team desperately needs a goal to win or prev",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/List_of_goalscoring_goalkeepers"
+            ]
+          },
+          {
+            "text": "Most goalscoring keepers get theirs from penalties or free kicks. Scoring from open play, far from their box, is a massive tactical choice.",
+            "visual_keyword": "goalkeeper penalty free kick",
+            "visual_entities": [],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: Goals scored by goalkeepers are a somewhat rare event in football. Goalkeepers spend the majority of a match in the penalty area of their own team, a marked area around the goal they are defending in which they can handle the ball in order to defend their goal. It is highly unusual for a goalkeeper to move far beyond this area and join an attack, as this leaves the defence vulnerable to long-distance attempts until the goalkeeper can return to defend it.\nThe most prolific goalscoring goalkeepers are those who take penalties or free kicks. Other occasions where goalkeepers sometimes score include set pieces where a goalkeeper joins an attack when a team desperately needs a goal to win or prev"
+            ],
+            "source_quote": "SUMMARY: Goals scored by goalkeepers are a somewhat rare event in football. Goalkeepers spend the majority of a match in the penalty area of their own team, a marked area around the goal they are defending in which they can handle the ball in order to defend their goal. It is highly unusual for a goalkeeper to move far beyond this area and join an attack, as this leaves the defence vulnerable to long-distance attempts until the goalkeeper can return to defend it.\nThe most prolific goalscoring goalkeepers are those who take penalties or free kicks. Other occasions where goalkeepers sometimes score include set pieces where a goalkeeper joins an attack when a team desperately needs a goal to win or prev",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/List_of_goalscoring_goalkeepers"
+            ]
+          }
+        ],
+        "outro": "Would your coach ever take that kind of chance?",
+        "full_text": "Could a coach ever risk a keeper scoring from way out? It's incredibly rare for a goalkeeper to score, isn't it? They usually stay in their own penalty area, defending their goal. But sometimes, a team desperately needs a goal. A coach might send the keeper forward to join an attack, perhaps for a set piece. This leaves the defence vulnerable, of course. But it opens up the chance for a long-distance attempt, a real gamble. Most goalscoring keepers get theirs from penalties or free kicks. Scoring from open play, far from their box, is a massive tactical choice. Would your coach ever take that kind of chance?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: Goals scored by goalkeepers are a somewhat rare event in football. Goalkeepers spend the majority of a match in the penalty area of their own team, a marked area around the goal they are defending in which they can handle the ball in order to defend their goal. It is highly unusual for a goalkeeper to move far beyond this area and join an attack, as this leaves the defence vulnerable to long-distance attempts until the goalkeeper can return to defend it.\nThe most prolific goalscoring goalkeepers are those who take penalties or free kicks. Other occasions where goalkeepers sometimes score include set pieces where a goalkeeper joins an attack when a team desperately needs a goal to win or prev",
+            "url": "https://en.wikipedia.org/wiki/List_of_goalscoring_goalkeepers"
+          }
+        ],
+        "research_context": "ENTITY: List of goalscoring goalkeepers\nSOURCE URL: https://en.wikipedia.org/wiki/List_of_goalscoring_goalkeepers\nSUMMARY: Goals scored by goalkeepers are a somewhat rare event in football. Goalkeepers spend the majority of a match in the penalty area of their own team, a marked area around the goal they are defending in which they can handle the ball in order to defend their goal. It is highly unusual for a goalkeeper to move far beyond this area and join an attack, as this leaves the defence vulnerable to long-distance attempts until the goalkeeper can return to defend it.\nThe most prolific goalscoring goalkeepers are those who take penalties or free kicks. Other occasions where goalkeepers sometimes score include set pieces where a goalkeeper joins an attack when a team desperately needs a goal to win or prev"
+      },
+      "visual_type": "editorial",
+      "image_path": "footybitez/output/social_posts/post.jpg"
+    },
+    "facebook": {
+      "1098623579997373": "122120470484340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18125798015062407",
+    "instagram_id": "18112867184623618"
   }
 }
