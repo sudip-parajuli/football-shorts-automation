@@ -1684,5 +1684,101 @@
     "facebook_pending": {},
     "instagram_container_id": "18125798015062407",
     "instagram_id": "18112867184623618"
+  },
+  "2026-11-24": {
+    "plan": {
+      "slot": "2026-11-24",
+      "topic": "The tragic career of Adriano",
+      "category": "lifestyle",
+      "format": "text",
+      "title": "Adriano\u2019s Rise and Fall: A Modern Football Tragedy",
+      "caption": "How does a star become a cautionary tale in minutes?\n\nAdriano burst onto the scene, a powerhouse striker with raw talent and massive hype.\n\nBut tragedy isn\u2019t just about a sad ending; it\u2019s the weight of regret and loss that follows.\n\nHis career spiralled as personal demons and injuries took hold, leaving fans lamenting what could've been.\n\nDo you think the sport could've done more to protect talents like Adriano?\n\nSources: https://en.wikipedia.org/wiki/Tragedy https://www.merriam-webster.com/dictionary/tragic\n\n#football #footballplayers #FootyBitez",
+      "entities": [
+        "Adriano"
+      ],
+      "evidence": {
+        "title": "Adriano\u2019s Rise and Fall: A Modern Football Tragedy",
+        "hook": "How does a star become a cautionary tale in minutes?",
+        "primary_entity": "Adriano",
+        "music_mood": "reflective",
+        "segments": [
+          {
+            "text": "Adriano burst onto the scene, a powerhouse striker with raw talent and massive hype.",
+            "visual_keyword": "adriano burst onto scene powerhouse striker raw talent massive hype football illustration",
+            "visual_entities": [],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SNIPPET: For a work to be tragic, it need not have a tragic ending. Although Aristotle says that catharsis (purgation of emotion) should be the goal of tragedy, this is only an ideal."
+            ],
+            "source_quote": "SNIPPET: For a work to be tragic, it need not have a tragic ending. Although Aristotle says that catharsis (purgation of emotion) should be the goal of tragedy, this is only an ideal.",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Tragedy"
+            ]
+          },
+          {
+            "text": "But tragedy isn\u2019t just about a sad ending; it\u2019s the weight of regret and loss that follows.",
+            "visual_keyword": "definition of tragic in literature",
+            "visual_entities": [],
+            "evidence_ids": [
+              "S2"
+            ],
+            "source_quotes": [
+              "SNIPPET: 5 days ago \u00b7 The meaning of TRAGIC is regrettably serious or unpleasant : deplorable, lamentable. How to use tragic in a sentence."
+            ],
+            "source_quote": "SNIPPET: 5 days ago \u00b7 The meaning of TRAGIC is regrettably serious or unpleasant : deplorable, lamentable. How to use tragic in a sentence.",
+            "source_urls": [
+              "https://www.merriam-webster.com/dictionary/tragic"
+            ]
+          },
+          {
+            "text": "His career spiralled as personal demons and injuries took hold, leaving fans lamenting what could've been.",
+            "visual_keyword": "his career spiralled personal demons injuries took hold leaving fans football illustration",
+            "visual_entities": [],
+            "evidence_ids": [
+              "S3"
+            ],
+            "source_quotes": [
+              "SNIPPET: TRAGIC definition: 1. very sad, often involving death and suffering: 2. belonging or relating to literature about\u2026. Learn more."
+            ],
+            "source_quote": "SNIPPET: TRAGIC definition: 1. very sad, often involving death and suffering: 2. belonging or relating to literature about\u2026. Learn more.",
+            "source_urls": [
+              "https://dictionary.cambridge.org/dictionary/english/tragic"
+            ]
+          }
+        ],
+        "outro": "Do you think the sport could've done more to protect talents like Adriano?",
+        "full_text": "How does a star become a cautionary tale in minutes? Adriano burst onto the scene, a powerhouse striker with raw talent and massive hype. But tragedy isn\u2019t just about a sad ending; it\u2019s the weight of regret and loss that follows. His career spiralled as personal demons and injuries took hold, leaving fans lamenting what could've been. Do you think the sport could've done more to protect talents like Adriano?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SNIPPET: For a work to be tragic, it need not have a tragic ending. Although Aristotle says that catharsis (purgation of emotion) should be the goal of tragedy, this is only an ideal.",
+            "url": "https://en.wikipedia.org/wiki/Tragedy"
+          },
+          {
+            "id": "S2",
+            "text": "SNIPPET: 5 days ago \u00b7 The meaning of TRAGIC is regrettably serious or unpleasant : deplorable, lamentable. How to use tragic in a sentence.",
+            "url": "https://www.merriam-webster.com/dictionary/tragic"
+          },
+          {
+            "id": "S3",
+            "text": "SNIPPET: TRAGIC definition: 1. very sad, often involving death and suffering: 2. belonging or relating to literature about\u2026. Learn more.",
+            "url": "https://dictionary.cambridge.org/dictionary/english/tragic"
+          },
+          {
+            "id": "S4",
+            "text": "SNIPPET: Official video for \"TRAGIC\" by The Kid LAROI featuring YoungBoy Never Broke Again & Internet Money. Listen & Download \"F*CK LOVE (SAVAGE)\" out now: https://T...",
+            "url": "https://www.youtube.com/watch?v=TDu2qv5U5sc"
+          }
+        ],
+        "research_context": "WEB SOURCE: Tragedy - Wikipedia\nSOURCE URL: https://en.wikipedia.org/wiki/Tragedy\nSNIPPET: For a work to be tragic, it need not have a tragic ending. Although Aristotle says that catharsis (purgation of emotion) should be the goal of tragedy, this is only an ideal.\n\n=====\n\nWEB SOURCE: TRAGIC Definition & Meaning - Merriam-Webster\nSOURCE URL: https://www.merriam-webster.com/dictionary/tragic\nSNIPPET: 5 days ago \u00b7 The meaning of TRAGIC is regrettably serious or unpleasant : deplorable, lamentable. How to use tragic in a sentence.\n\n=====\n\nWEB SOURCE: TRAGIC | English meaning - Cambridge Dictionary\nSOURCE URL: https://dictionary.cambridge.org/dictionary/english/tragic\nSNIPPET: TRAGIC definition: 1. very sad, often involving death and suffering: 2. belonging or relating to literature about\u2026. Learn more.\n\n=====\n\nWEB SOURCE: The Kid LAROI - TRAGIC (feat. YoungBoy Never Broke Again &...\nSOURCE URL: https://www.youtube.com/watch?v=TDu2qv5U5sc\nSNIPPET: Official video for \"TRAGIC\" by The Kid LAROI featuring YoungBoy Never Broke Again & Internet Money. Listen & Download \"F*CK LOVE (SAVAGE)\" out now: https://T..."
+      }
+    },
+    "facebook": {
+      "1098623579997373": "1098623579997373_122120539814340601"
+    },
+    "facebook_pending": {},
+    "instagram_skipped": "Facebook text-only post; Instagram requires an image"
   }
 }
