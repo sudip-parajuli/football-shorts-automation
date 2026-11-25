@@ -1780,5 +1780,100 @@
     },
     "facebook_pending": {},
     "instagram_skipped": "Facebook text-only post; Instagram requires an image"
+  },
+  "2026-11-25": {
+    "plan": {
+      "slot": "2026-11-25",
+      "topic": "The deadliest rivalry match",
+      "category": "trophies",
+      "format": "photo",
+      "title": "The Deadliest Rivalry Match and Its Trophy Stakes",
+      "caption": "Can a single fixture decide a century\u2011old blood feud?\n\nRivalries spark fierce crowds, higher tickets and TV numbers, turning games into must\u2011see events.\n\nWhen the two sides meet, the prize feels more than a trophy \u2013 it\u2019s pride and history.\n\nOwners even fuel the feud, knowing the clash drives revenue and fan passion.\n\nSo, will this showdown finally settle the deadliest rivalry once and for all?\n\nSources: https://en.wikipedia.org/wiki/List_of_sports_rivalries\n\n#football #footballhistory #FootyBitez",
+      "entities": [
+        "football rivalry",
+        "Blues",
+        "Greens"
+      ],
+      "evidence": {
+        "title": "The Deadliest Rivalry Match and Its Trophy Stakes",
+        "hook": "Can a single fixture decide a century\u2011old blood feud?",
+        "primary_entity": "football rivalry",
+        "music_mood": "tense",
+        "segments": [
+          {
+            "text": "Rivalries spark fierce crowds, higher tickets and TV numbers, turning games into must\u2011see events.",
+            "visual_keyword": "rivalries spark fierce crowds higher tickets tv numbers turning games football illustration",
+            "visual_entities": [
+              "Blues",
+              "Greens"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: A sports rivalry is intense competition between athletic teams or athletes, affecting participants, management, and supporters all to varying degrees.\nOne of the first known sports rivalries occurred in the Roman Empire between the Blues and the Greens, and the minor teams of the Reds and Whites, each of which were chariot racing clubs competing at the Hippodrome in Constantinople. The rivalry took on political tones as well, coming close to deposing the Roman Emperor Justinian in 532 AD in a riot and the suppression of the riot killed tens of thousands of people.\nOwners have been known to encourage rivalries as they tend to improve game attendance and television ratings for rivalry matches."
+            ],
+            "source_quote": "SUMMARY: A sports rivalry is intense competition between athletic teams or athletes, affecting participants, management, and supporters all to varying degrees.\nOne of the first known sports rivalries occurred in the Roman Empire between the Blues and the Greens, and the minor teams of the Reds and Whites, each of which were chariot racing clubs competing at the Hippodrome in Constantinople. The rivalry took on political tones as well, coming close to deposing the Roman Emperor Justinian in 532 AD in a riot and the suppression of the riot killed tens of thousands of people.\nOwners have been known to encourage rivalries as they tend to improve game attendance and television ratings for rivalry matches.",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/List_of_sports_rivalries"
+            ]
+          },
+          {
+            "text": "When the two sides meet, the prize feels more than a trophy \u2013 it\u2019s pride and history.",
+            "visual_keyword": "when two sides meet prize feels more than trophy s football illustration",
+            "visual_entities": [
+              "Blues",
+              "Greens"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: A sports rivalry is intense competition between athletic teams or athletes, affecting participants, management, and supporters all to varying degrees.\nOne of the first known sports rivalries occurred in the Roman Empire between the Blues and the Greens, and the minor teams of the Reds and Whites, each of which were chariot racing clubs competing at the Hippodrome in Constantinople. The rivalry took on political tones as well, coming close to deposing the Roman Emperor Justinian in 532 AD in a riot and the suppression of the riot killed tens of thousands of people.\nOwners have been known to encourage rivalries as they tend to improve game attendance and television ratings for rivalry matches."
+            ],
+            "source_quote": "SUMMARY: A sports rivalry is intense competition between athletic teams or athletes, affecting participants, management, and supporters all to varying degrees.\nOne of the first known sports rivalries occurred in the Roman Empire between the Blues and the Greens, and the minor teams of the Reds and Whites, each of which were chariot racing clubs competing at the Hippodrome in Constantinople. The rivalry took on political tones as well, coming close to deposing the Roman Emperor Justinian in 532 AD in a riot and the suppression of the riot killed tens of thousands of people.\nOwners have been known to encourage rivalries as they tend to improve game attendance and television ratings for rivalry matches.",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/List_of_sports_rivalries"
+            ]
+          },
+          {
+            "text": "Owners even fuel the feud, knowing the clash drives revenue and fan passion.",
+            "visual_keyword": "owners even fuel feud knowing clash drives revenue fan passion football illustration",
+            "visual_entities": [
+              "Blues",
+              "Greens"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: A sports rivalry is intense competition between athletic teams or athletes, affecting participants, management, and supporters all to varying degrees.\nOne of the first known sports rivalries occurred in the Roman Empire between the Blues and the Greens, and the minor teams of the Reds and Whites, each of which were chariot racing clubs competing at the Hippodrome in Constantinople. The rivalry took on political tones as well, coming close to deposing the Roman Emperor Justinian in 532 AD in a riot and the suppression of the riot killed tens of thousands of people.\nOwners have been known to encourage rivalries as they tend to improve game attendance and television ratings for rivalry matches."
+            ],
+            "source_quote": "SUMMARY: A sports rivalry is intense competition between athletic teams or athletes, affecting participants, management, and supporters all to varying degrees.\nOne of the first known sports rivalries occurred in the Roman Empire between the Blues and the Greens, and the minor teams of the Reds and Whites, each of which were chariot racing clubs competing at the Hippodrome in Constantinople. The rivalry took on political tones as well, coming close to deposing the Roman Emperor Justinian in 532 AD in a riot and the suppression of the riot killed tens of thousands of people.\nOwners have been known to encourage rivalries as they tend to improve game attendance and television ratings for rivalry matches.",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/List_of_sports_rivalries"
+            ]
+          }
+        ],
+        "outro": "So, will this showdown finally settle the deadliest rivalry once and for all?",
+        "full_text": "Can a single fixture decide a century\u2011old blood feud? Rivalries spark fierce crowds, higher tickets and TV numbers, turning games into must\u2011see events. When the two sides meet, the prize feels more than a trophy \u2013 it\u2019s pride and history. Owners even fuel the feud, knowing the clash drives revenue and fan passion. So, will this showdown finally settle the deadliest rivalry once and for all?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: A sports rivalry is intense competition between athletic teams or athletes, affecting participants, management, and supporters all to varying degrees.\nOne of the first known sports rivalries occurred in the Roman Empire between the Blues and the Greens, and the minor teams of the Reds and Whites, each of which were chariot racing clubs competing at the Hippodrome in Constantinople. The rivalry took on political tones as well, coming close to deposing the Roman Emperor Justinian in 532 AD in a riot and the suppression of the riot killed tens of thousands of people.\nOwners have been known to encourage rivalries as they tend to improve game attendance and television ratings for rivalry matches.",
+            "url": "https://en.wikipedia.org/wiki/List_of_sports_rivalries"
+          }
+        ],
+        "research_context": "ENTITY: List of sports rivalries\nSOURCE URL: https://en.wikipedia.org/wiki/List_of_sports_rivalries\nSUMMARY: A sports rivalry is intense competition between athletic teams or athletes, affecting participants, management, and supporters all to varying degrees.\nOne of the first known sports rivalries occurred in the Roman Empire between the Blues and the Greens, and the minor teams of the Reds and Whites, each of which were chariot racing clubs competing at the Hippodrome in Constantinople. The rivalry took on political tones as well, coming close to deposing the Roman Emperor Justinian in 532 AD in a riot and the suppression of the riot killed tens of thousands of people.\nOwners have been known to encourage rivalries as they tend to improve game attendance and television ratings for rivalry matches."
+      },
+      "visual_type": "editorial",
+      "image_path": "footybitez/output/social_posts/post.jpg"
+    },
+    "facebook": {
+      "1098623579997373": "122120611268340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18126056663062407",
+    "instagram_id": "18117163928134338"
   }
 }
