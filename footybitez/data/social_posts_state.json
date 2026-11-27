@@ -1875,5 +1875,116 @@
     "facebook_pending": {},
     "instagram_container_id": "18126056663062407",
     "instagram_id": "18117163928134338"
+  },
+  "2026-11-27": {
+    "plan": {
+      "slot": "2026-11-27",
+      "topic": "Lionel Messi vs Cristiano Ronaldo: who really won more?",
+      "category": "matches",
+      "format": "photo",
+      "title": "Messi vs Ronaldo: Who Walked Away With More Silverware?",
+      "caption": "Who really lifted more trophies, Messi or Ronaldo?\n\nMessi\u2019s cabinet lists 47 official trophies, while Ronaldo\u2019s holds 35 \u2013 a clear edge for the Argentine.\n\nRonaldo\u2019s goal ledger is staggering \u2013 987 senior goals and the Champions League record of 140 strikes.\n\nThe rivalry splits fans: Messi leads in silverware, Ronaldo dominates the numbers game.\n\nSo, which legacy matters more to you \u2013 trophies or goals?\n\nSources: https://en.wikipedia.org/wiki/Messi%E2%80%93Ronaldo_rivalry https://en.wikipedia.org/wiki/List_of_career_achievements_by_Cristiano_Ronaldo\n\n#football #matchday #FootyBitez\n\nPhoto: Bryan Berlin / CC BY-SA 4.0 / https://commons.wikimedia.org/wiki/File:Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg / https://creativecommons.org/licenses/by-sa/4.0. Cropped with text overlay; entity photograph.",
+      "entities": [
+        "Lionel Messi vs Cristiano Ronaldo",
+        "Lionel Messi",
+        "Cristiano Ronaldo"
+      ],
+      "evidence": {
+        "title": "Messi vs Ronaldo: Who Walked Away With More Silverware?",
+        "hook": "Who really lifted more trophies, Messi or Ronaldo?",
+        "primary_entity": "Lionel Messi vs Cristiano Ronaldo",
+        "music_mood": "reflective",
+        "segments": [
+          {
+            "text": "Messi\u2019s cabinet lists 47 official trophies, while Ronaldo\u2019s holds 35 \u2013 a clear edge for the Argentine.",
+            "visual_keyword": "messi s cabinet lists 47 official trophies while ronaldo football illustration",
+            "visual_entities": [
+              "Lionel Messi",
+              "Cristiano Ronaldo"
+            ],
+            "evidence_ids": [
+              "S1"
+            ],
+            "source_quotes": [
+              "SUMMARY: The Messi\u2013Ronaldo rivalry, or Ronaldo\u2013Messi rivalry, is a sporting rivalry in football propelled by the media and fans that involves Argentine footballer Lionel Messi and Portuguese footballer Cristiano Ronaldo, mainly for being contemporaries and due to their similar records and sporting successes. They spent nine seasons in the prime of their careers facing off regularly while playing for rival clubs Barcelona and Real Madrid.\nTogether, they have achieved various historical milestones, coming to be considered as two of the greatest footballers of all time. They are two of the most decorated players ever, having won 82 official trophies in total (Messi 47, Ronaldo 35) during their senior ca"
+            ],
+            "source_quote": "SUMMARY: The Messi\u2013Ronaldo rivalry, or Ronaldo\u2013Messi rivalry, is a sporting rivalry in football propelled by the media and fans that involves Argentine footballer Lionel Messi and Portuguese footballer Cristiano Ronaldo, mainly for being contemporaries and due to their similar records and sporting successes. They spent nine seasons in the prime of their careers facing off regularly while playing for rival clubs Barcelona and Real Madrid.\nTogether, they have achieved various historical milestones, coming to be considered as two of the greatest footballers of all time. They are two of the most decorated players ever, having won 82 official trophies in total (Messi 47, Ronaldo 35) during their senior ca",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Messi%E2%80%93Ronaldo_rivalry"
+            ]
+          },
+          {
+            "text": "Ronaldo\u2019s goal ledger is staggering \u2013 987 senior goals and the Champions League record of 140 strikes.",
+            "visual_keyword": "Ronaldo career goals and Champions League record",
+            "visual_entities": [
+              "Cristiano Ronaldo"
+            ],
+            "evidence_ids": [
+              "S2"
+            ],
+            "source_quotes": [
+              "SUMMARY: Over the course of his career, Portuguese footballer Cristiano Ronaldo has received five Ballon d'Or/FIFA Ballon d'Or awards, the most for a European player. Widely regarded as one of the greatest players of all time, Ronaldo holds the record for most goals in the UEFA Champions League (140 goals), and the record for most goals in the UEFA European Championship (14), its qualification stage (40), and the FIFA Club World Cup (7), as well as most goals scored in a UEFA Champions League season (17 in 2013\u201314), most international goals (146), and most appearances in a national team (234). He has scored a record 987 senior career goals for club and country. Moreover, he is one of only three playe"
+            ],
+            "source_quote": "SUMMARY: Over the course of his career, Portuguese footballer Cristiano Ronaldo has received five Ballon d'Or/FIFA Ballon d'Or awards, the most for a European player. Widely regarded as one of the greatest players of all time, Ronaldo holds the record for most goals in the UEFA Champions League (140 goals), and the record for most goals in the UEFA European Championship (14), its qualification stage (40), and the FIFA Club World Cup (7), as well as most goals scored in a UEFA Champions League season (17 in 2013\u201314), most international goals (146), and most appearances in a national team (234). He has scored a record 987 senior career goals for club and country. Moreover, he is one of only three playe",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/List_of_career_achievements_by_Cristiano_Ronaldo"
+            ]
+          },
+          {
+            "text": "The rivalry splits fans: Messi leads in silverware, Ronaldo dominates the numbers game.",
+            "visual_keyword": "rivalry splits fans messi leads silverware ronaldo dominates numbers game football illustration",
+            "visual_entities": [
+              "Lionel Messi",
+              "Cristiano Ronaldo"
+            ],
+            "evidence_ids": [
+              "S1",
+              "S2"
+            ],
+            "source_quotes": [
+              "SUMMARY: The Messi\u2013Ronaldo rivalry, or Ronaldo\u2013Messi rivalry, is a sporting rivalry in football propelled by the media and fans that involves Argentine footballer Lionel Messi and Portuguese footballer Cristiano Ronaldo, mainly for being contemporaries and due to their similar records and sporting successes. They spent nine seasons in the prime of their careers facing off regularly while playing for rival clubs Barcelona and Real Madrid.\nTogether, they have achieved various historical milestones, coming to be considered as two of the greatest footballers of all time. They are two of the most decorated players ever, having won 82 official trophies in total (Messi 47, Ronaldo 35) during their senior ca",
+              "SUMMARY: Over the course of his career, Portuguese footballer Cristiano Ronaldo has received five Ballon d'Or/FIFA Ballon d'Or awards, the most for a European player. Widely regarded as one of the greatest players of all time, Ronaldo holds the record for most goals in the UEFA Champions League (140 goals), and the record for most goals in the UEFA European Championship (14), its qualification stage (40), and the FIFA Club World Cup (7), as well as most goals scored in a UEFA Champions League season (17 in 2013\u201314), most international goals (146), and most appearances in a national team (234). He has scored a record 987 senior career goals for club and country. Moreover, he is one of only three playe"
+            ],
+            "source_quote": "SUMMARY: The Messi\u2013Ronaldo rivalry, or Ronaldo\u2013Messi rivalry, is a sporting rivalry in football propelled by the media and fans that involves Argentine footballer Lionel Messi and Portuguese footballer Cristiano Ronaldo, mainly for being contemporaries and due to their similar records and sporting successes. They spent nine seasons in the prime of their careers facing off regularly while playing for rival clubs Barcelona and Real Madrid.\nTogether, they have achieved various historical milestones, coming to be considered as two of the greatest footballers of all time. They are two of the most decorated players ever, having won 82 official trophies in total (Messi 47, Ronaldo 35) during their senior ca",
+            "source_urls": [
+              "https://en.wikipedia.org/wiki/Messi%E2%80%93Ronaldo_rivalry",
+              "https://en.wikipedia.org/wiki/List_of_career_achievements_by_Cristiano_Ronaldo"
+            ]
+          }
+        ],
+        "outro": "So, which legacy matters more to you \u2013 trophies or goals?",
+        "full_text": "Who really lifted more trophies, Messi or Ronaldo? Messi\u2019s cabinet lists 47 official trophies, while Ronaldo\u2019s holds 35 \u2013 a clear edge for the Argentine. Ronaldo\u2019s goal ledger is staggering \u2013 987 senior goals and the Champions League record of 140 strikes. The rivalry splits fans: Messi leads in silverware, Ronaldo dominates the numbers game. So, which legacy matters more to you \u2013 trophies or goals?",
+        "research_evidence": [
+          {
+            "id": "S1",
+            "text": "SUMMARY: The Messi\u2013Ronaldo rivalry, or Ronaldo\u2013Messi rivalry, is a sporting rivalry in football propelled by the media and fans that involves Argentine footballer Lionel Messi and Portuguese footballer Cristiano Ronaldo, mainly for being contemporaries and due to their similar records and sporting successes. They spent nine seasons in the prime of their careers facing off regularly while playing for rival clubs Barcelona and Real Madrid.\nTogether, they have achieved various historical milestones, coming to be considered as two of the greatest footballers of all time. They are two of the most decorated players ever, having won 82 official trophies in total (Messi 47, Ronaldo 35) during their senior ca",
+            "url": "https://en.wikipedia.org/wiki/Messi%E2%80%93Ronaldo_rivalry"
+          },
+          {
+            "id": "S2",
+            "text": "SUMMARY: Over the course of his career, Portuguese footballer Cristiano Ronaldo has received five Ballon d'Or/FIFA Ballon d'Or awards, the most for a European player. Widely regarded as one of the greatest players of all time, Ronaldo holds the record for most goals in the UEFA Champions League (140 goals), and the record for most goals in the UEFA European Championship (14), its qualification stage (40), and the FIFA Club World Cup (7), as well as most goals scored in a UEFA Champions League season (17 in 2013\u201314), most international goals (146), and most appearances in a national team (234). He has scored a record 987 senior career goals for club and country. Moreover, he is one of only three playe",
+            "url": "https://en.wikipedia.org/wiki/List_of_career_achievements_by_Cristiano_Ronaldo"
+          }
+        ],
+        "research_context": "ENTITY: Messi\u2013Ronaldo rivalry\nSOURCE URL: https://en.wikipedia.org/wiki/Messi%E2%80%93Ronaldo_rivalry\nSUMMARY: The Messi\u2013Ronaldo rivalry, or Ronaldo\u2013Messi rivalry, is a sporting rivalry in football propelled by the media and fans that involves Argentine footballer Lionel Messi and Portuguese footballer Cristiano Ronaldo, mainly for being contemporaries and due to their similar records and sporting successes. They spent nine seasons in the prime of their careers facing off regularly while playing for rival clubs Barcelona and Real Madrid.\nTogether, they have achieved various historical milestones, coming to be considered as two of the greatest footballers of all time. They are two of the most decorated players ever, having won 82 official trophies in total (Messi 47, Ronaldo 35) during their senior ca\n\n=====\n\nENTITY: List of career achievements by Cristiano Ronaldo\nSOURCE URL: https://en.wikipedia.org/wiki/List_of_career_achievements_by_Cristiano_Ronaldo\nSUMMARY: Over the course of his career, Portuguese footballer Cristiano Ronaldo has received five Ballon d'Or/FIFA Ballon d'Or awards, the most for a European player. Widely regarded as one of the greatest players of all time, Ronaldo holds the record for most goals in the UEFA Champions League (140 goals), and the record for most goals in the UEFA European Championship (14), its qualification stage (40), and the FIFA Club World Cup (7), as well as most goals scored in a UEFA Champions League season (17 in 2013\u201314), most international goals (146), and most appearances in a national team (234). He has scored a record 987 senior career goals for club and country. Moreover, he is one of only three playe"
+      },
+      "image_path": "footybitez/output/social_posts/post.jpg",
+      "image_source": {
+        "source": "Wikipedia primary entity image",
+        "subject": "Lionel Messi",
+        "url": "https://upload.wikimedia.org/wikipedia/commons/c/c8/Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg?utm_source=en.wikipedia.org&utm_campaign=api&utm_content=original",
+        "source_page": "https://commons.wikimedia.org/wiki/File:Leo_Messi_Argentina_v_Egypt_7_July_2026-1.jpg",
+        "license": "CC BY-SA 4.0",
+        "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+        "creator": "Bryan Berlin",
+        "verification": "exact football article identity; entity portrait, not match footage"
+      }
+    },
+    "facebook": {
+      "1098623579997373": "122120781536340601"
+    },
+    "facebook_pending": {},
+    "instagram_container_id": "18126326642062407",
+    "instagram_id": "18439933498199143"
   }
 }
